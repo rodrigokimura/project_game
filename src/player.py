@@ -3,30 +3,36 @@ from typing import Any, Optional
 
 import pygame
 
+from settings import DEBUG
+from world import GravitySprite, World
 
-class Player(pygame.sprite.Sprite):
+
+class Player(GravitySprite):
     def __init__(
         self,
+        world: World,
         pos: Optional[tuple[int, int]],
         joystick: Optional[pygame.joystick.JoystickType],
         *groups: pygame.sprite.Group
     ) -> None:
-        super().__init__(*groups)
+        super().__init__(world, *groups)
 
         self.joystick = joystick
         if self.joystick is not None:
             self.joystick.init()
 
-        self.pos = pos or pygame.display.get_surface().get_rect().center
+        pos = pos or pygame.display.get_surface().get_rect().center
+        self.pos = pygame.math.Vector2(*pos)
         self.angle = 0
         self.size = 32
 
         self._draw()
 
         self.rect = self.image.get_rect(center=self.pos)
-        self.direction = pygame.Vector2()
         self.speed = 200
         self.angular_speed = self.speed / self.size / 2 * math.pi
+
+        self.jump_increment = 400
 
     def _draw(self):
         size = self.size
@@ -41,18 +47,34 @@ class Player(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, "red", rect, 0)
         self.original_image = self.image.copy()
 
-    def input(self, dt):
+    def update(self, dt, *args: Any, **kwargs: Any) -> None:
+        super().update(dt, *args, **kwargs)
+
+        self.input(dt)
+        self.move(dt)
+
+        self.rect.center = (int(self.pos.x), int(self.pos.y))
+
+        img = self.rotate()
+        rect = self.image.blit(img, self.original_image.get_rect())
+        self.image = img.subsurface(rect)
+
+        if DEBUG:
+            disp = pygame.display.get_surface()
+            pygame.draw.line(
+                disp,
+                "green",
+                self.pos,
+                self.pos + self.direction * self.size,
+            )
+            print(self.pos)
+
+    def input(self, dt: int):
         if self.joystick is not None:
             d_pad = self.joystick.get_hat(0)
-            self.direction = pygame.Vector2(d_pad)
+            self.direction.x = pygame.math.Vector2(d_pad).x
         else:
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_UP]:
-                self.direction.y = -1
-            elif keys[pygame.K_DOWN]:
-                self.direction.y = 1
-            else:
-                self.direction.y = 0
 
             if keys[pygame.K_LEFT]:
                 self.direction.x = -1
@@ -60,27 +82,37 @@ class Player(pygame.sprite.Sprite):
                 self.direction.x = 1
             else:
                 self.direction.x = 0
+        if self.pressing_jump_button():
+            self.jump(dt)
 
-        self.move(dt)
+    def pressing_jump_button(self):
+        if self.joystick is not None:
+            return self.joystick.get_button(0)
+        keys = pygame.key.get_pressed()
+        return keys[pygame.K_SPACE]
 
-    def move(self, dt):
-        if self.direction != (0, 0):
-            self.direction = self.direction.normalize()
-            self.pos += self.direction * self.speed * dt
-            self.rect.center = self.pos
-            if self.direction.x:
-                self.angle += (1 if self.direction.x < 0 else -1) * self.angular_speed
+    def jump(self, dt: int):
+        self.direction.y = -self.jump_increment * dt
 
-    def update(self, dt, *args: Any, **kwargs: Any) -> None:
-        self.input(dt)
+    def move(self, dt: int):
+        if self.direction.x:
+            self.pos.x += self.direction.x * self.speed * dt
+            self.angle += (1 if self.direction.x < 0 else -1) * self.angular_speed
 
-        img = self.rotate()
-        rect = self.image.blit(
-            img,
-            self.original_image.get_rect(),
+    def should_fall(self):
+        if self.pressing_jump_button():
+            return True
+
+        ground: Optional[pygame.sprite.Sprite] = pygame.sprite.spritecollideany(
+            self, self.collidable_sprites_buffer
         )
-        self.image = img.subsurface(rect)
-        return super().update(*args, **kwargs)
+        if ground is None:
+            return True
+
+        ground_rect: pygame.rect.Rect = ground.rect
+        self.pos.y = ground_rect.top - self.size // 2 + 1
+        self.direction.y = 0
+        return False
 
     def rotate(self):
         img = pygame.Surface(self.original_image.get_size())
