@@ -45,29 +45,21 @@ class Player(pygame.sprite.Sprite):
         if self.joystick is not None:
             d_pad = self.joystick.get_hat(0)
             self.direction = pygame.Vector2(d_pad)
-            if d_pad[0] == -1:
-                print("left")
-            elif d_pad[0] == 1:
-                print("right")
-            if d_pad[1] == -1:
-                print("down")
-            elif d_pad[1] == 1:
-                print("up")
-
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP]:
-            self.direction.y = -1
-        elif keys[pygame.K_DOWN]:
-            self.direction.y = 1
         else:
-            self.direction.y = 0
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_UP]:
+                self.direction.y = -1
+            elif keys[pygame.K_DOWN]:
+                self.direction.y = 1
+            else:
+                self.direction.y = 0
 
-        if keys[pygame.K_LEFT]:
-            self.direction.x = -1
-        elif keys[pygame.K_RIGHT]:
-            self.direction.x = 1
-        else:
-            self.direction.x = 0
+            if keys[pygame.K_LEFT]:
+                self.direction.x = -1
+            elif keys[pygame.K_RIGHT]:
+                self.direction.x = 1
+            else:
+                self.direction.x = 0
 
         self.move(dt)
 
