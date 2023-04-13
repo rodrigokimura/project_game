@@ -3,9 +3,14 @@ from typing import Any, Optional
 
 import pygame
 
+from settings import BLOCK_SIZE
+
 
 class World(pygame.sprite.Group):
     gravity: int = 10
+    def __init__(self) -> None:
+        super().__init__()
+        self.size = (100, 100)
 
 
 class GravitySprite(ABC, pygame.sprite.Sprite):
@@ -37,6 +42,6 @@ class Ground(pygame.sprite.Sprite):
         super().__init__(*groups)
         pos = pos or pygame.display.get_surface().get_rect().center
         self.pos = pygame.Vector2(*pos)
-        self.image = pygame.surface.Surface((1000, 32))
+        self.image = pygame.surface.Surface((1000, BLOCK_SIZE))
         self.image.fill("red")
         self.rect = self.image.get_rect(center=self.pos)

@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 import pygame
 
-from settings import DEBUG
+from settings import DEBUG, BLOCK_SIZE
 from world import GravitySprite, World
 
 
@@ -24,7 +24,7 @@ class Player(GravitySprite):
         pos = pos or pygame.display.get_surface().get_rect().center
         self.pos = pygame.math.Vector2(*pos)
         self.angle = 0
-        self.size = 32
+        self.size = 2 * BLOCK_SIZE
 
         self._draw()
 

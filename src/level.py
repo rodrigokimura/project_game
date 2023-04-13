@@ -1,7 +1,9 @@
 import pygame
+from blocks import Rock
 
 from player import Player
-from world import Ground, World
+from settings import BLOCK_SIZE
+from world import World
 
 
 class Level:
@@ -18,10 +20,15 @@ class Level:
         joystick = joysticks[0] if joysticks else None
         self.world = World()
         self.player = Player(self.world, None, joystick, self.all_sprites)
-        self.ground = Ground((self.player.pos.x, self.player.pos.y + 100))
 
-        self.all_sprites.add(self.ground)
-        self.collision_sprites.add(self.ground)
+        blocks = []
+        for i in range(20):
+            block = Rock()
+            block.rect.center = (int(self.player.pos.x + i * BLOCK_SIZE), int(self.player.pos.y + 132))
+            blocks.append(block)
+
+        self.collision_sprites.add(*blocks)
+        self.all_sprites.add(*blocks)
 
         self.player.collidable_sprites_buffer = self.collision_sprites
 
