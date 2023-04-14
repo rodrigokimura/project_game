@@ -7,7 +7,7 @@ from settings import BLOCK_SIZE
 
 
 class World(pygame.sprite.Group):
-    gravity: int = 10
+    gravity: pygame.math.Vector2 = pygame.math.Vector2(0, 20)
 
     def __init__(self) -> None:
         super().__init__()
@@ -19,17 +19,17 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
         super().__init__(*groups)
         self.collidable_sprites_buffer = pygame.sprite.Group()
         self.world = world
-        self.gravity = self.world.gravity
-        self.direction = pygame.math.Vector2()
+
         self.pos = pygame.math.Vector2()
+        self.velocity = pygame.math.Vector2()
+        self.acceleration = self.world.gravity
 
     def update(self, dt, *args: Any, **kwargs: Any) -> None:
         self.fall(dt)
 
     def fall(self, dt: int):
         if self.should_fall():
-            self.direction.y += self.gravity * dt
-            self.pos.y += int(self.direction.y)
+            self.velocity.y += self.acceleration.y * dt
 
     @abstractmethod
     def should_fall(self) -> None:

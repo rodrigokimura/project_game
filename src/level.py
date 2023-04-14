@@ -25,8 +25,8 @@ class Level:
         for i in range(200):
             block = Rock()
             block.rect.center = (
-                int(self.player.pos.x + (i - 10) * BLOCK_SIZE),
-                int(self.player.pos.y + 132),
+                int(self.player.position.x + (i - 10) * BLOCK_SIZE),
+                int(self.player.position.y + 132),
             )
             blocks.append(block)
 
@@ -34,8 +34,8 @@ class Level:
         for i in range(10):
             block = Rock()
             block.rect.center = (
-                int(self.player.pos.x + i * BLOCK_SIZE + 10 * BLOCK_SIZE),
-                int(self.player.pos.y + 132 - 3 * BLOCK_SIZE),
+                int(self.player.position.x + i * BLOCK_SIZE + 10 * BLOCK_SIZE),
+                int(self.player.position.y + 132 - 3 * BLOCK_SIZE),
             )
             blocks.append(block)
 
@@ -43,8 +43,8 @@ class Level:
         for i in range(10):
             block = Rock()
             block.rect.center = (
-                int(self.player.pos.x + i * BLOCK_SIZE + 15 * BLOCK_SIZE),
-                int(self.player.pos.y + 132 - 8 * BLOCK_SIZE),
+                int(self.player.position.x + i * BLOCK_SIZE + 15 * BLOCK_SIZE),
+                int(self.player.position.y + 132 - 8 * BLOCK_SIZE),
             )
             blocks.append(block)
 
@@ -52,8 +52,8 @@ class Level:
         for i in range(10):
             block = Rock()
             block.rect.center = (
-                int(self.player.pos.x + i * BLOCK_SIZE + 30 * BLOCK_SIZE),
-                int(self.player.pos.y + 132 - (i + 1) * BLOCK_SIZE),
+                int(self.player.position.x + i * BLOCK_SIZE + 30 * BLOCK_SIZE),
+                int(self.player.position.y + 132 - (i + 1) * BLOCK_SIZE),
             )
             blocks.append(block)
 
@@ -61,8 +61,8 @@ class Level:
         for i in range(10):
             block = Rock()
             block.rect.center = (
-                int(self.player.pos.x - 5 * BLOCK_SIZE),
-                int(self.player.pos.y + 132 - (i + 1) * BLOCK_SIZE),
+                int(self.player.position.x - 5 * BLOCK_SIZE),
+                int(self.player.position.y + 132 - (i + 1) * BLOCK_SIZE),
             )
             blocks.append(block)
 
@@ -72,6 +72,7 @@ class Level:
         self.player.collidable_sprites_buffer = self.collision_sprites
 
     def run(self, dt):
-        self.display_surface.fill("black")
+        # self.display_surface.fill("black")
+        self.display_surface.fill("gray")
         self.all_sprites.draw(self.display_surface)
         self.all_sprites.update(dt)

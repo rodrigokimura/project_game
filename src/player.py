@@ -3,6 +3,7 @@ from typing import Any, Optional
 
 import pygame
 
+from blocks import BaseBlock
 from settings import BLOCK_SIZE, DEBUG
 from world import GravitySprite, World
 
@@ -11,7 +12,7 @@ class Player(GravitySprite):
     def __init__(
         self,
         world: World,
-        pos: Optional[tuple[int, int]],
+        position: Optional[tuple[int, int]],
         joystick: Optional[pygame.joystick.JoystickType],
         *groups: pygame.sprite.Group
     ) -> None:
@@ -21,74 +22,77 @@ class Player(GravitySprite):
         if self.joystick is not None:
             self.joystick.init()
 
-        pos = pos or pygame.display.get_surface().get_rect().center
-        self.pos = pygame.math.Vector2(*pos)
+        position = position or pygame.display.get_surface().get_rect().center
+
+        self.position = pygame.math.Vector2(*position)
+
         self.angle = 0
         self.size = 2 * BLOCK_SIZE
 
         self._draw()
+        self.create_collision_mask()
 
-        self.rect = self.image.get_rect(center=self.pos)
-        self.speed = 200
-        self.angular_speed = self.speed / self.size / 2 * math.pi
+        self.rect = self.image.get_rect(center=self.position)
+
+        self.linear_velocity = 8
+        self.jump_scalar_velocity = 8
+
+        self.angular_velocity = self.linear_velocity / 2 * math.pi
+
         self.bottom_rect = pygame.rect.Rect(
-            self.pos.x - 1, self.pos.y + self.size / 2, 2, 1
+            self.position.x - 1, self.position.y + self.size / 2, 2, 1
         )
-
-        self.jump_increment = 400
 
     def _draw(self):
         size = self.size
         sq_size = size // 2
-        self.image = pygame.surface.Surface((size, size))
-        pygame.draw.circle(
-            self.image, "green", self.image.get_rect().center, size // 2, width=1
-        )
+        self.image = pygame.surface.Surface((size, size)).convert_alpha()
+        self.image.fill(pygame.Color(0, 0, 0, 0))
+        pygame.draw.circle(self.image, "green", self.image.get_rect().center, size // 2)
         rect = pygame.Rect(
             (size - sq_size) // 2, (size - sq_size) // 2, sq_size, sq_size
         )
         pygame.draw.rect(self.image, "red", rect, 0)
         self.original_image = self.image.copy()
 
+    def create_collision_mask(self):
+        shell = pygame.surface.Surface((self.size, self.size)).convert_alpha()
+        shell.fill(pygame.Color(0, 0, 0, 0))
+        pygame.draw.circle(
+            shell, "green", self.image.get_rect().center, self.size // 2, width=2
+        )
+        self.mask = pygame.mask.from_surface(shell)
+
     def update(self, dt, *args: Any, **kwargs: Any) -> None:
-        self.rect.center = (int(self.pos.x), int(self.pos.y))
-        self.bottom_rect.left = int(self.pos.x - 1)
-        self.bottom_rect.top = int(self.pos.y + self.size / 2)
+        self.input()
+        self.fall(dt)
 
-        self.input(dt)
-        self.move(dt)
-        self.check_collisions()
+        self.uncollide()
 
-        super().update(dt, *args, **kwargs)
-
-        img = self.rotate()
-        rect = self.image.blit(img, self.original_image.get_rect())
-        self.image = img.subsurface(rect)
+        self.update_angle()
+        self.update_position(dt)
+        self.update_image()
+        self.update_rects()
 
         if DEBUG:
-            disp = pygame.display.get_surface()
-            pygame.draw.line(
-                disp,
-                "green",
-                self.pos,
-                self.pos + self.direction * self.size,
-            )
+            self.draw_vectors()
+            self.draw_collision_mask()
 
-    def input(self, dt: int):
+    def input(self):
         if self.joystick is not None:
             d_pad = self.joystick.get_hat(0)
-            self.direction.x = pygame.math.Vector2(d_pad).x
+            self.velocity.x = pygame.math.Vector2(d_pad).x * self.linear_velocity
         else:
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_LEFT]:
-                self.direction.x = -1
+                self.velocity.x = -self.linear_velocity
             elif keys[pygame.K_RIGHT]:
-                self.direction.x = 1
+                self.velocity.x = self.linear_velocity
             else:
-                self.direction.x = 0
+                self.velocity.x = 0
         if self.pressing_jump_button():
-            self.jump(dt)
+            self.jump()
 
     def pressing_jump_button(self):
         if self.joystick is not None:
@@ -96,42 +100,78 @@ class Player(GravitySprite):
         keys = pygame.key.get_pressed()
         return keys[pygame.K_SPACE]
 
-    def jump(self, dt: int):
-        self.direction.y = -self.jump_increment * dt
+    def jump(self):
+        self.velocity.y = -self.jump_scalar_velocity
 
-    def move(self, dt: int):
-        if self.direction.x:
-            self.pos.x += self.direction.x * self.speed * dt
-            self.angle += (1 if self.direction.x < 0 else -1) * self.angular_speed
+    def update_angle(self):
+        if self.velocity.x:
+            self.angle += (1 if self.velocity.x < 0 else -1) * self.angular_velocity
 
-    def check_collisions(self):
-        collided_sprites = self.rect.collideobjectsall(
-            self.collidable_sprites_buffer.sprites()
+    def uncollide(self):
+        collided_sprites = pygame.sprite.spritecollide(
+            self,
+            self.collidable_sprites_buffer,
+            False,
+            collided=pygame.sprite.collide_mask,
         )
+
         if not collided_sprites:
             return
 
-        if self.direction.y:
-            if self.direction.y < 0:
-                collided_sprites.sort(key=lambda s: s.rect.y)
-                collided = collided_sprites[0]
-                self.rect.top = collided.rect.bottom
-            elif self.direction.y > 0:
-                collided_sprites.sort(key=lambda s: s.rect.y, reverse=True)
-                collided = collided_sprites[0]
-                self.rect.bottom = collided.rect.top
-            self.pos.y = self.rect.centery
+        print(collided_sprites)
 
-        if self.direction.x:
-            if self.direction.x < 0:
-                collided_sprites.sort(key=lambda s: s.rect.x)
-                collided = collided_sprites[0]
-                self.rect.left = collided.rect.right
-            elif self.direction.x > 0:
-                collided_sprites.sort(key=lambda s: s.rect.x, reverse=True)
-                collided = collided_sprites[0]
-                self.rect.right = collided.rect.left
-            self.pos.x = self.rect.centerx
+        first_collided_sprite: BaseBlock = collided_sprites[0]
+        bounding_rect = first_collided_sprite.rect
+        for block in collided_sprites:
+            bounding_rect = bounding_rect.union(block.rect)
+
+        collided_overlap = pygame.mask.Mask(bounding_rect.size, False)
+        for block in collided_sprites:
+            collided_overlap.draw(
+                block.mask,
+                (
+                    block.rect.left - bounding_rect.left,
+                    block.rect.top - bounding_rect.top,
+                ),
+            )
+        collided_overlap = collided_overlap.overlap_mask(
+            self.mask,
+            (
+                self.rect.left - bounding_rect.left,
+                self.rect.top - bounding_rect.top,
+            ),
+        )
+
+        collided_overlap.to_surface(pygame.display.get_surface())
+        centroid = collided_overlap.centroid()
+        centroid = pygame.math.Vector2(
+            centroid[0] + bounding_rect.left, centroid[1] + bounding_rect.top
+        )
+
+        # compute normal
+        normal = centroid - pygame.math.Vector2(self.rect.centerx, self.rect.centery)
+        if abs(normal.x) <= 1:
+            normal.x = 0
+        if abs(normal.y) <= 1:
+            normal.y = 0
+
+        # remove normal component
+        if normal.length():
+            if self.velocity.project(normal).angle_to(normal) == 0:
+                self.velocity -= self.velocity.project(normal)
+
+    def update_position(self, dt):
+        self.position += self.velocity * dt * self.size
+
+    def update_image(self):
+        img = self.rotate()
+        rect = self.image.blit(img, self.original_image.get_rect())
+        self.image = img.subsurface(rect)
+
+    def update_rects(self):
+        self.rect.center = (int(self.position.x), int(self.position.y))
+        self.bottom_rect.left = int(self.position.x - 1)
+        self.bottom_rect.top = int(self.position.y + self.size / 2)
 
     def should_fall(self):
         if self.pressing_jump_button():
@@ -144,9 +184,8 @@ class Player(GravitySprite):
             return True
 
         ground_rect: pygame.rect.Rect = ground.rect
-        self.pos.y = ground_rect.top - self.size // 2
+        self.position.y = ground_rect.top - self.size // 2
 
-        self.direction.y = 0
         return False
 
     def rotate(self):
@@ -161,3 +200,23 @@ class Player(GravitySprite):
             -int(new_y / 2),
         )
         return img
+
+    def draw_vectors(self):
+        disp = pygame.display.get_surface()
+        pygame.draw.line(
+            disp,
+            "green",
+            self.position,
+            self.position + self.velocity * BLOCK_SIZE,
+        )
+        pygame.draw.line(
+            disp,
+            "yellow",
+            self.position,
+            self.position + self.acceleration * BLOCK_SIZE,
+        )
+
+    def draw_collision_mask(self):
+        disp = pygame.display.get_surface()
+        # self.mask.to_surface(disp)
+        # pygame.draw.rect(disp, 'orange', self.collision_mask.get_rect())
