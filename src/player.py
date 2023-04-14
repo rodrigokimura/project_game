@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 import pygame
 
-from settings import DEBUG, BLOCK_SIZE
+from settings import BLOCK_SIZE, DEBUG
 from world import GravitySprite, World
 
 
@@ -31,6 +31,9 @@ class Player(GravitySprite):
         self.rect = self.image.get_rect(center=self.pos)
         self.speed = 200
         self.angular_speed = self.speed / self.size / 2 * math.pi
+        self.bottom_rect = pygame.rect.Rect(
+            self.pos.x - 1, self.pos.y + self.size / 2, 2, 1
+        )
 
         self.jump_increment = 400
 
@@ -48,12 +51,15 @@ class Player(GravitySprite):
         self.original_image = self.image.copy()
 
     def update(self, dt, *args: Any, **kwargs: Any) -> None:
-        super().update(dt, *args, **kwargs)
+        self.rect.center = (int(self.pos.x), int(self.pos.y))
+        self.bottom_rect.left = int(self.pos.x - 1)
+        self.bottom_rect.top = int(self.pos.y + self.size / 2)
 
         self.input(dt)
         self.move(dt)
+        self.check_collisions()
 
-        self.rect.center = (int(self.pos.x), int(self.pos.y))
+        super().update(dt, *args, **kwargs)
 
         img = self.rotate()
         rect = self.image.blit(img, self.original_image.get_rect())
@@ -67,7 +73,6 @@ class Player(GravitySprite):
                 self.pos,
                 self.pos + self.direction * self.size,
             )
-            print(self.pos)
 
     def input(self, dt: int):
         if self.joystick is not None:
@@ -99,18 +104,48 @@ class Player(GravitySprite):
             self.pos.x += self.direction.x * self.speed * dt
             self.angle += (1 if self.direction.x < 0 else -1) * self.angular_speed
 
+    def check_collisions(self):
+        collided_sprites = self.rect.collideobjectsall(
+            self.collidable_sprites_buffer.sprites()
+        )
+        if not collided_sprites:
+            return
+
+        if self.direction.y:
+            if self.direction.y < 0:
+                collided_sprites.sort(key=lambda s: s.rect.y)
+                collided = collided_sprites[0]
+                self.rect.top = collided.rect.bottom
+            elif self.direction.y > 0:
+                collided_sprites.sort(key=lambda s: s.rect.y, reverse=True)
+                collided = collided_sprites[0]
+                self.rect.bottom = collided.rect.top
+            self.pos.y = self.rect.centery
+
+        if self.direction.x:
+            if self.direction.x < 0:
+                collided_sprites.sort(key=lambda s: s.rect.x)
+                collided = collided_sprites[0]
+                self.rect.left = collided.rect.right
+            elif self.direction.x > 0:
+                collided_sprites.sort(key=lambda s: s.rect.x, reverse=True)
+                collided = collided_sprites[0]
+                self.rect.right = collided.rect.left
+            self.pos.x = self.rect.centerx
+
     def should_fall(self):
         if self.pressing_jump_button():
             return True
 
-        ground: Optional[pygame.sprite.Sprite] = pygame.sprite.spritecollideany(
-            self, self.collidable_sprites_buffer
+        ground = self.bottom_rect.collideobjects(
+            self.collidable_sprites_buffer.sprites()
         )
         if ground is None:
             return True
 
         ground_rect: pygame.rect.Rect = ground.rect
-        self.pos.y = ground_rect.top - self.size // 2 + 1
+        self.pos.y = ground_rect.top - self.size // 2
+
         self.direction.y = 0
         return False
 

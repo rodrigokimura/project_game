@@ -2,6 +2,7 @@ import pygame
 
 from settings import BLOCK_SIZE
 
+
 class BaseBlock(pygame.sprite.Sprite):
     def __init__(self, *groups: pygame.sprite.Group) -> None:
         super().__init__(*groups)

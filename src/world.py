@@ -8,6 +8,7 @@ from settings import BLOCK_SIZE
 
 class World(pygame.sprite.Group):
     gravity: int = 10
+
     def __init__(self) -> None:
         super().__init__()
         self.size = (100, 100)

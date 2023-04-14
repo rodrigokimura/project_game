@@ -1,6 +1,6 @@
 import pygame
-from blocks import Rock
 
+from blocks import Rock
 from player import Player
 from settings import BLOCK_SIZE
 from world import World
@@ -22,9 +22,48 @@ class Level:
         self.player = Player(self.world, None, joystick, self.all_sprites)
 
         blocks = []
-        for i in range(20):
+        for i in range(200):
             block = Rock()
-            block.rect.center = (int(self.player.pos.x + i * BLOCK_SIZE), int(self.player.pos.y + 132))
+            block.rect.center = (
+                int(self.player.pos.x + (i - 10) * BLOCK_SIZE),
+                int(self.player.pos.y + 132),
+            )
+            blocks.append(block)
+
+        # second level
+        for i in range(10):
+            block = Rock()
+            block.rect.center = (
+                int(self.player.pos.x + i * BLOCK_SIZE + 10 * BLOCK_SIZE),
+                int(self.player.pos.y + 132 - 3 * BLOCK_SIZE),
+            )
+            blocks.append(block)
+
+        # third level
+        for i in range(10):
+            block = Rock()
+            block.rect.center = (
+                int(self.player.pos.x + i * BLOCK_SIZE + 15 * BLOCK_SIZE),
+                int(self.player.pos.y + 132 - 8 * BLOCK_SIZE),
+            )
+            blocks.append(block)
+
+        # slope
+        for i in range(10):
+            block = Rock()
+            block.rect.center = (
+                int(self.player.pos.x + i * BLOCK_SIZE + 30 * BLOCK_SIZE),
+                int(self.player.pos.y + 132 - (i + 1) * BLOCK_SIZE),
+            )
+            blocks.append(block)
+
+        # wall
+        for i in range(10):
+            block = Rock()
+            block.rect.center = (
+                int(self.player.pos.x - 5 * BLOCK_SIZE),
+                int(self.player.pos.y + 132 - (i + 1) * BLOCK_SIZE),
+            )
             blocks.append(block)
 
         self.collision_sprites.add(*blocks)
