@@ -2,7 +2,14 @@ import pygame
 
 from blocks import Rock
 from player import Player
-from settings import BLOCK_SIZE, GRAVITY, SCREEN_HEIGHT, SCREEN_WIDTH, WORLD_SIZE
+from settings import (
+    BLOCK_SIZE,
+    GRAVITY,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    TERMINAL_VELOCITY,
+    WORLD_SIZE,
+)
 from world import World
 
 
@@ -47,7 +54,7 @@ class Level:
             pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())
         ]
         joystick = joysticks[0] if joysticks else None
-        self.world = World(WORLD_SIZE, GRAVITY)
+        self.world = World(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
         self.player = Player(self.world, None, joystick, self.all_sprites)
         self.camera = Camera((SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world)
 
