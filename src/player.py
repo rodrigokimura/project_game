@@ -14,7 +14,7 @@ class Player(GravitySprite):
         world: World,
         position: Optional[tuple[int, int]],
         joystick: Optional[pygame.joystick.JoystickType],
-        *groups: pygame.sprite.Group
+        *groups: pygame.sprite.Group,
     ) -> None:
         super().__init__(world, *groups)
 
@@ -43,6 +43,13 @@ class Player(GravitySprite):
             self.position.x - 1, self.position.y + self.size / 2, 2, 1
         )
 
+        self.max_jump_time = 0.2
+        self.max_jump_count = 3
+        self._jump_count = 0
+        self._jump_time = 0
+        self._b = False
+        self._can_keep_jumping = False
+
     def _draw(self):
         size = self.size
         sq_size = size // 2
@@ -63,8 +70,8 @@ class Player(GravitySprite):
         )
         self.mask = pygame.mask.from_surface(shell)
 
-    def update(self, dt, *args: Any, **kwargs: Any) -> None:
-        self.input()
+    def update(self, dt: int, *args: Any, **kwargs: Any) -> None:
+        self.input(dt)
         self.fall(dt)
 
         self.uncollide()
@@ -77,7 +84,7 @@ class Player(GravitySprite):
         if DEBUG:
             self.draw_vectors()
 
-    def input(self):
+    def input(self, dt: int):
         if self.joystick is not None:
             d_pad = self.joystick.get_hat(0)
 
@@ -93,6 +100,22 @@ class Player(GravitySprite):
             y = self.joystick.get_button(2)
             if y and self.velocity.x:
                 self.boost()
+
+            b = self.joystick.get_button(0)
+            if b != self._b:
+                self._b = b
+                print(f"State changed to {b}")
+                if b:
+                    self._can_keep_jumping = True
+                    print("B pressed")
+                    self._jump_count += 1
+                else:
+                    print("B released")
+                    if self._jump_count < self.max_jump_count:
+                        self._jump_time = 0
+
+            elif b:
+                self.jump(dt)
         else:
             keys = pygame.key.get_pressed()
 
@@ -102,9 +125,6 @@ class Player(GravitySprite):
                 self.velocity.x = self.linear_velocity
             else:
                 self.velocity.x = 0
-
-        if self.pressing_jump_button():
-            self.jump()
 
     def dash(self, direction: Literal["l"] | Literal["r"]):
         # TODO: fix collision when velocity is too high
@@ -116,14 +136,20 @@ class Player(GravitySprite):
     def boost(self):
         self.velocity.x = self.velocity.x + (10 if self.velocity.x > 0 else -10)
 
-    def pressing_jump_button(self):
-        if self.joystick is not None:
-            return self.joystick.get_button(0)
-        keys = pygame.key.get_pressed()
-        return keys[pygame.K_SPACE]
+    def jump(self, dt: int):
+        if (
+            self._jump_count < self.max_jump_count
+            and self._jump_time < self.max_jump_time
+            and self._can_keep_jumping
+        ):
+            self.velocity.y = -self.jump_scalar_velocity
+            self._jump_time += dt
+        else:
+            self._can_keep_jumping = False
 
-    def jump(self):
-        self.velocity.y = -self.jump_scalar_velocity
+    def reset_jump(self):
+        self._jump_count = 0
+        self._jump_time = 0
 
     def update_angle(self):
         if self.velocity.x:
@@ -196,9 +222,6 @@ class Player(GravitySprite):
         self.bottom_rect.top = int(self.position.y + self.size / 2)
 
     def should_fall(self):
-        if self.pressing_jump_button():
-            return True
-
         ground = self.bottom_rect.collideobjects(
             self.collidable_sprites_buffer.sprites()
         )
@@ -207,6 +230,8 @@ class Player(GravitySprite):
 
         ground_rect: pygame.rect.Rect = ground.rect
         self.position.y = ground_rect.top - self.size // 2
+        self._jump_count = 0
+        self._jump_time = 0
 
         return False
 
