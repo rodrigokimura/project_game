@@ -36,6 +36,10 @@ class Player(GravitySprite):
 
         self.linear_velocity = 8
         self.jump_scalar_velocity = 10
+        self.boost_scalar_velocity = 30
+
+        # should be less than gravity, otherwise player will fly up
+        self.glide_scalar_acceleration = 10
 
         self.angular_velocity = self.linear_velocity / 2 * math.pi
 
@@ -44,7 +48,7 @@ class Player(GravitySprite):
         )
 
         self.max_jump_time = 0.2
-        self.max_jump_count = 3
+        self.max_jump_count = 2
         self._jump_count = 0
         self._jump_time = 0
         self._b = False
@@ -73,6 +77,7 @@ class Player(GravitySprite):
     def update(self, dt: int, *args: Any, **kwargs: Any) -> None:
         self.input(dt)
         self.fall(dt)
+        self.glide(dt)
 
         self.uncollide()
 
@@ -113,7 +118,6 @@ class Player(GravitySprite):
                     print("B released")
                     if self._jump_count < self.max_jump_count:
                         self._jump_time = 0
-
             elif b:
                 self.jump(dt)
         else:
@@ -129,9 +133,9 @@ class Player(GravitySprite):
     def dash(self, direction: Literal["l"] | Literal["r"]):
         # TODO: fix collision when velocity is too high
         if direction == "l":
-            self.velocity.x = -50
+            self.velocity.x = -self.boost_scalar_velocity
         else:
-            self.velocity.x = 50
+            self.velocity.x = self.boost_scalar_velocity
 
     def boost(self):
         self.velocity.x = self.velocity.x + (10 if self.velocity.x > 0 else -10)
@@ -140,12 +144,19 @@ class Player(GravitySprite):
         if (
             self._jump_count < self.max_jump_count
             and self._jump_time < self.max_jump_time
-            and self._can_keep_jumping
         ):
-            self.velocity.y = -self.jump_scalar_velocity
-            self._jump_time += dt
+            if self._can_keep_jumping:
+                self.velocity.y = -self.jump_scalar_velocity
+                self._jump_time += dt
+            # else:
+            #     self.velocity.y = 0
         else:
             self._can_keep_jumping = False
+
+    def glide(self, dt: int):
+        if self.should_fall() and self.joystick and self.joystick.get_button(0):
+            if self.velocity.y > 0:
+                self.velocity.y -= self.glide_scalar_acceleration * dt
 
     def reset_jump(self):
         self._jump_count = 0
