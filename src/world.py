@@ -7,11 +7,11 @@ from settings import BLOCK_SIZE
 
 
 class World(pygame.sprite.Group):
-    gravity: pygame.math.Vector2 = pygame.math.Vector2(0, 20)
-
-    def __init__(self) -> None:
+    def __init__(self, size: tuple[int, int], gravity: int) -> None:
         super().__init__()
-        self.size = (100, 100)
+        self.size = pygame.math.Vector2(size)
+        self.gravity: pygame.math.Vector2 = pygame.math.Vector2(0, gravity)
+        self.surface = pygame.surface.Surface(self.size * BLOCK_SIZE)
 
 
 class GravitySprite(ABC, pygame.sprite.Sprite):

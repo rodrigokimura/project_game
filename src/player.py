@@ -76,11 +76,11 @@ class Player(GravitySprite):
 
         if DEBUG:
             self.draw_vectors()
-            self.draw_collision_mask()
 
     def input(self):
         if self.joystick is not None:
             d_pad = self.joystick.get_hat(0)
+
             self.velocity.x = pygame.math.Vector2(d_pad).x * self.linear_velocity
         else:
             keys = pygame.key.get_pressed()
@@ -202,21 +202,16 @@ class Player(GravitySprite):
         return img
 
     def draw_vectors(self):
-        disp = pygame.display.get_surface()
+        surf = self.world.surface
         pygame.draw.line(
-            disp,
+            surf,
             "green",
             self.position,
             self.position + self.velocity * BLOCK_SIZE,
         )
         pygame.draw.line(
-            disp,
+            surf,
             "yellow",
             self.position,
             self.position + self.acceleration * BLOCK_SIZE,
         )
-
-    def draw_collision_mask(self):
-        disp = pygame.display.get_surface()
-        # self.mask.to_surface(disp)
-        # pygame.draw.rect(disp, 'orange', self.collision_mask.get_rect())
