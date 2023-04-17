@@ -1,5 +1,5 @@
 import math
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import pygame
 
@@ -35,7 +35,7 @@ class Player(GravitySprite):
         self.rect = self.image.get_rect(center=self.position)
 
         self.linear_velocity = 8
-        self.jump_scalar_velocity = 8
+        self.jump_scalar_velocity = 10
 
         self.angular_velocity = self.linear_velocity / 2 * math.pi
 
@@ -82,6 +82,17 @@ class Player(GravitySprite):
             d_pad = self.joystick.get_hat(0)
 
             self.velocity.x = pygame.math.Vector2(d_pad).x * self.linear_velocity
+
+            lb = self.joystick.get_button(4)
+            rb = self.joystick.get_button(5)
+            if rb:
+                self.dash("r")
+            if lb:
+                self.dash("l")
+
+            y = self.joystick.get_button(2)
+            if y and self.velocity.x:
+                self.boost()
         else:
             keys = pygame.key.get_pressed()
 
@@ -91,8 +102,19 @@ class Player(GravitySprite):
                 self.velocity.x = self.linear_velocity
             else:
                 self.velocity.x = 0
+
         if self.pressing_jump_button():
             self.jump()
+
+    def dash(self, direction: Literal["l"] | Literal["r"]):
+        # TODO: fix collision when velocity is too high
+        if direction == "l":
+            self.velocity.x = -50
+        else:
+            self.velocity.x = 50
+
+    def boost(self):
+        self.velocity.x = self.velocity.x + (10 if self.velocity.x > 0 else -10)
 
     def pressing_jump_button(self):
         if self.joystick is not None:
