@@ -1,3 +1,5 @@
+import os
+
 import pygame
 
 import settings
@@ -6,7 +8,7 @@ from player import Player
 
 
 class Game:
-    def __init__(self) -> None:
+    def setup(self):
         pygame.init()
         pygame.joystick.init()
         pygame.display.set_caption(settings.TITLE)
@@ -17,6 +19,7 @@ class Game:
         self.internal_events = Player.EVENTS
 
     def run(self):
+        self.setup()
         running = True
 
         while running:
