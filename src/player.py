@@ -4,7 +4,7 @@ from typing import Any, Literal, Optional
 
 import pygame
 
-from blocks import BaseBlock
+from blocks import BaseBlock, BaseHazard
 from settings import BLOCK_SIZE, DEBUG
 from world import GravitySprite, World
 
@@ -16,10 +16,15 @@ class BasePlayer(ABC):
 
     @property
     def hp_percentage(self):
-        return int(self.health_points / self.max_health_points)
+        return self.health_points / self.max_health_points
+
+
+IMMUNITY_EVENT = pygame.event.custom_type()
 
 
 class Player(BasePlayer, GravitySprite):
+    EVENTS = [IMMUNITY_EVENT]
+
     def __init__(
         self,
         world: World,
@@ -67,6 +72,9 @@ class Player(BasePlayer, GravitySprite):
         self._b = False
         self._can_keep_jumping = False
 
+        self.max_immunity_time = 0.5
+        self._is_immune = False
+
     def _draw(self):
         size = self.size
         sq_size = size // 2
@@ -88,6 +96,7 @@ class Player(BasePlayer, GravitySprite):
         self.mask = pygame.mask.from_surface(shell)
 
     def update(self, dt: int, *args: Any, **kwargs: Any) -> None:
+        self.check_immunity()
         self.input(dt)
         self.fall(dt)
         self.glide(dt)
@@ -101,6 +110,12 @@ class Player(BasePlayer, GravitySprite):
 
         if DEBUG:
             self.draw_vectors()
+
+    def check_immunity(self):
+        immunity_events = pygame.event.get(IMMUNITY_EVENT, pump=False)
+        if immunity_events:
+            self._is_immune = False
+            pygame.time.set_timer(IMMUNITY_EVENT, 0)
 
     def input(self, dt: int):
         if self.joystick is not None:
@@ -188,6 +203,13 @@ class Player(BasePlayer, GravitySprite):
         if not collided_sprites:
             return
 
+        first_hazard = next(
+            iter(s for s in collided_sprites if isinstance(s, BaseHazard)), None
+        )
+        if first_hazard:
+            print("collision damage")
+            self.take_tamage(first_hazard)
+
         first_collided_sprite: BaseBlock = collided_sprites[0]
         bounding_rect = first_collided_sprite.rect
         for block in collided_sprites:
@@ -248,6 +270,9 @@ class Player(BasePlayer, GravitySprite):
         if ground is None:
             return True
 
+        if isinstance(ground, BaseHazard):
+            self.take_tamage(ground)
+
         ground_rect: pygame.rect.Rect = ground.rect
         self.position.y = ground_rect.top - self.size // 2
         self._jump_count = 0
@@ -255,17 +280,22 @@ class Player(BasePlayer, GravitySprite):
 
         return False
 
+    def take_tamage(self, hazard: BaseHazard):
+        # TODO: knockback
+        if not self._is_immune:
+            print("taking damage")
+            self._is_immune = True
+            pygame.time.set_timer(IMMUNITY_EVENT, int(self.max_immunity_time * 1000))
+
+            self.health_points -= hazard.damage
+
     def rotate(self):
         img = pygame.Surface(self.original_image.get_size())
         img = pygame.transform.rotate(self.original_image, self.angle)
         new_x, new_y = img.get_size()
         new_x = new_x - self.original_image.get_size()[0]
         new_y = new_y - self.original_image.get_size()[1]
-
-        img.scroll(
-            -int(new_x / 2),
-            -int(new_y / 2),
-        )
+        img.scroll(-int(new_x / 2), -int(new_y / 2))
         return img
 
     def draw_vectors(self):

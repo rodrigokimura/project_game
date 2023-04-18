@@ -1,6 +1,6 @@
 import pygame
 
-from blocks import Rock
+from blocks import Rock, Spike
 from interface import Camera, PlayerStats
 from player import Player
 from settings import (
@@ -28,17 +28,28 @@ class Level:
         joystick = joysticks[0] if joysticks else None
         self.world = World(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
         self.player = Player(self.world, None, joystick, self.all_sprites)
-        interface_elements = [PlayerStats(self.player)]
+        interface = [PlayerStats(self.player)]
         self.camera = Camera(
-            (SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world, interface_elements
+            (SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world, interface
         )
 
         blocks = []
+
+        # first level
         for i in range(190):
             block = Rock()
             block.rect.center = (
                 int(self.player.position.x + (i - 10) * BLOCK_SIZE),
                 int(self.player.position.y + 132),
+            )
+            blocks.append(block)
+
+        # spikes
+        for i in range(2):
+            block = Spike()
+            block.rect.center = (
+                int(self.player.position.x + (i - 10) * BLOCK_SIZE),
+                int(self.player.position.y + 132 - BLOCK_SIZE),
             )
             blocks.append(block)
 

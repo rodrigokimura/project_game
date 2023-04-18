@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Iterable
 
 import pygame
 
@@ -21,7 +21,7 @@ class Camera:
         size: tuple[int, int],
         player: BasePlayer,
         world: World,
-        interface_elements: Optional[list[BaseInterfaceElement]] = None,
+        interface_elements: Iterable[BaseInterfaceElement] | None = None,
     ) -> None:
         self.width, self.height = size
         self.player = player
@@ -60,6 +60,7 @@ class Camera:
 
 class PlayerStats(BaseInterfaceElement):
     def __init__(self, player: BasePlayer) -> None:
+        super().__init__()
         self.player = player
         self.relative_position = (10, 10)
         self.width, self.height = 100, 10
@@ -69,7 +70,8 @@ class PlayerStats(BaseInterfaceElement):
         self.hp_bar_fill = self.hp_bar.copy()
 
     def draw(self):
+        super().draw()
         display_surface = pygame.display.get_surface()
-        self.hp_bar_fill.width = self.player.hp_percentage * self.width
+        self.hp_bar_fill.width = int(self.player.hp_percentage * self.width)
         pygame.draw.rect(display_surface, self.fill_color, self.hp_bar_fill)
         pygame.draw.rect(display_surface, self.border_color, self.hp_bar, 1)
