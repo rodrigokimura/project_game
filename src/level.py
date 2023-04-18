@@ -1,7 +1,7 @@
 import pygame
 
 from blocks import Rock
-from interface import Camera
+from interface import Camera, PlayerStats
 from player import Player
 from settings import (
     BLOCK_SIZE,
@@ -28,7 +28,10 @@ class Level:
         joystick = joysticks[0] if joysticks else None
         self.world = World(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
         self.player = Player(self.world, None, joystick, self.all_sprites)
-        self.camera = Camera((SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world)
+        interface_elements = [PlayerStats(self.player)]
+        self.camera = Camera(
+            (SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world, interface_elements
+        )
 
         blocks = []
         for i in range(190):
@@ -85,5 +88,4 @@ class Level:
 
         self.all_sprites.draw(self.world.surface)
         self.all_sprites.update(dt)
-
-        self.display_surface.blit(self.world.surface, (0, 0), self.camera.get_rect())
+        self.camera.update()

@@ -11,6 +11,12 @@ from world import GravitySprite, World
 
 class BasePlayer(ABC):
     rect: pygame.rect.Rect
+    max_health_points: int
+    health_points: int
+
+    @property
+    def hp_percentage(self):
+        return int(self.health_points / self.max_health_points)
 
 
 class Player(BasePlayer, GravitySprite):
@@ -22,6 +28,8 @@ class Player(BasePlayer, GravitySprite):
         *groups: pygame.sprite.Group,
     ) -> None:
         super().__init__(world, *groups)
+        self.max_health_points = 100
+        self.health_points = self.max_health_points
 
         self.joystick = joystick
         if self.joystick is not None:

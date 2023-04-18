@@ -1,14 +1,32 @@
+from abc import ABC, abstractmethod
+from typing import Optional
+
 import pygame
 
 from player import BasePlayer
 from world import World
 
 
+class BaseInterfaceElement(ABC):
+    relative_position: tuple[int, int]
+
+    @abstractmethod
+    def draw(self):
+        ...
+
+
 class Camera:
-    def __init__(self, size: tuple[int, int], player: BasePlayer, world: World) -> None:
+    def __init__(
+        self,
+        size: tuple[int, int],
+        player: BasePlayer,
+        world: World,
+        interface_elements: Optional[list[BaseInterfaceElement]] = None,
+    ) -> None:
         self.width, self.height = size
         self.player = player
         self.world = world
+        self.interface_elements = interface_elements or []
 
     def get_rect(self):
         rect = pygame.rect.Rect(0, 0, self.width, self.height)
@@ -31,3 +49,27 @@ class Camera:
             rect.right = self.world.surface.get_rect().width
 
         return rect
+
+    def update(self):
+        display_surface = pygame.display.get_surface()
+        display_surface.blit(self.world.surface, (0, 0), self.get_rect())
+
+        for el in self.interface_elements:
+            el.draw()
+
+
+class PlayerStats(BaseInterfaceElement):
+    def __init__(self, player: BasePlayer) -> None:
+        self.player = player
+        self.relative_position = (10, 10)
+        self.width, self.height = 100, 10
+        self.fill_color = "red"
+        self.border_color = "white"
+        self.hp_bar = pygame.rect.Rect(*self.relative_position, self.width, self.height)
+        self.hp_bar_fill = self.hp_bar.copy()
+
+    def draw(self):
+        display_surface = pygame.display.get_surface()
+        self.hp_bar_fill.width = self.player.hp_percentage * self.width
+        pygame.draw.rect(display_surface, self.fill_color, self.hp_bar_fill)
+        pygame.draw.rect(display_surface, self.border_color, self.hp_bar, 1)
