@@ -19,11 +19,10 @@ class BasePlayer(ABC):
         return self.health_points / self.max_health_points
 
 
-IMMUNITY_EVENT = pygame.event.custom_type()
-
-
 class Player(BasePlayer, GravitySprite):
-    EVENTS = [IMMUNITY_EVENT]
+    IMMUNITY_OVER = pygame.event.custom_type()
+    DEAD = pygame.event.custom_type()
+    EVENTS = [IMMUNITY_OVER, DEAD]
 
     def __init__(
         self,
@@ -112,10 +111,10 @@ class Player(BasePlayer, GravitySprite):
             self.draw_vectors()
 
     def check_immunity(self):
-        immunity_events = pygame.event.get(IMMUNITY_EVENT, pump=False)
+        immunity_events = pygame.event.get(self.IMMUNITY_OVER, pump=False)
         if immunity_events:
             self._is_immune = False
-            pygame.time.set_timer(IMMUNITY_EVENT, 0)
+            pygame.time.set_timer(self.IMMUNITY_OVER, 0)
 
     def input(self, dt: int):
         if self.joystick is not None:
@@ -137,13 +136,10 @@ class Player(BasePlayer, GravitySprite):
             b = self.joystick.get_button(0)
             if b != self._b:
                 self._b = b
-                print(f"State changed to {b}")
                 if b:
                     self._can_keep_jumping = True
-                    print("B pressed")
                     self._jump_count += 1
                 else:
-                    print("B released")
                     if self._jump_count < self.max_jump_count:
                         self._jump_time = 0
             elif b:
@@ -207,7 +203,6 @@ class Player(BasePlayer, GravitySprite):
             iter(s for s in collided_sprites if isinstance(s, BaseHazard)), None
         )
         if first_hazard:
-            print("collision damage")
             self.take_tamage(first_hazard)
 
         first_collided_sprite: BaseBlock = collided_sprites[0]
@@ -283,11 +278,15 @@ class Player(BasePlayer, GravitySprite):
     def take_tamage(self, hazard: BaseHazard):
         # TODO: knockback
         if not self._is_immune:
-            print("taking damage")
             self._is_immune = True
-            pygame.time.set_timer(IMMUNITY_EVENT, int(self.max_immunity_time * 1000))
+            pygame.time.set_timer(
+                self.IMMUNITY_OVER, int(self.max_immunity_time * 1000)
+            )
 
             self.health_points -= hazard.damage
+            self.health_points = max(self.health_points, 0)
+            if self.health_points == 0:
+                pygame.event.post(pygame.event.Event(self.DEAD))
 
     def rotate(self):
         img = pygame.Surface(self.original_image.get_size())

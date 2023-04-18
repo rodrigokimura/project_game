@@ -14,7 +14,7 @@ class Game:
         self.screen = pygame.display.set_mode(size)
         self.clock = pygame.time.Clock()
         self.level = Level()
-        self.user_events = Player.EVENTS
+        self.internal_events = Player.EVENTS
 
     def run(self):
         running = True
@@ -22,8 +22,11 @@ class Game:
         while running:
             dt = self.clock.tick(100) / 1000
 
-            for event in pygame.event.get(exclude=self.user_events):
+            for event in pygame.event.get(exclude=self.internal_events):
                 if event.type == pygame.QUIT:
+                    running = False
+                if event.type == Level.FINISHED:
+                    print("Game Over")
                     running = False
 
             self.level.run(dt)

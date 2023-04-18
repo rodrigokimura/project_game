@@ -15,6 +15,9 @@ from world import World
 
 
 class Level:
+    FINISHED = pygame.event.custom_type()
+    EVENTS = [FINISHED]
+
     def __init__(self) -> None:
         self.display_surface = pygame.display.get_surface()
         self.all_sprites = pygame.sprite.Group()
@@ -100,3 +103,9 @@ class Level:
         self.all_sprites.draw(self.world.surface)
         self.all_sprites.update(dt)
         self.camera.update()
+        self.check_player_dead()
+
+    def check_player_dead(self):
+        events = pygame.event.get(Player.DEAD)
+        if events:
+            pygame.event.post(pygame.event.Event(self.FINISHED))
