@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 import pygame
 
@@ -42,15 +42,3 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
     @abstractmethod
     def should_fall(self) -> None:
         pass
-
-
-class Ground(pygame.sprite.Sprite):
-    def __init__(
-        self, pos: Optional[tuple[float, float]], *groups: pygame.sprite.Group
-    ) -> None:
-        super().__init__(*groups)
-        pos = pos or pygame.display.get_surface().get_rect().center
-        self.pos = pygame.Vector2(*pos)
-        self.image = pygame.surface.Surface((1000, BLOCK_SIZE))
-        self.image.fill("red")
-        self.rect = self.image.get_rect(center=self.pos)

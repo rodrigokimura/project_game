@@ -1,4 +1,5 @@
 import math
+from abc import ABC
 from typing import Any, Literal, Optional
 
 import pygame
@@ -8,7 +9,11 @@ from settings import BLOCK_SIZE, DEBUG
 from world import GravitySprite, World
 
 
-class Player(GravitySprite):
+class BasePlayer(ABC):
+    rect: pygame.rect.Rect
+
+
+class Player(BasePlayer, GravitySprite):
     def __init__(
         self,
         world: World,
@@ -148,8 +153,6 @@ class Player(GravitySprite):
             if self._can_keep_jumping:
                 self.velocity.y = -self.jump_scalar_velocity
                 self._jump_time += dt
-            # else:
-            #     self.velocity.y = 0
         else:
             self._can_keep_jumping = False
 
@@ -176,8 +179,6 @@ class Player(GravitySprite):
 
         if not collided_sprites:
             return
-
-        print(collided_sprites)
 
         first_collided_sprite: BaseBlock = collided_sprites[0]
         bounding_rect = first_collided_sprite.rect
