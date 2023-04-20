@@ -1,22 +1,51 @@
 import math
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, Literal, Optional
 
 import pygame
 
 from blocks import BaseBlock, BaseHazard
-from settings import BLOCK_SIZE, DEBUG
-from world import GravitySprite, World
+from settings import BLOCK_SIZE
 
 
-class BasePlayer(ABC):
+class BasePlayer(ABC, pygame.sprite.Sprite):
+    collidable_sprites_buffer: pygame.sprite.Group
     rect: pygame.rect.Rect
+    image: pygame.surface.Surface
     max_health_points: int
     health_points: int
 
     @property
     def hp_percentage(self):
         return self.health_points / self.max_health_points
+
+
+class GravitySprite(ABC, pygame.sprite.Sprite):
+    def __init__(
+        self, gravity: int, terminal_velocity: int, *groups: pygame.sprite.Group
+    ) -> None:
+        super().__init__(*groups)
+        self.collidable_sprites_buffer = pygame.sprite.Group()
+
+        self.pos = pygame.math.Vector2()
+        self.velocity = pygame.math.Vector2()
+        self.acceleration = pygame.math.Vector2(0, gravity)
+        self.terminal_velocity = terminal_velocity
+
+    def update(self, dt, *args: Any, **kwargs: Any) -> None:
+        self.fall(dt)
+
+    def fall(self, dt: int):
+        if self.should_fall():
+            self.velocity.y += self.acceleration.y * dt
+            if abs(self.velocity.y) > self.terminal_velocity:
+                self.velocity.y = self.terminal_velocity * (
+                    1 if self.velocity.y > 0 else -1
+                )
+
+    @abstractmethod
+    def should_fall(self) -> None:
+        pass
 
 
 class Player(BasePlayer, GravitySprite):
@@ -26,12 +55,13 @@ class Player(BasePlayer, GravitySprite):
 
     def __init__(
         self,
-        world: World,
+        gravity: int,
+        terminal_velocity: int,
         position: Optional[tuple[int, int]],
         joystick: Optional[pygame.joystick.JoystickType],
         *groups: pygame.sprite.Group,
     ) -> None:
-        super().__init__(world, *groups)
+        super().__init__(gravity, terminal_velocity, *groups)
         self.max_health_points = 100
         self.health_points = self.max_health_points
 
@@ -106,9 +136,6 @@ class Player(BasePlayer, GravitySprite):
         self.update_position(dt)
         self.update_image()
         self.update_rects()
-
-        if DEBUG:
-            self.draw_vectors()
 
     def check_immunity(self):
         immunity_events = pygame.event.get(self.IMMUNITY_OVER, pump=False)
@@ -296,18 +323,3 @@ class Player(BasePlayer, GravitySprite):
         new_y = new_y - self.original_image.get_size()[1]
         img.scroll(-int(new_x / 2), -int(new_y / 2))
         return img
-
-    def draw_vectors(self):
-        surf = self.world.surface
-        pygame.draw.line(
-            surf,
-            "green",
-            self.position,
-            self.position + self.velocity * BLOCK_SIZE,
-        )
-        pygame.draw.line(
-            surf,
-            "yellow",
-            self.position,
-            self.position + self.acceleration * BLOCK_SIZE,
-        )

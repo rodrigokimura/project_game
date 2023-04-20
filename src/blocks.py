@@ -5,9 +5,10 @@ import pygame
 from settings import BLOCK_SIZE
 
 
-class BaseBlock(pygame.sprite.Sprite, ABC):
+class BaseBlock(pygame.sprite.DirtySprite, ABC):
     def __init__(self, *groups: pygame.sprite.Group) -> None:
         super().__init__(*groups)
+        self.visible = 0
         self.image = pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)).convert_alpha()
         self.draw()
         self.mask = pygame.mask.from_surface(self.image)

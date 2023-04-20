@@ -4,7 +4,7 @@ from typing import Any, Iterable
 import pygame
 
 from player import BasePlayer
-from world import World
+from world import BaseWorld
 
 
 class Menu:
@@ -124,7 +124,7 @@ class Camera:
         self,
         size: tuple[int, int],
         player: BasePlayer,
-        world: World,
+        world: BaseWorld,
         interface_elements: Iterable[BaseInterfaceElement] | None = None,
     ) -> None:
         self.width, self.height = size
