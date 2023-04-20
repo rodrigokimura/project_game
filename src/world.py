@@ -4,9 +4,9 @@ from typing import Any
 
 import pygame
 
-from blocks import Rock, Spike
+from blocks import Rock, Spike, draw_cached_images
 from player import BasePlayer
-from settings import BLOCK_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH
+from settings import BLOCK_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH, WORLD_SIZE
 
 
 class BaseWorld(ABC):
@@ -64,76 +64,10 @@ class BaseWorld(ABC):
 
         self.player.update(dt)
 
-        # self.visibility_buffer.draw(self.surface)
-        # self.surface.blit(self.player.image, self.player.rect)
-
 
 class World(BaseWorld):
     def populate(self):
         pass
-
-
-class SampleWorld(BaseWorld):
-    def populate(self):
-        reference = pygame.math.Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
-
-        blocks = []
-
-        # first level
-        for i in range(190):
-            block = Rock()
-            block.rect.center = (
-                int(reference.x + (i - 10) * BLOCK_SIZE),
-                int(reference.y + 132),
-            )
-            blocks.append(block)
-
-        # spikes
-        for i in range(2):
-            block = Spike()
-            block.rect.center = (
-                int(reference.x + (i - 10) * BLOCK_SIZE),
-                int(reference.y + 132 - BLOCK_SIZE),
-            )
-            blocks.append(block)
-
-        # second level
-        for i in range(10):
-            block = Rock()
-            block.rect.center = (
-                int(reference.x + i * BLOCK_SIZE + 10 * BLOCK_SIZE),
-                int(reference.y + 132 - 3 * BLOCK_SIZE),
-            )
-            blocks.append(block)
-
-        # third level
-        for i in range(10):
-            block = Rock()
-            block.rect.center = (
-                int(reference.x + i * BLOCK_SIZE + 15 * BLOCK_SIZE),
-                int(reference.y + 132 - 8 * BLOCK_SIZE),
-            )
-            blocks.append(block)
-
-        # slope
-        for i in range(10):
-            block = Rock()
-            block.rect.center = (
-                int(reference.x + i * BLOCK_SIZE + 30 * BLOCK_SIZE),
-                int(reference.y + 132 - (i + 1) * BLOCK_SIZE),
-            )
-            blocks.append(block)
-
-        # wall
-        for i in range(10):
-            block = Rock()
-            block.rect.center = (
-                int(reference.x - 5 * BLOCK_SIZE),
-                int(reference.y + 132 - (i + 1) * BLOCK_SIZE),
-            )
-            blocks.append(block)
-
-        # self.all_sprites.add(*blocks)
 
 
 class SimpleWorld(BaseWorld):
@@ -145,10 +79,10 @@ class SimpleWorld(BaseWorld):
         player: BasePlayer,
     ) -> None:
         super().__init__(size, gravity, terminal_velocity, player)
-        self.rect_buffer = pygame.rect.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
         self.player.collidable_sprites_buffer = self.collision_buffer
+        draw_cached_images()
 
     def populate(self):
         blocks = []
@@ -164,6 +98,48 @@ class SimpleWorld(BaseWorld):
                     row.append(None)
             blocks.append(row)
         self.all_sprites = blocks
+
+
+class SampleWorld(SimpleWorld):
+    def populate(self):
+        super().populate()
+        x, y = WORLD_SIZE
+        x, y = x // 2, y // 2
+
+        # spikes
+        _y = y + 1
+        _x = x + 5
+        for i in range(1, 5):
+            _x = x + i
+            block = Spike()
+            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            self.all_sprites[_y][_x] = block
+
+        # second level
+        _y = y - 2
+        for i in range(10):
+            _x = x + 10 + i
+            block = Rock()
+            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            self.all_sprites[_y][_x] = block
+
+        # third level
+        _y = y - 6
+        for i in range(10):
+            _x = x + 15 + i
+            block = Rock()
+            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            self.all_sprites[_y][_x] = block
+
+        # slope
+        _y = y + 1
+        _x = x + 30
+        for i in range(10):
+            _x += 1
+            _y -= 1
+            block = Rock()
+            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            self.all_sprites[_y][_x] = block
 
 
 class GravitySprite(ABC, pygame.sprite.Sprite):

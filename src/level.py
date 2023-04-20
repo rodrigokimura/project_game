@@ -2,8 +2,15 @@ import pygame
 
 from interface import Camera, PlayerStats
 from player import Player
-from settings import GRAVITY, SCREEN_HEIGHT, SCREEN_WIDTH, TERMINAL_VELOCITY, WORLD_SIZE
-from world import SimpleWorld
+from settings import (
+    BLOCK_SIZE,
+    GRAVITY,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    TERMINAL_VELOCITY,
+    WORLD_SIZE,
+)
+from world import SampleWorld
 
 
 class Level:
@@ -21,9 +28,14 @@ class Level:
         ]
         joystick = joysticks[0] if joysticks else None
         self.player = Player(
-            GRAVITY, TERMINAL_VELOCITY, None, joystick, self.all_sprites
+            GRAVITY,
+            TERMINAL_VELOCITY,
+            (WORLD_SIZE[0] * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
+            joystick,
+            self.all_sprites,
         )
-        self.world = SimpleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY, self.player)
+        self.world = SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY, self.player)
+
         interface = [PlayerStats(self.player)]
         self.camera = Camera(
             (SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world, interface
