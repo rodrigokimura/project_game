@@ -131,7 +131,6 @@ class Camera:
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
-        self.buffer_surface = pygame.surface.Surface(size)
 
     def get_rect(self):
         rect = pygame.rect.Rect(0, 0, self.width, self.height)
@@ -160,16 +159,13 @@ class Camera:
         dx = display_surface.get_rect().centerx - self.get_rect().centerx
         dy = display_surface.get_rect().centery - self.get_rect().centery
 
-        self.buffer_surface.fill("black")
+        display_surface.fill("black")
 
-        self.buffer_surface.blits(
+        display_surface.blits(
             (spr.image, spr.rect.move(dx, dy), None)
             for spr in self.world.visibility_buffer.sprites()
         )
-        self.buffer_surface.blit(self.player.image, self.player.rect)
-        self.buffer_surface.blit(self.player.image, self.player.rect.move(dx, dy))
-
-        display_surface.blit(self.buffer_surface, (0, 0))
+        display_surface.blit(self.player.image, self.player.rect.move(dx, dy))
 
         for el in self.interface_elements:
             el.draw()
