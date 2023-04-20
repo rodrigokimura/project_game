@@ -14,6 +14,8 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     image: pygame.surface.Surface
     max_health_points: int
     health_points: int
+    cursor_image: pygame.surface.Surface
+    cursor_position: pygame.math.Vector2
 
     @property
     def hp_percentage(self):
@@ -76,6 +78,9 @@ class Player(BasePlayer, GravitySprite):
         self.angle = 0
         self.size = 2 * BLOCK_SIZE
 
+        self.cursor_position = pygame.math.Vector2(0, 0)
+        self.cursor_range = 5
+
         self._draw()
         self.create_collision_mask()
 
@@ -115,6 +120,21 @@ class Player(BasePlayer, GravitySprite):
         )
         pygame.draw.rect(self.image, "red", rect, 0)
         self.original_image = self.image.copy()
+
+        # render cursor
+        self.cursor_image = pygame.surface.Surface(
+            (BLOCK_SIZE, BLOCK_SIZE)
+        ).convert_alpha()
+        rect = self.cursor_image.get_rect()
+        rect.center = self.image.get_rect().center
+        self.cursor_image.fill(pygame.Color(0, 0, 0, 0))
+        pygame.draw.circle(
+            self.cursor_image,
+            "orange",
+            self.cursor_image.get_rect().center,
+            BLOCK_SIZE // 4,
+            1,
+        )
 
     def create_collision_mask(self):
         shell = pygame.surface.Surface((self.size, self.size)).convert_alpha()
@@ -171,6 +191,11 @@ class Player(BasePlayer, GravitySprite):
                         self._jump_time = 0
             elif b:
                 self.jump(dt)
+
+            right_stick_x = self.joystick.get_axis(3)
+            right_stick_y = self.joystick.get_axis(4)
+            right_stick = pygame.math.Vector2(right_stick_x, right_stick_y)
+            self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
         else:
             keys = pygame.key.get_pressed()
 
@@ -274,6 +299,7 @@ class Player(BasePlayer, GravitySprite):
 
     def update_position(self, dt):
         self.position += self.velocity * dt * self.size
+        # self.cursor_position += self.position
 
     def update_image(self):
         img = self.rotate()

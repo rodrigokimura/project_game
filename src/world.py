@@ -6,7 +6,7 @@ import pygame
 
 from blocks import Rock, Spike, draw_cached_images
 from player import BasePlayer
-from settings import BLOCK_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH, WORLD_SIZE
+from settings import BLOCK_SIZE, WORLD_SIZE
 
 
 class BaseWorld(ABC):
@@ -21,10 +21,9 @@ class BaseWorld(ABC):
         self.size = pygame.math.Vector2(size)
         self.gravity: pygame.math.Vector2 = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
-        # self.surface = pygame.surface.Surface(self.size * BLOCK_SIZE)
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
         self.player = player
-        self.all_sprites = [[]]
+        self.all_blocks = [[]]
         self.populate()
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
@@ -34,7 +33,6 @@ class BaseWorld(ABC):
         ...
 
     def update(self, dt: int, visibility_rect: pygame.rect.Rect):
-        # self.surface.fill("black")
         self.visibility_buffer.empty()
         self.collision_buffer.empty()
         m = 3
@@ -53,7 +51,7 @@ class BaseWorld(ABC):
 
         for x, y in product(range(x1 - m, x2 + m), range(y1 - m, y2 + m)):
             try:
-                s = self.all_sprites[y][x]
+                s = self.all_blocks[y][x]
             except IndexError:
                 continue
             if s is None:
@@ -67,7 +65,7 @@ class BaseWorld(ABC):
 
 class World(BaseWorld):
     def populate(self):
-        pass
+        ...
 
 
 class SimpleWorld(BaseWorld):
@@ -97,7 +95,7 @@ class SimpleWorld(BaseWorld):
                 else:
                     row.append(None)
             blocks.append(row)
-        self.all_sprites = blocks
+        self.all_blocks = blocks
 
 
 class SampleWorld(SimpleWorld):
@@ -113,7 +111,7 @@ class SampleWorld(SimpleWorld):
             _x = x + i
             block = Spike()
             block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
-            self.all_sprites[_y][_x] = block
+            self.all_blocks[_y][_x] = block
 
         # second level
         _y = y - 2
@@ -121,7 +119,7 @@ class SampleWorld(SimpleWorld):
             _x = x + 10 + i
             block = Rock()
             block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
-            self.all_sprites[_y][_x] = block
+            self.all_blocks[_y][_x] = block
 
         # third level
         _y = y - 6
@@ -129,7 +127,7 @@ class SampleWorld(SimpleWorld):
             _x = x + 15 + i
             block = Rock()
             block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
-            self.all_sprites[_y][_x] = block
+            self.all_blocks[_y][_x] = block
 
         # slope
         _y = y + 1
@@ -139,7 +137,7 @@ class SampleWorld(SimpleWorld):
             _y -= 1
             block = Rock()
             block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
-            self.all_sprites[_y][_x] = block
+            self.all_blocks[_y][_x] = block
 
 
 class GravitySprite(ABC, pygame.sprite.Sprite):
@@ -167,4 +165,4 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
 
     @abstractmethod
     def should_fall(self) -> None:
-        pass
+        ...

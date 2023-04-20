@@ -167,6 +167,15 @@ class Camera:
         )
         display_surface.blit(self.player.image, self.player.rect.move(dx, dy))
 
+        # render player cursor
+        cursor_position = self.player.rect.move(dx, dy).move(
+            self.player.cursor_image.get_size()[0] / 2,
+            self.player.cursor_image.get_size()[1] / 2,
+        )
+        cursor_position.x += int(self.player.cursor_position.x)
+        cursor_position.y += int(self.player.cursor_position.y)
+        display_surface.blit(self.player.cursor_image, cursor_position)
+
         for el in self.interface_elements:
             el.draw()
 
