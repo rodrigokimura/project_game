@@ -21,7 +21,8 @@ class BaseWorld(ABC):
         self.size = pygame.math.Vector2(size)
         self.gravity: pygame.math.Vector2 = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
-        self.surface = pygame.surface.Surface(self.size * BLOCK_SIZE)
+        # self.surface = pygame.surface.Surface(self.size * BLOCK_SIZE)
+        self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
         self.player = player
         self.all_sprites = [[]]
         self.populate()
@@ -33,7 +34,7 @@ class BaseWorld(ABC):
         ...
 
     def update(self, dt: int, visibility_rect: pygame.rect.Rect):
-        self.surface.fill("black")
+        # self.surface.fill("black")
         self.visibility_buffer.empty()
         self.collision_buffer.empty()
         m = 3
@@ -63,8 +64,8 @@ class BaseWorld(ABC):
 
         self.player.update(dt)
 
-        self.visibility_buffer.draw(self.surface)
-        self.surface.blit(self.player.image, self.player.rect)
+        # self.visibility_buffer.draw(self.surface)
+        # self.surface.blit(self.player.image, self.player.rect)
 
 
 class World(BaseWorld):
