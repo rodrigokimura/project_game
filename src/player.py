@@ -97,6 +97,13 @@ class Player(BasePlayer, GravitySprite):
         self.bottom_rect = pygame.rect.Rect(
             self.position.x - 1, self.position.y + self.size / 2, 2, 1
         )
+        # TODO: remove unnecessary attrs
+        self.bottom_sprite = pygame.sprite.Sprite()
+        self.bottom_sprite.rect = self.bottom_rect
+        self.bottom_sprite.mask = pygame.mask.Mask(self.bottom_rect.size)
+        self.bottom_sprite.mask.fill()
+
+        # self.bottom_rect_mask = pygame.mask.Mask(self.bottom_rect.size)
 
         self.max_jump_time = 0.2
         self.max_jump_count = 2
@@ -318,7 +325,7 @@ class Player(BasePlayer, GravitySprite):
 
     def should_fall(self):
         ground = pygame.sprite.spritecollide(
-            self,
+            self.bottom_sprite,
             self.collidable_sprites_buffer,
             False,
             collided=pygame.sprite.collide_mask,
