@@ -317,11 +317,16 @@ class Player(BasePlayer, GravitySprite):
         self.bottom_rect.top = int(self.position.y + self.size / 2)
 
     def should_fall(self):
-        ground = self.bottom_rect.collideobjects(
-            self.collidable_sprites_buffer.sprites()
+        ground = pygame.sprite.spritecollide(
+            self,
+            self.collidable_sprites_buffer,
+            False,
+            collided=pygame.sprite.collide_mask,
         )
-        if ground is None:
+        if not ground:
             return True
+
+        ground = ground[0]
 
         if isinstance(ground, BaseHazard):
             self.take_tamage(ground)

@@ -4,14 +4,14 @@ from typing import Any
 
 import pygame
 
-from blocks import Rock, Spike, draw_cached_images
+from blocks import Rock, Spike, Tree, draw_cached_images
 from day_cycle import convert_to_time, get_day_part
 from player import BasePlayer
-from settings import BLOCK_SIZE, WORLD_SIZE
+from settings import BLOCK_SIZE, DAY_DURATION, WORLD_SIZE
 
 
 class BaseWorld(ABC):
-    DAY_DURATION = 5 * 60
+    DAY_DURATION = DAY_DURATION
 
     def __init__(
         self,
@@ -25,9 +25,10 @@ class BaseWorld(ABC):
         self.terminal_velocity = terminal_velocity
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
         self.all_blocks = [[]]
-        self.populate()
+        self.changing_blocks = pygame.sprite.Group()
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
+        self.populate()
         self.age = 0  # in seconds
         self.time_of_day = 0  # cycling counter
 
@@ -71,6 +72,11 @@ class BaseWorld(ABC):
         self.time_of_day += dt
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
+            print("updating changing_blocks")
+            self.update_changing_blocks()
+
+    def update_changing_blocks(self):
+        self.changing_blocks.update()
 
     @property
     def relative_time(self):
@@ -121,6 +127,13 @@ class SampleWorld(SimpleWorld):
         super().populate()
         x, y = WORLD_SIZE
         x, y = x // 2, y // 2
+
+        # trees
+        _y = y
+        _x = x - 5
+        block = Tree((_x, _y))
+        self.all_blocks[_y][_x] = block
+        self.changing_blocks.add(block)
 
         # spikes
         _y = y + 1
