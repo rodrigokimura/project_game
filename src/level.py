@@ -2,6 +2,7 @@ from typing import Optional
 
 import pygame
 
+from blocks import draw_cached_images
 from interface import Camera, Menu, PlayerStats
 from player import Player
 from settings import (
@@ -29,6 +30,7 @@ class Level:
         return cls(world)
 
     def __init__(self, world: Optional[BaseWorld] = None) -> None:
+        draw_cached_images()
         self.paused = False
         self.display_surface = pygame.display.get_surface()
         self.all_sprites = pygame.sprite.Group()

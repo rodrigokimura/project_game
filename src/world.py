@@ -5,11 +5,14 @@ from typing import Any
 import pygame
 
 from blocks import Rock, Spike, draw_cached_images
+from day_cycle import convert_to_time, get_day_part
 from player import BasePlayer
 from settings import BLOCK_SIZE, WORLD_SIZE
 
 
 class BaseWorld(ABC):
+    DAY_DURATION = 5 * 60
+
     def __init__(
         self,
         size: tuple[int, int],
@@ -25,6 +28,8 @@ class BaseWorld(ABC):
         self.populate()
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
+        self.age = 0  # in seconds
+        self.time_of_day = 0  # cycling counter
 
     @abstractmethod
     def populate(self):
@@ -58,7 +63,30 @@ class BaseWorld(ABC):
             if x in range(xp - m, xp + m) and y in range(yp - m, yp + m):
                 self.collision_buffer.add(s)
 
+        self.update_time(dt)
         player.update(dt)
+
+    def update_time(self, dt: int):
+        self.age += dt
+        self.time_of_day += dt
+        if self.time_of_day >= self.DAY_DURATION:
+            self.time_of_day = 0
+
+        print(self.relative_time)
+        print(self.time)
+        print(self.day_part)
+
+    @property
+    def relative_time(self):
+        return self.time_of_day / self.DAY_DURATION
+
+    @property
+    def time(self):
+        return convert_to_time(self.relative_time)
+
+    @property
+    def day_part(self):
+        return get_day_part(self.time)
 
 
 class World(BaseWorld):
