@@ -15,14 +15,12 @@ class BaseWorld(ABC):
         size: tuple[int, int],
         gravity: int,
         terminal_velocity: int,
-        player: BasePlayer,
     ) -> None:
         super().__init__()
         self.size = pygame.math.Vector2(size)
         self.gravity: pygame.math.Vector2 = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
-        self.player = player
         self.all_blocks = [[]]
         self.populate()
         self.visibility_buffer = pygame.sprite.Group()
@@ -32,7 +30,7 @@ class BaseWorld(ABC):
     def populate(self):
         ...
 
-    def update(self, dt: int, visibility_rect: pygame.rect.Rect):
+    def update(self, dt: int, visibility_rect: pygame.rect.Rect, player: BasePlayer):
         self.visibility_buffer.empty()
         self.collision_buffer.empty()
         m = 3
@@ -46,7 +44,7 @@ class BaseWorld(ABC):
             y2 // BLOCK_SIZE,
         )
 
-        xp, yp = self.player.rect.center
+        xp, yp = player.rect.center
         xp, yp = xp // BLOCK_SIZE, yp // BLOCK_SIZE
 
         for x, y in product(range(x1 - m, x2 + m), range(y1 - m, y2 + m)):
@@ -60,7 +58,7 @@ class BaseWorld(ABC):
             if x in range(xp - m, xp + m) and y in range(yp - m, yp + m):
                 self.collision_buffer.add(s)
 
-        self.player.update(dt)
+        player.update(dt)
 
 
 class World(BaseWorld):
@@ -74,12 +72,10 @@ class SimpleWorld(BaseWorld):
         size: tuple[int, int],
         gravity: int,
         terminal_velocity: int,
-        player: BasePlayer,
     ) -> None:
-        super().__init__(size, gravity, terminal_velocity, player)
+        super().__init__(size, gravity, terminal_velocity)
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
-        self.player.collidable_sprites_buffer = self.collision_buffer
         draw_cached_images()
 
     def populate(self):
@@ -87,9 +83,7 @@ class SimpleWorld(BaseWorld):
         for y in range(int(self.size.y)):
             row = []
             for x in range(int(self.size.x)):
-                block = Rock()
-                block.rect.x = x * BLOCK_SIZE
-                block.rect.y = y * BLOCK_SIZE
+                block = Rock((x, y))
                 if y > (self.size.y / 2):
                     row.append(block)
                 else:
@@ -109,24 +103,21 @@ class SampleWorld(SimpleWorld):
         _x = x + 5
         for i in range(1, 5):
             _x = x + i
-            block = Spike()
-            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            block = Spike((_x, _y))
             self.all_blocks[_y][_x] = block
 
         # second level
         _y = y - 2
         for i in range(10):
             _x = x + 10 + i
-            block = Rock()
-            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            block = Rock((_x, _y))
             self.all_blocks[_y][_x] = block
 
         # third level
         _y = y - 6
         for i in range(10):
             _x = x + 15 + i
-            block = Rock()
-            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            block = Rock((_x, _y))
             self.all_blocks[_y][_x] = block
 
         # slope
@@ -135,8 +126,7 @@ class SampleWorld(SimpleWorld):
         for i in range(10):
             _x += 1
             _y -= 1
-            block = Rock()
-            block.rect.topleft = (_x * BLOCK_SIZE, _y * BLOCK_SIZE)
+            block = Rock((_x, _y))
             self.all_blocks[_y][_x] = block
 
 

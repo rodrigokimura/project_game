@@ -88,7 +88,7 @@ class Menu:
         button_events = pygame.event.get(pygame.JOYBUTTONDOWN)
         if button_events:
             b = button_events[0].button
-            if b == 0:
+            if b == 2:
                 self.select()
 
         self.all_items.update()

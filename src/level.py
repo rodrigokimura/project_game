@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pygame
 
 from interface import Camera, Menu, PlayerStats
@@ -10,29 +12,36 @@ from settings import (
     TERMINAL_VELOCITY,
     WORLD_SIZE,
 )
-from world import SampleWorld
+from storage import Storage
+from world import BaseWorld, SampleWorld
 
 
 class Level:
     FINISHED = pygame.event.custom_type()
     RESUME = pygame.event.custom_type()
-    EVENTS = [FINISHED, RESUME]
+    SAVE = pygame.event.custom_type()
+    EVENTS = [FINISHED, RESUME, SAVE]
 
-    def __init__(self) -> None:
+    @classmethod
+    def from_storage(cls):
+        s = Storage()
+        world = s.read()
+        return cls(world)
+
+    def __init__(self, world: Optional[BaseWorld] = None) -> None:
         self.paused = False
         self.display_surface = pygame.display.get_surface()
         self.all_sprites = pygame.sprite.Group()
-        self.setup()
+        self.setup(world)
 
         pause_menu = {
             "resume": self.RESUME,
-            # "save game": self.FINISHED,
-            # "load game": self.FINISHED,
+            "save game": self.SAVE,
             "exit": self.FINISHED,
         }
         self.pause_menu = Menu(pause_menu)
 
-    def setup(self):
+    def setup(self, world: Optional[BaseWorld]):
         joysticks = [
             pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())
         ]
@@ -44,7 +53,8 @@ class Level:
             joystick,
             self.all_sprites,
         )
-        self.world = SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY, self.player)
+        self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
+        self.player.collidable_sprites_buffer = self.world.collision_buffer
 
         interface = [PlayerStats(self.player)]
         self.camera = Camera(
@@ -56,11 +66,23 @@ class Level:
 
         if self.paused:
             self.pause_menu.run()
+            self.handle_menu_commands()
         else:
-            self.world.update(dt, visibility_rect)
+            self.world.update(dt, visibility_rect, self.player)
             self.camera.update()
             self.check_player_dead()
         self.check_pause_menu()
+
+    def handle_menu_commands(self):
+        events = pygame.event.get(self.SAVE)
+        if events:
+            ev = events[0]
+            if ev.type == self.SAVE:
+                self.save_game()
+
+    def save_game(self):
+        s = Storage()
+        s.store(self.world)
 
     def check_player_dead(self):
         events = pygame.event.get(Player.DEAD)

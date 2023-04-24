@@ -8,6 +8,7 @@ from player import Player
 
 class Game:
     NEW_GAME = pygame.event.custom_type()
+    LOAD_GAME = pygame.event.custom_type()
     EXIT = pygame.QUIT
 
     def __init__(self) -> None:
@@ -26,7 +27,7 @@ class Game:
         self.setup()
         start_menu = {
             "new game": self.NEW_GAME,
-            "load game": self.NEW_GAME,
+            "load game": self.LOAD_GAME,
             "settings": self.NEW_GAME,
             "exit": self.EXIT,
         }
@@ -41,13 +42,17 @@ class Game:
                     running = False
 
                 if event.type == Level.FINISHED:
-                    print("Game Over")
-                    running = False
+                    self.main_loop = self.load_menu
 
                 if event.type == self.NEW_GAME:
                     self.level = Level()
                     self.internal_events = Player.EVENTS
-                    self.main_loop = self.new_game
+                    self.main_loop = self.run_level
+
+                if event.type == self.LOAD_GAME:
+                    self.level = Level.from_storage()
+                    self.internal_events = Player.EVENTS
+                    self.main_loop = self.run_level
 
             dt = self.clock.tick(100) / 1000
 
@@ -60,5 +65,5 @@ class Game:
     def load_menu(self, dt):
         self.menu.run()
 
-    def new_game(self, dt):
+    def run_level(self, dt):
         self.level.run(dt)

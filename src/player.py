@@ -94,8 +94,6 @@ class Player(BasePlayer, GravitySprite):
         # should be less than gravity, otherwise player will fly up
         self.glide_scalar_acceleration = 10
 
-        self.angular_velocity = self.linear_velocity / 2 * math.pi
-
         self.bottom_rect = pygame.rect.Rect(
             self.position.x - 1, self.position.y + self.size / 2, 2, 1
         )
@@ -153,7 +151,7 @@ class Player(BasePlayer, GravitySprite):
 
         self.uncollide()
 
-        self.update_angle()
+        self.update_angle(dt)
         self.update_position(dt)
         self.update_image()
         self.update_rects()
@@ -166,9 +164,9 @@ class Player(BasePlayer, GravitySprite):
 
     def input(self, dt: int):
         if self.joystick is not None:
-            d_pad = self.joystick.get_hat(0)
-
-            self.velocity.x = pygame.math.Vector2(d_pad).x * self.linear_velocity
+            left_stick_x = self.joystick.get_axis(0)
+            left_stick_x = round(left_stick_x, 1)
+            self.velocity.x = pygame.math.Vector2(left_stick_x).x * self.linear_velocity
 
             lb = self.joystick.get_button(4)
             rb = self.joystick.get_button(5)
@@ -177,11 +175,11 @@ class Player(BasePlayer, GravitySprite):
             if lb:
                 self.dash("l")
 
-            y = self.joystick.get_button(2)
+            y = self.joystick.get_button(0)
             if y and self.velocity.x:
                 self.boost()
 
-            b = self.joystick.get_button(0)
+            b = self.joystick.get_button(1)
             if b != self._b:
                 self._b = b
                 if b:
@@ -194,13 +192,13 @@ class Player(BasePlayer, GravitySprite):
                 self.jump(dt)
 
             # cursor movement
-            right_stick_x = self.joystick.get_axis(3)
-            right_stick_y = self.joystick.get_axis(4)
+            right_stick_x = self.joystick.get_axis(2)
+            right_stick_y = self.joystick.get_axis(3)
             right_stick = pygame.math.Vector2(right_stick_x, right_stick_y)
             self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
 
             # pause menu
-            start = self.joystick.get_button(7)
+            start = self.joystick.get_button(9)
             if start:
                 pygame.event.post(pygame.event.Event(self.PAUSE))
         else:
@@ -243,9 +241,9 @@ class Player(BasePlayer, GravitySprite):
         self._jump_count = 0
         self._jump_time = 0
 
-    def update_angle(self):
+    def update_angle(self, dt: int):
         if self.velocity.x:
-            self.angle += (1 if self.velocity.x < 0 else -1) * self.angular_velocity
+            self.angle += -self.velocity.x * self.size * dt * math.pi
 
     def uncollide(self):
         collided_sprites = pygame.sprite.spritecollide(
