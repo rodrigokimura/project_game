@@ -53,7 +53,8 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
 class Player(BasePlayer, GravitySprite):
     IMMUNITY_OVER = pygame.event.custom_type()
     DEAD = pygame.event.custom_type()
-    EVENTS = [IMMUNITY_OVER, DEAD]
+    PAUSE = pygame.event.custom_type()
+    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE]
 
     def __init__(
         self,
@@ -192,10 +193,16 @@ class Player(BasePlayer, GravitySprite):
             elif b:
                 self.jump(dt)
 
+            # cursor movement
             right_stick_x = self.joystick.get_axis(3)
             right_stick_y = self.joystick.get_axis(4)
             right_stick = pygame.math.Vector2(right_stick_x, right_stick_y)
             self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
+
+            # pause menu
+            start = self.joystick.get_button(7)
+            if start:
+                pygame.event.post(pygame.event.Event(self.PAUSE))
         else:
             keys = pygame.key.get_pressed()
 

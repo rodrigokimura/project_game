@@ -1,6 +1,6 @@
 import pygame
 
-from interface import Camera, PlayerStats
+from interface import Camera, Menu, PlayerStats
 from player import Player
 from settings import (
     BLOCK_SIZE,
@@ -15,12 +15,22 @@ from world import SampleWorld
 
 class Level:
     FINISHED = pygame.event.custom_type()
-    EVENTS = [FINISHED]
+    RESUME = pygame.event.custom_type()
+    EVENTS = [FINISHED, RESUME]
 
     def __init__(self) -> None:
+        self.paused = False
         self.display_surface = pygame.display.get_surface()
         self.all_sprites = pygame.sprite.Group()
         self.setup()
+
+        pause_menu = {
+            "resume": self.RESUME,
+            # "save game": self.FINISHED,
+            # "load game": self.FINISHED,
+            "exit": self.FINISHED,
+        }
+        self.pause_menu = Menu(pause_menu)
 
     def setup(self):
         joysticks = [
@@ -44,11 +54,23 @@ class Level:
     def run(self, dt):
         visibility_rect = self.camera.get_rect()
 
-        self.world.update(dt, visibility_rect)
-        self.camera.update()
-        self.check_player_dead()
+        if self.paused:
+            self.pause_menu.run()
+        else:
+            self.world.update(dt, visibility_rect)
+            self.camera.update()
+            self.check_player_dead()
+        self.check_pause_menu()
 
     def check_player_dead(self):
         events = pygame.event.get(Player.DEAD)
         if events:
             pygame.event.post(pygame.event.Event(self.FINISHED))
+
+    def check_pause_menu(self):
+        events = pygame.event.get(Player.PAUSE)
+        if events:
+            self.paused = True
+        events = pygame.event.get(self.RESUME)
+        if events:
+            self.paused = False
