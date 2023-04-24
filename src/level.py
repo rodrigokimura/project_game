@@ -3,7 +3,7 @@ from typing import Optional
 import pygame
 
 from blocks import draw_cached_images
-from interface import Camera, Menu, PlayerStats
+from interface import Camera, Menu, PlayerStats, TimeDisplay
 from player import Player
 from settings import (
     BLOCK_SIZE,
@@ -58,7 +58,7 @@ class Level:
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
         self.player.collidable_sprites_buffer = self.world.collision_buffer
 
-        interface = [PlayerStats(self.player)]
+        interface = [PlayerStats(self.player), TimeDisplay(self.world)]
         self.camera = Camera(
             (SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world, interface
         )

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Iterable
 
 import pygame
+from pygame.font import SysFont
 
 from player import BasePlayer
 from world import BaseWorld
@@ -112,7 +113,7 @@ class Menu:
 
 
 class BaseInterfaceElement(ABC):
-    relative_position: tuple[int, int]
+    line_positions: tuple[int, int]
 
     @abstractmethod
     def draw(self):
@@ -184,11 +185,11 @@ class PlayerStats(BaseInterfaceElement):
     def __init__(self, player: BasePlayer) -> None:
         super().__init__()
         self.player = player
-        self.relative_position = (10, 10)
+        self.line_positions = (10, 10)
         self.width, self.height = 100, 10
         self.fill_color = "red"
         self.border_color = "white"
-        self.hp_bar = pygame.rect.Rect(*self.relative_position, self.width, self.height)
+        self.hp_bar = pygame.rect.Rect(*self.line_positions, self.width, self.height)
         self.hp_bar_fill = self.hp_bar.copy()
 
     def draw(self):
@@ -197,3 +198,18 @@ class PlayerStats(BaseInterfaceElement):
         self.hp_bar_fill.width = int(self.player.hp_percentage * self.width)
         pygame.draw.rect(display_surface, self.fill_color, self.hp_bar_fill)
         pygame.draw.rect(display_surface, self.border_color, self.hp_bar, 1)
+
+
+class TimeDisplay(BaseInterfaceElement):
+    def __init__(self, world: BaseWorld) -> None:
+        super().__init__()
+        self.world = world
+        self.font = pygame.sysfont.SysFont("freesansbold", 20)
+
+    def draw(self):
+        super().draw()
+        display_surface = pygame.display.get_surface()
+        s = self.font.render(self.world.time.strftime("%H:%M"), True, "white")
+        display_surface.blit(s, (10, 25))
+        s = self.font.render(self.world.day_part.value, True, "white")
+        display_surface.blit(s, (10, 45))

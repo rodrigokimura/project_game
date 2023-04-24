@@ -72,10 +72,6 @@ class BaseWorld(ABC):
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
 
-        print(self.relative_time)
-        print(self.time)
-        print(self.day_part)
-
     @property
     def relative_time(self):
         return self.time_of_day / self.DAY_DURATION
