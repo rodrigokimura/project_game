@@ -26,6 +26,7 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     cursor_image: pygame.surface.Surface
     cursor_position: pygame.math.Vector2
     mode: Mode = Mode.EXPLORATION
+    destruction_power: int = 5
 
     @property
     def hp_percentage(self):
@@ -34,6 +35,16 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     def next_mode(self):
         self.mode = Mode(self.mode + 1)
 
+    def get_cursor_coords(self):
+        cursor_position = self.rect.move(self.cursor_position.x, self.cursor_position.y)
+        return (
+            cursor_position.x // BLOCK_SIZE + 1,
+            cursor_position.y // BLOCK_SIZE + 1,
+        )
+
+    def destroy(self, block: BaseBlock, dt: int):
+        block.integrity -= self.destruction_power * dt
+        return block.integrity <= 0
 
 class GravitySprite(ABC, pygame.sprite.Sprite):
     def __init__(
@@ -67,7 +78,8 @@ class Player(BasePlayer, GravitySprite):
     IMMUNITY_OVER = pygame.event.custom_type()
     DEAD = pygame.event.custom_type()
     PAUSE = pygame.event.custom_type()
-    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE]
+    DESTROY_BLOCK = pygame.event.custom_type()
+    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK]
 
     def __init__(
         self,
@@ -199,6 +211,12 @@ class Player(BasePlayer, GravitySprite):
                 self.next_mode()
             elif lt == 0:
                 self._can_change_mode = True
+
+            # block destruction
+            rt = self.joystick.get_button(7)
+            if rt and self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
+                # ev = pygame.event.Event(self.DESTROY_BLOCK)
+                pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
 
             if rb:
                 self.dash("r")

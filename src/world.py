@@ -6,7 +6,7 @@ import pygame
 
 from blocks import Rock, Spike, Tree, draw_cached_images
 from day_cycle import convert_to_time, get_day_part
-from player import BasePlayer
+from player import BasePlayer, Player
 from settings import BLOCK_SIZE, DAY_DURATION, WORLD_SIZE
 
 
@@ -67,6 +67,19 @@ class BaseWorld(ABC):
         self.update_time(dt)
         player.update(dt)
 
+        # perform block destruction
+        events = pygame.event.get(Player.DESTROY_BLOCK)
+        if events:
+            ev = events[0]
+            if ev:
+                coords = player.get_cursor_coords()
+                block = self.get_block(coords)
+                if block:
+                    destroyed = player.destroy(block, dt)
+                    if destroyed:
+                        self.all_blocks[coords[1]][coords[0]] = None
+                        del block
+
     def update_time(self, dt: int):
         self.age += dt
         self.time_of_day += dt
@@ -89,6 +102,12 @@ class BaseWorld(ABC):
     @property
     def day_part(self):
         return get_day_part(self.time)
+
+    def get_block(self, coords: tuple[int, int]):
+        try:
+            return self.all_blocks[coords[1]][coords[0]]
+        except IndexError:
+            return None
 
 
 class World(BaseWorld):

@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Any, Iterable
 
 import pygame
-from pygame.font import SysFont
 
-from player import BasePlayer
+from player import BasePlayer, Mode
+from settings import BLOCK_SIZE, DEBUG
 from world import BaseWorld
 
 
@@ -132,6 +132,11 @@ class Camera:
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
+        self.highlight = pygame.surface.Surface(
+            (BLOCK_SIZE, BLOCK_SIZE)
+        ).convert_alpha()
+        self.highlight.fill((0, 0, 0, 0))
+        pygame.draw.rect(self.highlight, "red", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2, 4)
 
     def get_rect(self):
         rect = pygame.rect.Rect(0, 0, self.width, self.height)
@@ -169,13 +174,34 @@ class Camera:
         display_surface.blit(self.player.image, self.player.rect.move(dx, dy))
 
         # render player cursor
-        cursor_position = self.player.rect.move(dx, dy).move(
-            self.player.cursor_image.get_size()[0] / 2,
-            self.player.cursor_image.get_size()[1] / 2,
+        cursor_position = self.player.rect.move(
+            self.player.cursor_position.x, self.player.cursor_position.y
         )
-        cursor_position.x += int(self.player.cursor_position.x)
-        cursor_position.y += int(self.player.cursor_position.y)
-        display_surface.blit(self.player.cursor_image, cursor_position)
+        if DEBUG:
+            display_surface.blit(
+                self.player.cursor_image,
+                cursor_position.move(
+                    self.player.cursor_image.get_size()[0] / 2,
+                    self.player.cursor_image.get_size()[1] / 2,
+                ).move(dx, dy),
+            )
+
+        # highlight block
+        if self.player.mode == Mode.CONSTRUCTION:
+            coords = self.player.get_cursor_coords()
+            display_surface.blit(
+                self.highlight,
+                (coords[0] * BLOCK_SIZE + dx, coords[1] * BLOCK_SIZE + dy),
+            )
+            if DEBUG:
+                print(self.world.get_block(coords))
+        elif self.player.mode == Mode.COMBAT:
+            pygame.draw.line(
+                display_surface,
+                "red",
+                self.player.rect.move(dx, dy).center,
+                cursor_position.move(dx, dy).center,
+            )
 
         for el in self.interface_elements:
             el.draw()
