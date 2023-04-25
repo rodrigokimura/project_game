@@ -8,7 +8,7 @@ from settings import BLOCK_SIZE
 class BaseBlock(pygame.sprite.Sprite, ABC):
     def __init__(self, coords: tuple[int, int], *groups: pygame.sprite.Group) -> None:
         super().__init__(*groups)
-        self.visible = 0
+        self.coords = coords
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = (coords[0] * BLOCK_SIZE, coords[1] * BLOCK_SIZE)
 
@@ -45,6 +45,18 @@ class ChangingBlock(BaseBlock, metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def images(self) -> tuple[pygame.surface.Surface, ...]:
+        ...
+
+    @property
+    def image(self):
+        try:
+            return self.images[self.state]
+        except IndexError:
+            return self.images[0]
+
+    @property
+    @abstractmethod
     def max_state(self) -> int:
         ...
 
@@ -55,23 +67,54 @@ class ChangingBlock(BaseBlock, metaclass=ABCMeta):
                 self.state += 1
 
 
+tree_images = (
+    pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
+    pygame.surface.Surface((BLOCK_SIZE, 2 * BLOCK_SIZE)),
+    pygame.surface.Surface((BLOCK_SIZE, 3 * BLOCK_SIZE)),
+    pygame.surface.Surface((3 * BLOCK_SIZE, 5 * BLOCK_SIZE)),
+    pygame.surface.Surface((3 * BLOCK_SIZE, 6 * BLOCK_SIZE)),
+    pygame.surface.Surface((3 * BLOCK_SIZE, 7 * BLOCK_SIZE)),
+    pygame.surface.Surface((5 * BLOCK_SIZE, 9 * BLOCK_SIZE)),
+)
+
+
 class Tree(ChangingBlock):
     interval: int = 1
     counter: int = 0
-    images: list[pygame.surface.Surface]
-    max_state: int = 1
+    images: tuple[pygame.surface.Surface, ...] = tree_images
+    max_state: int = 6
 
     @property
     def mask(self):
         return pygame.mask.Mask((0, 0))
 
     @property
-    def image(self):
-        global tree_images
-        try:
-            return tree_images[self.state]
-        except IndexError:
-            return tree_images[0]
+    def rect(self):
+        rect = self.image.get_rect()
+        rect.x, rect.y = (self.coords[0] * BLOCK_SIZE, self.coords[1] * BLOCK_SIZE)
+        if self.state == 0:
+            pass
+        elif self.state == 1:
+            rect.y -= BLOCK_SIZE
+        elif self.state == 2:
+            rect.y -= 2 * BLOCK_SIZE
+        elif self.state == 3:
+            rect.x -= 1 * BLOCK_SIZE
+            rect.y -= 4 * BLOCK_SIZE
+        elif self.state == 4:
+            rect.x -= 1 * BLOCK_SIZE
+            rect.y -= 5 * BLOCK_SIZE
+        elif self.state == 5:
+            rect.x -= 1 * BLOCK_SIZE
+            rect.y -= 6 * BLOCK_SIZE
+        elif self.state == 6:
+            rect.x -= 2 * BLOCK_SIZE
+            rect.y -= 8 * BLOCK_SIZE
+        return rect
+
+    @rect.setter
+    def rect(self, value):
+        pass
 
 
 cached_images: dict[type[BaseBlock], pygame.surface.Surface] = {
@@ -79,19 +122,57 @@ cached_images: dict[type[BaseBlock], pygame.surface.Surface] = {
     Spike: pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
 }
 cached_masks: dict[type[BaseBlock], pygame.mask.Mask] = {}
-tree_images = (
-    pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
-    pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
-    pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
-)
 
 
 def get_tree_image(state: int, s: pygame.surface.Surface):
     global tree_images
     if state == 0:
-        pygame.draw.rect(s, "yellow", s.get_rect(), 1)
+        pygame.draw.rect(s, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 1)
     elif state == 1:
-        pygame.draw.rect(s, "orange", s.get_rect(), 2)
+        pygame.draw.rect(s, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2)
+        pygame.draw.rect(
+            s, "yellow", (BLOCK_SIZE // 4, BLOCK_SIZE, BLOCK_SIZE // 2, BLOCK_SIZE), 1
+        )
+    elif state == 2:
+        pygame.draw.rect(s, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2)
+        pygame.draw.rect(
+            s,
+            "yellow",
+            (BLOCK_SIZE // 4, BLOCK_SIZE, BLOCK_SIZE // 2, 2 * BLOCK_SIZE),
+            1,
+        )
+    elif state == 3:
+        pygame.draw.rect(s, "green", (0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE), 2)
+        pygame.draw.rect(
+            s,
+            "yellow",
+            (BLOCK_SIZE, 3 * BLOCK_SIZE, BLOCK_SIZE, 2 * BLOCK_SIZE),
+            1,
+        )
+    elif state == 4:
+        pygame.draw.rect(s, "green", (0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE), 2)
+        pygame.draw.rect(
+            s,
+            "yellow",
+            (BLOCK_SIZE, 3 * BLOCK_SIZE, BLOCK_SIZE, 3 * BLOCK_SIZE),
+            1,
+        )
+    elif state == 5:
+        pygame.draw.rect(s, "green", (0, 0, 3 * BLOCK_SIZE, 4 * BLOCK_SIZE), 2)
+        pygame.draw.rect(
+            s,
+            "yellow",
+            (BLOCK_SIZE, 4 * BLOCK_SIZE, BLOCK_SIZE, 3 * BLOCK_SIZE),
+            1,
+        )
+    elif state == 6:
+        pygame.draw.rect(s, "green", (0, 0, 5 * BLOCK_SIZE, 5 * BLOCK_SIZE), 2)
+        pygame.draw.rect(
+            s,
+            "yellow",
+            (2 * BLOCK_SIZE, 5 * BLOCK_SIZE, BLOCK_SIZE, 4 * BLOCK_SIZE),
+            1,
+        )
 
 
 def load_tree_images():
