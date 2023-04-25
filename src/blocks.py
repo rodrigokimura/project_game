@@ -2,15 +2,24 @@ from abc import ABC, ABCMeta, abstractmethod
 
 import pygame
 
+from materials import BaseMaterial
+from materials import Rock as RockMaterial
+from materials import Wood, all_materials
 from settings import BLOCK_SIZE
 
 
-class BaseBlock(pygame.sprite.Sprite, ABC):
+class BaseBlock(pygame.sprite.Sprite, ABC, metaclass=ABCMeta):
+    @property
+    @abstractmethod
+    def material(self) -> BaseMaterial:
+        ...
+
     def __init__(self, coords: tuple[int, int], *groups: pygame.sprite.Group) -> None:
         super().__init__(*groups)
         self.coords = coords
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = (coords[0] * BLOCK_SIZE, coords[1] * BLOCK_SIZE)
+        self.integrity: float = self.material.resistance
 
     @property
     def image(self):
@@ -31,10 +40,11 @@ class BaseHazard(BaseBlock, metaclass=ABCMeta):
 
 
 class Rock(BaseBlock):
-    ...
+    material: BaseMaterial = all_materials[RockMaterial]
 
 
 class Spike(BaseHazard):
+    material: BaseMaterial = all_materials[RockMaterial]
     damage: int = 10
 
 
@@ -79,6 +89,7 @@ tree_images = (
 
 
 class Tree(ChangingBlock):
+    material: BaseMaterial = all_materials[Wood]
     interval: int = 1
     counter: int = 0
     images: tuple[pygame.surface.Surface, ...] = tree_images
