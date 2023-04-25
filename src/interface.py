@@ -200,6 +200,19 @@ class PlayerStats(BaseInterfaceElement):
         pygame.draw.rect(display_surface, self.border_color, self.hp_bar, 1)
 
 
+class PlayerMode(BaseInterfaceElement):
+    def __init__(self, player: BasePlayer) -> None:
+        super().__init__()
+        self.player = player
+        self.font = pygame.sysfont.SysFont("freesansbold", 20)
+
+    def draw(self):
+        super().draw()
+        display_surface = pygame.display.get_surface()
+        s = self.font.render(self.player.mode.name, True, "white")
+        display_surface.blit(s, (10, 70))
+
+
 class TimeDisplay(BaseInterfaceElement):
     def __init__(self, world: BaseWorld) -> None:
         super().__init__()

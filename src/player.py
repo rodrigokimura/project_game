@@ -1,11 +1,20 @@
+import enum
 import math
 from abc import ABC, abstractmethod
+from itertools import cycle
 from typing import Any, Literal, Optional
 
 import pygame
 
 from blocks import BaseBlock, BaseHazard
 from settings import BLOCK_SIZE
+from utils import CyclingIntEnum
+
+
+class Mode(CyclingIntEnum):
+    EXPLORATION = enum.auto()
+    CONSTRUCTION = enum.auto()
+    COMBAT = enum.auto()
 
 
 class BasePlayer(ABC, pygame.sprite.Sprite):
@@ -16,10 +25,14 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     health_points: int
     cursor_image: pygame.surface.Surface
     cursor_position: pygame.math.Vector2
+    mode: Mode = Mode.EXPLORATION
 
     @property
     def hp_percentage(self):
         return self.health_points / self.max_health_points
+
+    def next_mode(self):
+        self.mode = Mode(self.mode + 1)
 
 
 class GravitySprite(ABC, pygame.sprite.Sprite):
@@ -103,8 +116,6 @@ class Player(BasePlayer, GravitySprite):
         self.bottom_sprite.mask = pygame.mask.Mask(self.bottom_rect.size)
         self.bottom_sprite.mask.fill()
 
-        # self.bottom_rect_mask = pygame.mask.Mask(self.bottom_rect.size)
-
         self.max_jump_time = 0.2
         self.max_jump_count = 2
         self._jump_count = 0
@@ -114,6 +125,9 @@ class Player(BasePlayer, GravitySprite):
 
         self.max_immunity_time = 0.5
         self._is_immune = False
+
+        # change modes
+        self._can_change_mode = True
 
     def _draw(self):
         size = self.size
@@ -177,6 +191,15 @@ class Player(BasePlayer, GravitySprite):
 
             lb = self.joystick.get_button(4)
             rb = self.joystick.get_button(5)
+
+            # to avoid continuous trigger, we need a control bool
+            lt = self.joystick.get_button(6)
+            if lt and self._can_change_mode:
+                self._can_change_mode = False
+                self.next_mode()
+            elif lt == 0:
+                self._can_change_mode = True
+
             if rb:
                 self.dash("r")
             if lb:
