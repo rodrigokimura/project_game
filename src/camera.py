@@ -61,6 +61,13 @@ class Camera:
                 for spr in self.world.visibility_buffer.sprites()
             )
         )
+        # draw all collectibles
+        display_surface.blits(
+            tuple(
+                (spr.image, spr.rect.move(dx, dy))
+                for spr in self.world.collectibles.sprites()
+            )
+        )
         display_surface.blit(self.player.image, self.player.rect.move(dx, dy))
 
         # render player cursor

@@ -2,6 +2,10 @@ from abc import ABC, ABCMeta, abstractmethod
 
 import pygame
 
+from collectibles import BaseCollectible
+from collectibles import Rock as RockCollectible
+from collectibles import Wood as WoodCollectible
+from collectibles import load_collectible_images
 from materials import BaseMaterial
 from materials import Rock as RockMaterial
 from materials import Wood, all_materials
@@ -12,6 +16,11 @@ class BaseBlock(pygame.sprite.Sprite, ABC, metaclass=ABCMeta):
     @property
     @abstractmethod
     def material(self) -> BaseMaterial:
+        ...
+
+    @property
+    @abstractmethod
+    def collectibles(self) -> dict[type[BaseCollectible], int]:
         ...
 
     def __init__(self, coords: tuple[int, int], *groups: pygame.sprite.Group) -> None:
@@ -41,10 +50,12 @@ class BaseHazard(BaseBlock, metaclass=ABCMeta):
 
 class Rock(BaseBlock):
     material: BaseMaterial = all_materials[RockMaterial]
+    collectibles: dict[type[BaseCollectible], int] = {RockCollectible: 4}
 
 
 class Spike(BaseHazard):
     material: BaseMaterial = all_materials[RockMaterial]
+    collectibles: dict[type[BaseCollectible], int] = {RockCollectible: 4}
     damage: int = 10
 
 
@@ -90,6 +101,7 @@ tree_images = (
 
 class Tree(ChangingBlock):
     material: BaseMaterial = all_materials[Wood]
+    collectibles: dict[type[BaseCollectible], int] = {WoodCollectible: 4}
     interval: int = 1
     counter: int = 0
     images: tuple[pygame.surface.Surface, ...] = tree_images
@@ -205,3 +217,4 @@ def draw_cached_images():
     cached_masks[Spike] = pygame.mask.from_surface(img)
 
     load_tree_images()
+    load_collectible_images()

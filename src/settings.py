@@ -1,10 +1,17 @@
 import os
 
+DEBUG = bool(os.getenv("DEBUG", False))
+
 BLOCK_SIZE = 16
 
 TITLE = "Project Game"
-SCREEN_WIDTH = 80 * BLOCK_SIZE  # 1280
-SCREEN_HEIGHT = 45 * BLOCK_SIZE  # 720
+
+if DEBUG:
+    SCREEN_WIDTH = 80 * BLOCK_SIZE  # 1280
+    SCREEN_HEIGHT = 45 * BLOCK_SIZE  # 720
+else:
+    SCREEN_WIDTH = 120 * BLOCK_SIZE  # 1920
+    SCREEN_HEIGHT = 67.5 * BLOCK_SIZE  # 1080
 
 WORLD_SIZE = 8 * 80, 8 * 45
 # WORLD_SIZE = 50 * 80, 50 * 45
@@ -13,5 +20,3 @@ DAY_DURATION = 10
 
 GRAVITY = 30
 TERMINAL_VELOCITY = 30
-
-DEBUG = bool(os.getenv("DEBUG", False))

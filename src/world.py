@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from itertools import product
-from typing import Any
 
 import pygame
 
 from blocks import Rock, Spike, Tree, draw_cached_images
+from collectibles import BaseCollectible
 from day_cycle import convert_to_time, get_day_part
 from log import log
 from player import BasePlayer, Player
@@ -27,6 +27,7 @@ class BaseWorld(ABC):
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
         self.all_blocks = [[]]
         self.changing_blocks = pygame.sprite.Group()
+        self.collectibles = pygame.sprite.Group()
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
         self.populate()
@@ -67,19 +68,12 @@ class BaseWorld(ABC):
 
         self.update_time(dt)
         player.update(dt)
+        self.collectibles.update(dt, self.all_blocks.copy())
 
         # perform block destruction
         events = pygame.event.get(Player.DESTROY_BLOCK)
-        if events:
-            ev = events[0]
-            if ev:
-                coords = player.get_cursor_coords()
-                block = self.get_block(coords)
-                if block:
-                    destroyed = player.destroy(block, dt)
-                    if destroyed:
-                        self.all_blocks[coords[1]][coords[0]] = None
-                        del block
+        for _ in events:
+            self.destroy_block(player, dt)
 
     def update_time(self, dt: int):
         self.age += dt
@@ -110,6 +104,28 @@ class BaseWorld(ABC):
             return self.all_blocks[coords[1]][coords[0]]
         except IndexError:
             return None
+
+    def destroy_block(self, player: BasePlayer, dt: int):
+        coords = player.get_cursor_coords()
+        block = self.get_block(coords)
+        if block is None:
+            return
+        destroyed = player.destroy(block, dt)
+        if not destroyed:
+            return
+        self.all_blocks[coords[1]][coords[0]] = None
+        log(block.collectibles)
+        for collectible_class, count in block.collectibles.items():
+            collectible_class: type[BaseCollectible]
+            for _ in range(count):
+                collectible_class(
+                    coords,
+                    int(self.gravity.y),
+                    self.terminal_velocity,
+                    self.collectibles,
+                )
+
+        del block
 
 
 class World(BaseWorld):
@@ -186,31 +202,3 @@ class SampleWorld(SimpleWorld):
             _y -= 1
             block = Rock((_x, _y))
             self.all_blocks[_y][_x] = block
-
-
-class GravitySprite(ABC, pygame.sprite.Sprite):
-    def __init__(
-        self, gravity: int, terminal_velocity: int, *groups: pygame.sprite.Group
-    ) -> None:
-        super().__init__(*groups)
-        self.collidable_sprites_buffer = pygame.sprite.Group()
-
-        self.pos = pygame.math.Vector2()
-        self.velocity = pygame.math.Vector2()
-        self.acceleration = pygame.math.Vector2(0, gravity)
-        self.terminal_velocity = terminal_velocity
-
-    def update(self, dt, *args: Any, **kwargs: Any) -> None:
-        self.fall(dt)
-
-    def fall(self, dt: int):
-        if self.should_fall():
-            self.velocity.y += self.acceleration.y * dt
-            if abs(self.velocity.y) > self.terminal_velocity:
-                self.velocity.y = self.terminal_velocity * (
-                    1 if self.velocity.y > 0 else -1
-                )
-
-    @abstractmethod
-    def should_fall(self) -> None:
-        ...

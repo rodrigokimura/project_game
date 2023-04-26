@@ -1,12 +1,13 @@
 import enum
 import math
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Literal, Optional
 
 import pygame
 
 from blocks import BaseBlock, BaseHazard
 from settings import BLOCK_SIZE
+from sprites import GravitySprite
 from utils import CyclingIntEnum
 
 
@@ -55,34 +56,6 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     def destroy(self, block: BaseBlock, dt: int):
         block.integrity -= self.destruction_power * dt
         return block.integrity <= 0
-
-
-class GravitySprite(ABC, pygame.sprite.Sprite):
-    def __init__(
-        self, gravity: int, terminal_velocity: int, *groups: pygame.sprite.Group
-    ) -> None:
-        super().__init__(*groups)
-        self.collidable_sprites_buffer = pygame.sprite.Group()
-
-        self.pos = pygame.math.Vector2()
-        self.velocity = pygame.math.Vector2()
-        self.acceleration = pygame.math.Vector2(0, gravity)
-        self.terminal_velocity = terminal_velocity
-
-    def update(self, dt, *args: Any, **kwargs: Any) -> None:
-        self.fall(dt)
-
-    def fall(self, dt: int):
-        if self.should_fall():
-            self.velocity.y += self.acceleration.y * dt
-            if abs(self.velocity.y) > self.terminal_velocity:
-                self.velocity.y = self.terminal_velocity * (
-                    1 if self.velocity.y > 0 else -1
-                )
-
-    @abstractmethod
-    def should_fall(self) -> None:
-        pass
 
 
 class Player(BasePlayer, GravitySprite):
@@ -192,8 +165,8 @@ class Player(BasePlayer, GravitySprite):
         self.uncollide()
 
         self.update_angle(dt)
-        self.update_position(dt)
         self.update_image()
+        self.update_position(dt)
         self.update_rects()
 
     def check_immunity(self):
@@ -356,13 +329,13 @@ class Player(BasePlayer, GravitySprite):
             if self.velocity.project(normal).angle_to(normal) == 0:
                 self.velocity -= self.velocity.project(normal)
 
-    def update_position(self, dt):
-        self.position += self.velocity * dt * self.size
-
     def update_image(self):
         img = self.rotate()
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
+
+    def update_position(self, dt):
+        self.position += self.velocity * dt * self.size
 
     def update_rects(self):
         self.rect.center = (int(self.position.x), int(self.position.y))
