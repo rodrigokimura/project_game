@@ -4,6 +4,7 @@ from typing import Any
 
 import pygame
 
+from log import log
 from settings import BLOCK_SIZE
 from sprites import GravitySprite
 
@@ -25,21 +26,27 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
     ) -> None:
         self.coords = coords
         self.rect = self.image.get_rect().copy()
+        padding = 1
         self.rect.centerx = random.randint(
-            self.coords[0] * BLOCK_SIZE, (self.coords[0] + 1) * BLOCK_SIZE
+            self.coords[0] * BLOCK_SIZE + COLLECTIBLE_SIZE // 2 + padding,
+            (self.coords[0] + 1) * BLOCK_SIZE - COLLECTIBLE_SIZE // 2 - padding,
         )
         self.rect.centery = random.randint(
-            self.coords[1] * BLOCK_SIZE, (self.coords[1] + 1) * BLOCK_SIZE
+            self.coords[1] * BLOCK_SIZE + COLLECTIBLE_SIZE // 2 + padding,
+            (self.coords[1] + 1) * BLOCK_SIZE - COLLECTIBLE_SIZE // 2 - padding,
         )
+        self.pulling_velocity = pygame.math.Vector2()
         super().__init__(gravity, terminal_velocity, *groups)
 
     def should_fall(self, all_blocks):
-        block_below = all_blocks[
-            int((self.rect.centery + COLLECTIBLE_SIZE / 2) // BLOCK_SIZE)
-        ][self.rect.centerx // BLOCK_SIZE]
+        block_below = all_blocks[int((self.rect.bottom + 1) // BLOCK_SIZE)][
+            self.rect.centerx // BLOCK_SIZE
+        ]
         if block_below is None:
             return True
-        self.velocity.y = 0
+        self.rect.bottom = block_below.rect.top - 1
+        if self.velocity.y > 0:
+            self.velocity.y = 0
         return False
 
     def update(
@@ -52,9 +59,13 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         self.fall(dt, all_blocks)
         self.update_position(dt)
 
-    def update_position(self, dt):
-        self.rect.centery += self.velocity.y * dt * BLOCK_SIZE
-        self.rect.centerx += self.velocity.x * dt * BLOCK_SIZE
+    def update_position(self, dt: float):
+        self.rect.centery += int(
+            (self.velocity.y + self.pulling_velocity.y) * dt * BLOCK_SIZE * 10
+        )
+        self.rect.centerx += int(
+            (self.velocity.x + self.pulling_velocity.x) * dt * BLOCK_SIZE * 10
+        )
         self.coords = (
             self.rect.centerx // BLOCK_SIZE,
             self.rect.centery // BLOCK_SIZE,

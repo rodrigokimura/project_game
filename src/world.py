@@ -68,7 +68,10 @@ class BaseWorld(ABC):
 
         self.update_time(dt)
         player.update(dt)
-        self.collectibles.update(dt, self.all_blocks.copy())
+
+        # update collectibles
+        player.pull_collectibles(self.collectibles)
+        self.collectibles.update(dt, self.all_blocks)
 
         # perform block destruction
         events = pygame.event.get(Player.DESTROY_BLOCK)
@@ -114,7 +117,6 @@ class BaseWorld(ABC):
         if not destroyed:
             return
         self.all_blocks[coords[1]][coords[0]] = None
-        log(block.collectibles)
         for collectible_class, count in block.collectibles.items():
             collectible_class: type[BaseCollectible]
             for _ in range(count):

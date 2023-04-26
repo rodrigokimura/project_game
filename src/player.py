@@ -1,12 +1,14 @@
 import enum
 import math
 from abc import ABC
-from typing import Any, Literal, Optional
+from typing import Any, Collection, Literal, Optional
 
 import pygame
 
 from blocks import BaseBlock, BaseHazard
-from settings import BLOCK_SIZE
+from collectibles import BaseCollectible
+from log import log
+from settings import BLOCK_SIZE, DEBUG
 from sprites import GravitySprite
 from utils import CyclingIntEnum
 
@@ -39,6 +41,9 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     mode: Mode = Mode.EXPLORATION
     destruction_power: int = 5
 
+    collectible_pull_radius: int = 5  # in block size units
+    collectible_grab_radius: int = 2  # in block size units
+
     @property
     def hp_percentage(self):
         return self.health_points / self.max_health_points
@@ -56,6 +61,32 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     def destroy(self, block: BaseBlock, dt: int):
         block.integrity -= self.destruction_power * dt
         return block.integrity <= 0
+
+    def pull_collectibles(self, collectibles_group: pygame.sprite.Group):
+        # TODO: avoid passing all collectibles
+        for collectible in collectibles_group.sprites():
+            collectible: BaseCollectible
+            collectible_position = pygame.math.Vector2(collectible.rect.center)
+            player_position = pygame.math.Vector2(self.rect.center)
+            diff = player_position - collectible_position
+            if not diff:
+                return
+
+            distance = diff.magnitude() / BLOCK_SIZE
+            if distance < self.collectible_pull_radius:
+                collectible.pulling_velocity = diff.normalize()
+            else:
+                collectible.pulling_velocity.update(0)
+            if distance < self.collectible_grab_radius:
+                self.grab_collectible(collectible, collectibles_group)
+
+    def grab_collectible(
+        self, collectible: BaseCollectible, group: pygame.sprite.Group
+    ):
+        if DEBUG:
+            log(f"Grabbing collectible: {collectible}")
+        collectible.remove(group)
+        del collectible
 
 
 class Player(BasePlayer, GravitySprite):
