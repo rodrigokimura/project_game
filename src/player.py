@@ -1,12 +1,13 @@
 import enum
 import math
 from abc import ABC
-from typing import Any, Collection, Literal, Optional
+from typing import Any, Literal, Optional
 
 import pygame
 
 from blocks import BaseBlock, BaseHazard
 from collectibles import BaseCollectible
+from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
 from sprites import GravitySprite
@@ -43,6 +44,7 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
 
     collectible_pull_radius: int = 5  # in block size units
     collectible_grab_radius: int = 2  # in block size units
+    inventory: BaseInventory
 
     @property
     def hp_percentage(self):
@@ -86,6 +88,8 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
         if DEBUG:
             log(f"Grabbing collectible: {collectible}")
         collectible.remove(group)
+        self.inventory.add(collectible)
+        print(self.inventory)
         del collectible
 
 
@@ -105,6 +109,7 @@ class Player(BasePlayer, GravitySprite):
         *groups: pygame.sprite.Group,
     ) -> None:
         super().__init__(gravity, terminal_velocity, *groups)
+        self.inventory = Inventory()
         self.max_health_points = 100
         self.health_points = self.max_health_points
 

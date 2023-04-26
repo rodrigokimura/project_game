@@ -4,7 +4,6 @@ from typing import Any
 
 import pygame
 
-from log import log
 from settings import BLOCK_SIZE
 from sprites import GravitySprite
 
