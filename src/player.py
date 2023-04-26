@@ -1,7 +1,6 @@
 import enum
 import math
 from abc import ABC, abstractmethod
-from itertools import cycle
 from typing import Any, Literal, Optional
 
 import pygame
@@ -11,10 +10,21 @@ from settings import BLOCK_SIZE
 from utils import CyclingIntEnum
 
 
+def custom_collision_detection(sprite_left: Any, sprite_right: Any):
+    return pygame.sprite.collide_mask(sprite_left, sprite_right) is not None
+
+
 class Mode(CyclingIntEnum):
     EXPLORATION = enum.auto()
     CONSTRUCTION = enum.auto()
     COMBAT = enum.auto()
+
+
+class StandingBase(pygame.sprite.Sprite):
+    def __init__(self, rect: pygame.rect.Rect, *groups: pygame.sprite.Group) -> None:
+        super().__init__(*groups)
+        self.rect = rect
+        self.mask = pygame.mask.Mask(self.rect.size, True)
 
 
 class BasePlayer(ABC, pygame.sprite.Sprite):
@@ -45,6 +55,7 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
     def destroy(self, block: BaseBlock, dt: int):
         block.integrity -= self.destruction_power * dt
         return block.integrity <= 0
+
 
 class GravitySprite(ABC, pygame.sprite.Sprite):
     def __init__(
@@ -119,15 +130,11 @@ class Player(BasePlayer, GravitySprite):
         # should be less than gravity, otherwise player will fly up
         self.glide_scalar_acceleration = 10
 
-        self.bottom_rect = pygame.rect.Rect(
-            self.position.x - 1, self.position.y + self.size / 2, 2, 1
+        self.bottom_sprite = StandingBase(
+            pygame.rect.Rect(self.position.x - 1, self.position.y + self.size / 2, 2, 1)
         )
-        # TODO: remove unnecessary attrs
-        self.bottom_sprite = pygame.sprite.Sprite()
-        self.bottom_sprite.rect = self.bottom_rect
-        self.bottom_sprite.mask = pygame.mask.Mask(self.bottom_rect.size)
-        self.bottom_sprite.mask.fill()
 
+        # for jumping mechanics
         self.max_jump_time = 0.2
         self.max_jump_count = 2
         self._jump_count = 0
@@ -153,7 +160,7 @@ class Player(BasePlayer, GravitySprite):
         pygame.draw.rect(self.image, "red", rect, 0)
         self.original_image = self.image.copy()
 
-        # render cursor
+        # draw cursor image
         self.cursor_image = pygame.surface.Surface(
             (BLOCK_SIZE, BLOCK_SIZE)
         ).convert_alpha()
@@ -215,7 +222,6 @@ class Player(BasePlayer, GravitySprite):
             # block destruction
             rt = self.joystick.get_button(7)
             if rt and self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
-                # ev = pygame.event.Event(self.DESTROY_BLOCK)
                 pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
 
             if rb:
@@ -298,7 +304,7 @@ class Player(BasePlayer, GravitySprite):
             self,
             self.collidable_sprites_buffer,
             False,
-            collided=pygame.sprite.collide_mask,
+            collided=custom_collision_detection,
         )
 
         if not collided_sprites:
@@ -352,7 +358,6 @@ class Player(BasePlayer, GravitySprite):
 
     def update_position(self, dt):
         self.position += self.velocity * dt * self.size
-        # self.cursor_position += self.position
 
     def update_image(self):
         img = self.rotate()
@@ -361,21 +366,21 @@ class Player(BasePlayer, GravitySprite):
 
     def update_rects(self):
         self.rect.center = (int(self.position.x), int(self.position.y))
-        self.bottom_rect.left = int(self.position.x - 1)
-        self.bottom_rect.top = int(self.position.y + self.size / 2)
+        self.bottom_sprite.rect.topleft = (
+            int(self.position.x - 1),
+            int(self.position.y + self.size / 2),
+        )
 
     def should_fall(self):
         ground = pygame.sprite.spritecollide(
             self.bottom_sprite,
             self.collidable_sprites_buffer,
             False,
-            collided=pygame.sprite.collide_mask,
+            collided=custom_collision_detection,
         )
         if not ground:
             return True
-
         ground = ground[0]
-
         if isinstance(ground, BaseHazard):
             self.take_tamage(ground)
 

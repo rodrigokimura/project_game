@@ -3,7 +3,8 @@ from typing import Optional
 import pygame
 
 from blocks import draw_cached_images
-from interface import Camera, Menu, PlayerMode, PlayerStats, TimeDisplay
+from camera import Camera
+from interface import Menu, PlayerMode, PlayerStats, TimeDisplay
 from player import Player
 from settings import (
     BLOCK_SIZE,
@@ -21,6 +22,7 @@ class Level:
     FINISHED = pygame.event.custom_type()
     RESUME = pygame.event.custom_type()
     SAVE = pygame.event.custom_type()
+
     EVENTS = [FINISHED, RESUME, SAVE]
 
     @classmethod
@@ -63,6 +65,7 @@ class Level:
             PlayerMode(self.player),
             TimeDisplay(self.world),
         ]
+
         self.camera = Camera(
             (SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world, interface
         )

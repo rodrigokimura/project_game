@@ -1,5 +1,7 @@
 import argparse
 
+from log import log
+
 
 def play():
     from game import Game
@@ -17,12 +19,12 @@ def debug():
 
 def world_viewer():
     # TODO: Implement
-    print("Not implemented yet")
+    log("Not implemented yet")
 
 
 def world_builder():
     # TODO: Implement
-    print("Not implemented yet")
+    log("Not implemented yet")
 
 
 if __name__ == "__main__":

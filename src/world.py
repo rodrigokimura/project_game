@@ -6,8 +6,9 @@ import pygame
 
 from blocks import Rock, Spike, Tree, draw_cached_images
 from day_cycle import convert_to_time, get_day_part
+from log import log
 from player import BasePlayer, Player
-from settings import BLOCK_SIZE, DAY_DURATION, WORLD_SIZE
+from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
 
 
 class BaseWorld(ABC):
@@ -85,8 +86,9 @@ class BaseWorld(ABC):
         self.time_of_day += dt
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
-            print("updating changing_blocks")
             self.update_changing_blocks()
+            if DEBUG:
+                log("Updating ChangingBlock instances")
 
     def update_changing_blocks(self):
         self.changing_blocks.update()
