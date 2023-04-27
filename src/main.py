@@ -27,12 +27,20 @@ def world_builder():
     log("Not implemented yet")
 
 
+def clear_db():
+    from storage import WorldStorage
+
+    s = WorldStorage()
+    s.clear()
+
+
 if __name__ == "__main__":
     options = {
         "play": play,
         "debug": debug,
         "viewer": world_viewer,
         "builder": world_builder,
+        "clear_db": clear_db,
     }
 
     parser = argparse.ArgumentParser(description="Run game")

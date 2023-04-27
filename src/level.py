@@ -14,7 +14,7 @@ from settings import (
     TERMINAL_VELOCITY,
     WORLD_SIZE,
 )
-from storage import Storage
+from storage import WorldStorage
 from world import BaseWorld, SampleWorld
 
 
@@ -27,8 +27,8 @@ class Level:
 
     @classmethod
     def from_storage(cls):
-        s = Storage()
-        world = s.read()
+        s = WorldStorage()
+        world = s.get_newest()
         return cls(world)
 
     def __init__(self, world: Optional[BaseWorld] = None) -> None:
@@ -90,7 +90,7 @@ class Level:
                 self.save_game()
 
     def save_game(self):
-        s = Storage()
+        s = WorldStorage()
         s.store(self.world)
 
     def check_player_dead(self):

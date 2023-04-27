@@ -62,7 +62,6 @@ class Game:
 
             self.main_loop(dt)
 
-            # pygame.display.flip()
             pygame.display.update()
 
         pygame.quit()

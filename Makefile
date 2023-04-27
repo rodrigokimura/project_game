@@ -10,3 +10,6 @@ lint:
 
 test:
 	@pipenv run pytest
+
+clear:
+	@pipenv run python src/main.py --action clear_db

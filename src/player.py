@@ -1,12 +1,12 @@
 import enum
 import math
-from abc import ABC
 from typing import Any, Literal, Optional
 
 import pygame
 
 from blocks import BaseBlock, BaseHazard
 from collectibles import BaseCollectible
+from commons import Storable
 from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
@@ -31,7 +31,7 @@ class StandingBase(pygame.sprite.Sprite):
         self.mask = pygame.mask.Mask(self.rect.size, True)
 
 
-class BasePlayer(ABC, pygame.sprite.Sprite):
+class BasePlayer(Storable, GravitySprite):
     collidable_sprites_buffer: pygame.sprite.Group
     rect: pygame.rect.Rect
     image: pygame.surface.Surface
@@ -93,7 +93,7 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
         del collectible
 
 
-class Player(BasePlayer, GravitySprite):
+class Player(BasePlayer):
     IMMUNITY_OVER = pygame.event.custom_type()
     DEAD = pygame.event.custom_type()
     PAUSE = pygame.event.custom_type()

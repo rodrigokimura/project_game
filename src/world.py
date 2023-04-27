@@ -5,6 +5,7 @@ import pygame
 
 from blocks import Rock, Spike, Tree, draw_cached_images
 from collectibles import BaseCollectible
+from commons import Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
 from player import BasePlayer, Player
@@ -12,7 +13,7 @@ from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
 from utils import Container2d
 
 
-class BaseWorld(ABC):
+class BaseWorld(Storable, ABC):
     DAY_DURATION = DAY_DURATION
 
     def __init__(
