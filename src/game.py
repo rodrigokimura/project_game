@@ -67,8 +67,8 @@ class Game:
 
         pygame.quit()
 
-    def load_menu(self, dt):
+    def load_menu(self, _):
         self.menu.run()
 
-    def run_level(self, dt):
+    def run_level(self, dt: float):
         self.level.run(dt)

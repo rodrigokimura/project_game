@@ -16,10 +16,10 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
         self.acceleration = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
 
-    def update(self, dt, *args: Any, **kwargs: Any) -> None:
+    def update(self, dt: float, *args: Any, **kwargs: Any) -> None:
         self.fall(dt, *args, **kwargs)
 
-    def fall(self, dt: int, *args, **kwargs):
+    def fall(self, dt: float, *args, **kwargs):
         if self.should_fall(*args, **kwargs):
             self.velocity.y += self.acceleration.y * dt
             if abs(self.velocity.y) > self.terminal_velocity:

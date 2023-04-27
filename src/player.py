@@ -60,7 +60,7 @@ class BasePlayer(ABC, pygame.sprite.Sprite):
             cursor_position.y // BLOCK_SIZE + 1,
         )
 
-    def destroy(self, block: BaseBlock, dt: int):
+    def destroy(self, block: BaseBlock, dt: float):
         block.integrity -= self.destruction_power * dt
         return block.integrity <= 0
 
@@ -192,7 +192,7 @@ class Player(BasePlayer, GravitySprite):
         )
         self.mask = pygame.mask.from_surface(shell)
 
-    def update(self, dt: int, *args: Any, **kwargs: Any) -> None:
+    def update(self, dt: float) -> None:
         self.check_immunity()
         self.input(dt)
         self.fall(dt)
@@ -211,7 +211,7 @@ class Player(BasePlayer, GravitySprite):
             self._is_immune = False
             pygame.time.set_timer(self.IMMUNITY_OVER, 0)
 
-    def input(self, dt: int):
+    def input(self, dt: float):
         if self.joystick is not None:
             left_stick_x = self.joystick.get_axis(0)
             left_stick_x = round(left_stick_x, 1)
@@ -284,7 +284,7 @@ class Player(BasePlayer, GravitySprite):
     def boost(self):
         self.velocity.x = self.velocity.x + (10 if self.velocity.x > 0 else -10)
 
-    def jump(self, dt: int):
+    def jump(self, dt: float):
         if (
             self._jump_count < self.max_jump_count
             and self._jump_time < self.max_jump_time
@@ -295,7 +295,7 @@ class Player(BasePlayer, GravitySprite):
         else:
             self._can_keep_jumping = False
 
-    def glide(self, dt: int):
+    def glide(self, dt: float):
         if self.should_fall() and self.joystick and self.joystick.get_button(0):
             if self.velocity.y > 0:
                 self.velocity.y -= self.glide_scalar_acceleration * dt
@@ -304,7 +304,7 @@ class Player(BasePlayer, GravitySprite):
         self._jump_count = 0
         self._jump_time = 0
 
-    def update_angle(self, dt: int):
+    def update_angle(self, dt: float):
         if self.velocity.x:
             self.angle += -self.velocity.x * self.size * dt * math.pi
 
@@ -370,7 +370,7 @@ class Player(BasePlayer, GravitySprite):
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
 
-    def update_position(self, dt):
+    def update_position(self, dt: float):
         self.position += self.velocity * dt * self.size
 
     def update_rects(self):

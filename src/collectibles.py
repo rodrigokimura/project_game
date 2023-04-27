@@ -1,13 +1,18 @@
 import random
 from abc import ABC, ABCMeta
-from typing import Any
+from typing import Protocol
 
 import pygame
 
 from settings import BLOCK_SIZE
 from sprites import GravitySprite
+from utils import Container2d
 
 COLLECTIBLE_SIZE = BLOCK_SIZE // 2
+
+
+class _HasRect(Protocol):
+    rect: pygame.rect.Rect
 
 
 class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
@@ -37,10 +42,12 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         self.pulling_velocity = pygame.math.Vector2()
         super().__init__(gravity, terminal_velocity, *groups)
 
-    def should_fall(self, all_blocks):
-        block_below = all_blocks[int((self.rect.bottom + 1) // BLOCK_SIZE)][
-            self.rect.centerx // BLOCK_SIZE
-        ]
+    def should_fall(self, blocks: Container2d[_HasRect]):
+        coords = (
+            self.rect.centerx // BLOCK_SIZE,
+            int((self.rect.bottom + 1) // BLOCK_SIZE),
+        )
+        block_below = blocks.get_element(coords)
         if block_below is None:
             return True
         self.rect.bottom = block_below.rect.top - 1
@@ -48,14 +55,8 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
             self.velocity.y = 0
         return False
 
-    def update(
-        self,
-        dt: int,
-        all_blocks: list[list[pygame.sprite.Sprite]],
-        *args: Any,
-        **kwargs: Any
-    ) -> None:
-        self.fall(dt, all_blocks)
+    def update(self, dt: int, blocks: Container2d[_HasRect]):
+        self.fall(dt, blocks)
         self.update_position(dt)
 
     def update_position(self, dt: float):

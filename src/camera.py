@@ -21,6 +21,9 @@ class Camera:
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
+        self._setup()
+
+    def _setup(self):
         self.highlight = pygame.surface.Surface(
             (BLOCK_SIZE, BLOCK_SIZE)
         ).convert_alpha()

@@ -9,6 +9,7 @@ from day_cycle import convert_to_time, get_day_part
 from log import log
 from player import BasePlayer, Player
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
+from utils import Container2d
 
 
 class BaseWorld(ABC):
@@ -25,7 +26,7 @@ class BaseWorld(ABC):
         self.gravity: pygame.math.Vector2 = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
-        self.all_blocks = [[]]
+        self.blocks = Container2d(WORLD_SIZE)
         self.changing_blocks = pygame.sprite.Group()
         self.collectibles = pygame.sprite.Group()
         self.visibility_buffer = pygame.sprite.Group()
@@ -38,7 +39,7 @@ class BaseWorld(ABC):
     def populate(self):
         ...
 
-    def update(self, dt: int, visibility_rect: pygame.rect.Rect, player: BasePlayer):
+    def update(self, dt: float, visibility_rect: pygame.rect.Rect, player: BasePlayer):
         self.visibility_buffer.empty()
         self.collision_buffer.empty()
         m = 3
@@ -57,7 +58,7 @@ class BaseWorld(ABC):
 
         for x, y in product(range(x1 - m, x2 + m), range(y1 - m, y2 + m)):
             try:
-                s = self.all_blocks[y][x]
+                s = self.blocks.get_element((x, y))
             except IndexError:
                 continue
             if s is None:
@@ -71,14 +72,14 @@ class BaseWorld(ABC):
 
         # update collectibles
         player.pull_collectibles(self.collectibles)
-        self.collectibles.update(dt, self.all_blocks)
+        self.collectibles.update(dt, self.blocks)
 
         # perform block destruction
         events = pygame.event.get(Player.DESTROY_BLOCK)
         for _ in events:
             self.destroy_block(player, dt)
 
-    def update_time(self, dt: int):
+    def update_time(self, dt: float):
         self.age += dt
         self.time_of_day += dt
         if self.time_of_day >= self.DAY_DURATION:
@@ -104,11 +105,11 @@ class BaseWorld(ABC):
 
     def get_block(self, coords: tuple[int, int]):
         try:
-            return self.all_blocks[coords[1]][coords[0]]
+            return self.blocks.get_element(coords)
         except IndexError:
             return None
 
-    def destroy_block(self, player: BasePlayer, dt: int):
+    def destroy_block(self, player: BasePlayer, dt: float):
         coords = player.get_cursor_coords()
         block = self.get_block(coords)
         if block is None:
@@ -116,7 +117,7 @@ class BaseWorld(ABC):
         destroyed = player.destroy(block, dt)
         if not destroyed:
             return
-        self.all_blocks[coords[1]][coords[0]] = None
+        self.blocks.set_element(coords, None)
         for collectible_class, count in block.collectibles.items():
             collectible_class: type[BaseCollectible]
             for _ in range(count):
@@ -148,17 +149,11 @@ class SimpleWorld(BaseWorld):
         draw_cached_images()
 
     def populate(self):
-        blocks = []
         for y in range(int(self.size.y)):
-            row = []
             for x in range(int(self.size.x)):
-                block = Rock((x, y))
                 if y > (self.size.y / 2):
-                    row.append(block)
-                else:
-                    row.append(None)
-            blocks.append(row)
-        self.all_blocks = blocks
+                    block = Rock((x, y))
+                    self.blocks.set_element((x, y), block)
 
 
 class SampleWorld(SimpleWorld):
@@ -171,7 +166,7 @@ class SampleWorld(SimpleWorld):
         _y = y
         _x = x - 5
         block = Tree((_x, _y))
-        self.all_blocks[_y][_x] = block
+        self.blocks.set_element((_x, _y), block)
         self.changing_blocks.add(block)
 
         # spikes
@@ -180,21 +175,21 @@ class SampleWorld(SimpleWorld):
         for i in range(1, 5):
             _x = x + i
             block = Spike((_x, _y))
-            self.all_blocks[_y][_x] = block
+            self.blocks.set_element((_x, _y), block)
 
         # second level
         _y = y - 2
         for i in range(10):
             _x = x + 10 + i
             block = Rock((_x, _y))
-            self.all_blocks[_y][_x] = block
+            self.blocks.set_element((_x, _y), block)
 
         # third level
         _y = y - 6
         for i in range(10):
             _x = x + 15 + i
             block = Rock((_x, _y))
-            self.all_blocks[_y][_x] = block
+            self.blocks.set_element((_x, _y), block)
 
         # slope
         _y = y + 1
@@ -203,4 +198,4 @@ class SampleWorld(SimpleWorld):
             _x += 1
             _y -= 1
             block = Rock((_x, _y))
-            self.all_blocks[_y][_x] = block
+            self.blocks.set_element((_x, _y), block)

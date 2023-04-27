@@ -136,7 +136,7 @@ class Tree(ChangingBlock):
         return rect
 
     @rect.setter
-    def rect(self, value):
+    def rect(self, _):
         pass
 
 

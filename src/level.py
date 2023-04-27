@@ -70,7 +70,7 @@ class Level:
             (SCREEN_WIDTH, SCREEN_HEIGHT), self.player, self.world, interface
         )
 
-    def run(self, dt):
+    def run(self, dt: float):
         visibility_rect = self.camera.get_rect()
 
         if self.paused:

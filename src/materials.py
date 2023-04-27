@@ -17,4 +17,6 @@ class Rock(BaseMaterial):
     resistance: float = 10.0
 
 
-all_materials = {m: m() for m in BaseMaterial.__subclasses__() if not isabstract(m)}
+all_materials: dict[type[BaseMaterial], BaseMaterial] = {
+    m: m() for m in BaseMaterial.__subclasses__() if not isabstract(m)  # type: ignore
+}
