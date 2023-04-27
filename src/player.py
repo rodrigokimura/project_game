@@ -1,5 +1,6 @@
 import enum
 import math
+from abc import ABC, abstractmethod
 from typing import Any, Literal, Optional
 
 import pygame
@@ -31,13 +32,23 @@ class StandingBase(pygame.sprite.Sprite):
         self.mask = pygame.mask.Mask(self.rect.size, True)
 
 
-class BasePlayer(Storable, GravitySprite):
+class BasePlayer(Storable, GravitySprite, ABC):
+    class UnloadedObject(Exception):
+        """Raises when trying to access unpickleble attrs set as None"""
+
     collidable_sprites_buffer: pygame.sprite.Group
     rect: pygame.rect.Rect
-    image: pygame.surface.Surface
     max_health_points: int
     health_points: int
-    cursor_image: pygame.surface.Surface
+
+    # unpickleble attrs
+    # must be set to None before pickling
+    mask: pygame.mask.Mask | None
+    image: pygame.surface.Surface | None
+    original_image: pygame.surface.Surface | None
+    cursor_image: pygame.surface.Surface | None
+    bottom_sprite: StandingBase | None
+
     cursor_position: pygame.math.Vector2
     mode: Mode = Mode.EXPLORATION
     destruction_power: int = 5
@@ -92,6 +103,14 @@ class BasePlayer(Storable, GravitySprite):
         print(self.inventory)
         del collectible
 
+    @abstractmethod
+    def setup(self):
+        ...
+
+    @abstractmethod
+    def unload(self):
+        ...
+
 
 class Player(BasePlayer):
     IMMUNITY_OVER = pygame.event.custom_type()
@@ -105,17 +124,12 @@ class Player(BasePlayer):
         gravity: int,
         terminal_velocity: int,
         position: Optional[tuple[int, int]],
-        joystick: Optional[pygame.joystick.JoystickType],
         *groups: pygame.sprite.Group,
     ) -> None:
         super().__init__(gravity, terminal_velocity, *groups)
         self.inventory = Inventory()
         self.max_health_points = 100
         self.health_points = self.max_health_points
-
-        self.joystick = joystick
-        if self.joystick is not None:
-            self.joystick.init()
 
         position = position or pygame.display.get_surface().get_rect().center
 
@@ -127,9 +141,10 @@ class Player(BasePlayer):
         self.cursor_position = pygame.math.Vector2(0, 0)
         self.cursor_range = 5
 
-        self._draw()
-        self.create_collision_mask()
+        self.setup()
 
+        if self.image is None:
+            raise self.UnloadedObject
         self.rect = self.image.get_rect(center=self.position)
 
         self.linear_velocity = 8
@@ -138,10 +153,6 @@ class Player(BasePlayer):
 
         # should be less than gravity, otherwise player will fly up
         self.glide_scalar_acceleration = 10
-
-        self.bottom_sprite = StandingBase(
-            pygame.rect.Rect(self.position.x - 1, self.position.y + self.size / 2, 2, 1)
-        )
 
         # for jumping mechanics
         self.max_jump_time = 0.2
@@ -156,6 +167,21 @@ class Player(BasePlayer):
 
         # change modes
         self._can_change_mode = True
+
+    def setup(self):
+        # load unpicleble attributes
+        self.bottom_sprite = StandingBase(
+            pygame.rect.Rect(self.position.x - 1, self.position.y + self.size / 2, 2, 1)
+        )
+        self._draw()
+        self._create_collision_mask()
+
+    def unload(self):
+        self.bottom_sprite = None
+        self.original_image = None
+        self.cursor_image = None
+        self.image = None
+        self.mask = None
 
     def _draw(self):
         size = self.size
@@ -184,9 +210,11 @@ class Player(BasePlayer):
             1,
         )
 
-    def create_collision_mask(self):
+    def _create_collision_mask(self):
         shell = pygame.surface.Surface((self.size, self.size)).convert_alpha()
         shell.fill(pygame.Color(0, 0, 0, 0))
+        if self.image is None:
+            raise self.UnloadedObject
         pygame.draw.circle(
             shell, "green", self.image.get_rect().center, self.size // 2, width=2
         )
@@ -212,67 +240,58 @@ class Player(BasePlayer):
             pygame.time.set_timer(self.IMMUNITY_OVER, 0)
 
     def input(self, dt: float):
-        if self.joystick is not None:
-            left_stick_x = self.joystick.get_axis(0)
-            left_stick_x = round(left_stick_x, 1)
-            self.velocity.x = pygame.math.Vector2(left_stick_x).x * self.linear_velocity
+        joystick = pygame.joystick.Joystick(0)
+        left_stick_x = joystick.get_axis(0)
+        left_stick_x = round(left_stick_x, 1)
+        self.velocity.x = pygame.math.Vector2(left_stick_x).x * self.linear_velocity
 
-            lb = self.joystick.get_button(4)
-            rb = self.joystick.get_button(5)
+        lb = joystick.get_button(4)
+        rb = joystick.get_button(5)
 
-            # to avoid continuous trigger, we need a control bool
-            lt = self.joystick.get_button(6)
-            if lt and self._can_change_mode:
-                self._can_change_mode = False
-                self.next_mode()
-            elif lt == 0:
-                self._can_change_mode = True
+        # to avoid continuous trigger, we need a control bool
+        lt = joystick.get_button(6)
+        if lt and self._can_change_mode:
+            self._can_change_mode = False
+            self.next_mode()
+        elif lt == 0:
+            self._can_change_mode = True
 
-            # block destruction
-            rt = self.joystick.get_button(7)
-            if rt and self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
-                pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
+        # block destruction
+        rt = joystick.get_button(7)
+        if rt and self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
+            pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
 
-            if rb:
-                self.dash("r")
-            if lb:
-                self.dash("l")
+        if rb:
+            self.dash("r")
+        if lb:
+            self.dash("l")
 
-            y = self.joystick.get_button(0)
-            if y and self.velocity.x:
-                self.boost()
+        y = joystick.get_button(0)
+        if y and self.velocity.x:
+            self.boost()
 
-            b = self.joystick.get_button(1)
-            if b != self._b:
-                self._b = b
-                if b:
-                    self._can_keep_jumping = True
-                    self._jump_count += 1
-                else:
-                    if self._jump_count < self.max_jump_count:
-                        self._jump_time = 0
-            elif b:
-                self.jump(dt)
-
-            # cursor movement
-            right_stick_x = self.joystick.get_axis(2)
-            right_stick_y = self.joystick.get_axis(3)
-            right_stick = pygame.math.Vector2(right_stick_x, right_stick_y)
-            self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
-
-            # pause menu
-            start = self.joystick.get_button(9)
-            if start:
-                pygame.event.post(pygame.event.Event(self.PAUSE))
-        else:
-            keys = pygame.key.get_pressed()
-
-            if keys[pygame.K_LEFT]:
-                self.velocity.x = -self.linear_velocity
-            elif keys[pygame.K_RIGHT]:
-                self.velocity.x = self.linear_velocity
+        b = joystick.get_button(1)
+        if b != self._b:
+            self._b = b
+            if b:
+                self._can_keep_jumping = True
+                self._jump_count += 1
             else:
-                self.velocity.x = 0
+                if self._jump_count < self.max_jump_count:
+                    self._jump_time = 0
+        elif b:
+            self.jump(dt)
+
+        # cursor movement
+        right_stick_x = joystick.get_axis(2)
+        right_stick_y = joystick.get_axis(3)
+        right_stick = pygame.math.Vector2(right_stick_x, right_stick_y)
+        self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
+
+        # pause menu
+        start = joystick.get_button(9)
+        if start:
+            pygame.event.post(pygame.event.Event(self.PAUSE))
 
     def dash(self, direction: Literal["l"] | Literal["r"]):
         # TODO: fix collision when velocity is too high
@@ -296,7 +315,8 @@ class Player(BasePlayer):
             self._can_keep_jumping = False
 
     def glide(self, dt: float):
-        if self.should_fall() and self.joystick and self.joystick.get_button(0):
+        joystick = pygame.joystick.Joystick(0)
+        if self.should_fall() and joystick.get_button(0):
             if self.velocity.y > 0:
                 self.velocity.y -= self.glide_scalar_acceleration * dt
 
@@ -339,6 +359,8 @@ class Player(BasePlayer):
                     block.rect.top - bounding_rect.top,
                 ),
             )
+        if self.mask is None:
+            raise self.UnloadedObject
         collided_overlap = collided_overlap.overlap_mask(
             self.mask,
             (
@@ -367,6 +389,8 @@ class Player(BasePlayer):
 
     def update_image(self):
         img = self.rotate()
+        if img is None or self.image is None or self.original_image is None:
+            raise self.UnloadedObject
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
 
@@ -374,6 +398,8 @@ class Player(BasePlayer):
         self.position += self.velocity * dt * self.size
 
     def update_rects(self):
+        if self.bottom_sprite is None:
+            raise self.UnloadedObject
         self.rect.center = (int(self.position.x), int(self.position.y))
         self.bottom_sprite.rect.topleft = (
             int(self.position.x - 1),
@@ -381,6 +407,8 @@ class Player(BasePlayer):
         )
 
     def should_fall(self):
+        if self.bottom_sprite is None:
+            raise self.UnloadedObject
         ground = pygame.sprite.spritecollide(
             self.bottom_sprite,
             self.collidable_sprites_buffer,
@@ -414,6 +442,8 @@ class Player(BasePlayer):
                 pygame.event.post(pygame.event.Event(self.DEAD))
 
     def rotate(self):
+        if self.original_image is None:
+            return
         img = pygame.Surface(self.original_image.get_size())
         img = pygame.transform.rotate(self.original_image, self.angle)
         new_x, new_y = img.get_size()

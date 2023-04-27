@@ -28,10 +28,10 @@ def world_builder():
 
 
 def clear_db():
-    from storage import WorldStorage
+    from storage import PlayerStorage, WorldStorage
 
-    s = WorldStorage()
-    s.clear()
+    WorldStorage().clear()
+    PlayerStorage().clear()
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import pygame
 from blocks import draw_cached_images
 from camera import Camera
 from interface import Menu, PlayerMode, PlayerStats, TimeDisplay
-from player import Player
+from player import BasePlayer, Player
 from settings import (
     BLOCK_SIZE,
     GRAVITY,
@@ -14,7 +14,7 @@ from settings import (
     TERMINAL_VELOCITY,
     WORLD_SIZE,
 )
-from storage import WorldStorage
+from storage import PlayerStorage, WorldStorage
 from world import BaseWorld, SampleWorld
 
 
@@ -27,16 +27,18 @@ class Level:
 
     @classmethod
     def from_storage(cls):
-        s = WorldStorage()
-        world = s.get_newest()
-        return cls(world)
+        world = WorldStorage().get_newest()
+        player = PlayerStorage().get_newest()
+        return cls(world, player)
 
-    def __init__(self, world: Optional[BaseWorld] = None) -> None:
+    def __init__(
+        self, world: Optional[BaseWorld] = None, player: Optional[BasePlayer] = None
+    ) -> None:
         draw_cached_images()
         self.paused = False
         self.display_surface = pygame.display.get_surface()
         self.all_sprites = pygame.sprite.Group()
-        self.setup(world)
+        self.setup(world, player)
 
         pause_menu = {
             "resume": self.RESUME,
@@ -45,16 +47,11 @@ class Level:
         }
         self.pause_menu = Menu(pause_menu)
 
-    def setup(self, world: Optional[BaseWorld]):
-        joysticks = [
-            pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())
-        ]
-        joystick = joysticks[0] if joysticks else None
-        self.player = Player(
+    def setup(self, world: Optional[BaseWorld], player: Optional[BasePlayer]):
+        self.player = player or Player(
             GRAVITY,
             TERMINAL_VELOCITY,
             (WORLD_SIZE[0] * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
-            joystick,
             self.all_sprites,
         )
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
@@ -90,8 +87,8 @@ class Level:
                 self.save_game()
 
     def save_game(self):
-        s = WorldStorage()
-        s.store(self.world)
+        WorldStorage().store(self.world)
+        PlayerStorage().store(self.player)
 
     def check_player_dead(self):
         events = pygame.event.get(Player.DEAD)
