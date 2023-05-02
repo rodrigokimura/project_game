@@ -12,6 +12,15 @@ class MockedPlayer(BasePlayer):
     def __init__(self) -> None:
         self.rect = pygame.rect.Rect(0, 0, 10, 10)
 
+    def setup(self):
+        pass
+
+    def unload(self):
+        pass
+
+    def should_fall(self) -> bool:
+        return True
+
 
 class TestCamera:
     @pytest.fixture
