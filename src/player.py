@@ -8,6 +8,7 @@ import pygame
 from blocks import BaseBlock, BaseHazard
 from collectibles import BaseCollectible
 from commons import Storable
+from input import JoystickControl
 from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
@@ -141,6 +142,10 @@ class Player(BasePlayer):
         self.cursor_position = pygame.math.Vector2(0, 0)
         self.cursor_range = 5
 
+        # for jumping mechanics
+        self.max_jump_time = 0.2
+        self.max_jump_count = 2
+
         self.setup()
 
         if self.image is None:
@@ -154,22 +159,12 @@ class Player(BasePlayer):
         # should be less than gravity, otherwise player will fly up
         self.glide_scalar_acceleration = 10
 
-        # for jumping mechanics
-        self.max_jump_time = 0.2
-        self.max_jump_count = 2
-        self._jump_count = 0
-        self._jump_time = 0
-        self._b = False
-        self._can_keep_jumping = False
-
         self.max_immunity_time = 0.5
         self._is_immune = False
 
-        # change modes
-        self._can_change_mode = True
-
     def setup(self):
-        # load unpicleble attributes
+        # load unpickleble attributes
+        self.control = JoystickControl(self.max_jump_count, self.max_jump_time)
         self.bottom_sprite = StandingBase(
             pygame.rect.Rect(self.position.x - 1, self.position.y + self.size / 2, 2, 1)
         )
@@ -182,6 +177,7 @@ class Player(BasePlayer):
         self.cursor_image = None
         self.image = None
         self.mask = None
+        self.control = None
 
     def _draw(self):
         size = self.size
@@ -222,9 +218,8 @@ class Player(BasePlayer):
 
     def update(self, dt: float) -> None:
         self.check_immunity()
-        self.input(dt)
+        self.process_control_requests(dt)
         self.fall(dt)
-        self.glide(dt)
 
         self.uncollide()
 
@@ -239,58 +234,43 @@ class Player(BasePlayer):
             self._is_immune = False
             pygame.time.set_timer(self.IMMUNITY_OVER, 0)
 
-    def input(self, dt: float):
-        joystick = pygame.joystick.Joystick(0)
-        left_stick_x = joystick.get_axis(0)
-        left_stick_x = round(left_stick_x, 1)
-        self.velocity.x = pygame.math.Vector2(left_stick_x).x * self.linear_velocity
+    def process_control_requests(self, dt: float):
+        if self.control is None:
+            raise self.UnloadedObject
 
-        lb = joystick.get_button(4)
-        rb = joystick.get_button(5)
+        self.velocity.x = (
+            pygame.math.Vector2(self.control.get_linear_movement()).x
+            * self.linear_velocity
+        )
 
-        # to avoid continuous trigger, we need a control bool
-        lt = joystick.get_button(6)
-        if lt and self._can_change_mode:
-            self._can_change_mode = False
+        if self.control.change_mode():
             self.next_mode()
-        elif lt == 0:
-            self._can_change_mode = True
 
         # block destruction
-        rt = joystick.get_button(7)
-        if rt and self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
-            pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
+        if self.control.destroy():
+            if self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
+                pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
 
-        if rb:
-            self.dash("r")
-        if lb:
+        if self.control.dash_left(dt):
             self.dash("l")
 
-        y = joystick.get_button(0)
-        if y and self.velocity.x:
+        if self.control.dash_right(dt):
+            self.dash("r")
+
+        if self.control.boost():
             self.boost()
 
-        b = joystick.get_button(1)
-        if b != self._b:
-            self._b = b
-            if b:
-                self._can_keep_jumping = True
-                self._jump_count += 1
-            else:
-                if self._jump_count < self.max_jump_count:
-                    self._jump_time = 0
-        elif b:
-            self.jump(dt)
+        if self.control.jump(dt):
+            self.jump()
+        if self.control.glide():
+            self.glide(dt)
 
         # cursor movement
-        right_stick_x = joystick.get_axis(2)
-        right_stick_y = joystick.get_axis(3)
-        right_stick = pygame.math.Vector2(right_stick_x, right_stick_y)
+        right_stick = pygame.math.Vector2(*self.control.get_cursor_position())
         self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
 
         # pause menu
-        start = joystick.get_button(9)
-        if start:
+        if self.control.pause():
             pygame.event.post(pygame.event.Event(self.PAUSE))
 
     def dash(self, direction: Literal["l"] | Literal["r"]):
@@ -301,28 +281,19 @@ class Player(BasePlayer):
             self.velocity.x = self.boost_scalar_velocity
 
     def boost(self):
-        self.velocity.x = self.velocity.x + (10 if self.velocity.x > 0 else -10)
+        self.velocity.x *= 2
 
-    def jump(self, dt: float):
-        if (
-            self._jump_count < self.max_jump_count
-            and self._jump_time < self.max_jump_time
-        ):
-            if self._can_keep_jumping:
-                self.velocity.y = -self.jump_scalar_velocity
-                self._jump_time += dt
-        else:
-            self._can_keep_jumping = False
+    def jump(self):
+        self.velocity.y = -self.jump_scalar_velocity
 
     def glide(self, dt: float):
-        joystick = pygame.joystick.Joystick(0)
-        if self.should_fall() and joystick.get_button(0):
-            if self.velocity.y > 0:
-                self.velocity.y -= self.glide_scalar_acceleration * dt
+        if self.velocity.y > 0:
+            self.velocity.y -= self.glide_scalar_acceleration * dt
 
     def reset_jump(self):
-        self._jump_count = 0
-        self._jump_time = 0
+        if self.control is None:
+            raise self.UnloadedObject
+        self.control.reset_jump()
 
     def update_angle(self, dt: float):
         if self.velocity.x:
@@ -391,6 +362,7 @@ class Player(BasePlayer):
         img = self.rotate()
         if img is None or self.image is None or self.original_image is None:
             raise self.UnloadedObject
+
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
 
@@ -400,6 +372,7 @@ class Player(BasePlayer):
     def update_rects(self):
         if self.bottom_sprite is None:
             raise self.UnloadedObject
+
         self.rect.center = (int(self.position.x), int(self.position.y))
         self.bottom_sprite.rect.topleft = (
             int(self.position.x - 1),
@@ -409,6 +382,7 @@ class Player(BasePlayer):
     def should_fall(self):
         if self.bottom_sprite is None:
             raise self.UnloadedObject
+
         ground = pygame.sprite.spritecollide(
             self.bottom_sprite,
             self.collidable_sprites_buffer,
@@ -423,9 +397,7 @@ class Player(BasePlayer):
 
         ground_rect: pygame.rect.Rect = ground.rect
         self.position.y = ground_rect.top - self.size // 2
-        self._jump_count = 0
-        self._jump_time = 0
-
+        self.reset_jump()
         return False
 
     def take_tamage(self, hazard: BaseHazard):
