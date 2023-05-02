@@ -4,6 +4,7 @@ from typing import Any
 import pygame
 
 from player import BasePlayer
+from settings import DEFAULT_FONT
 from world import BaseWorld
 
 
@@ -14,7 +15,7 @@ class Menu:
             self.text = text
             self.event = pygame.event.Event(event_id)
 
-            font = pygame.sysfont.SysFont("freesansbold", 100)
+            font = pygame.sysfont.SysFont(DEFAULT_FONT, 100)
             font_padding = 20
             text_surf = font.render(text, True, "blue")
             x, y = text_surf.get_size()
@@ -41,7 +42,7 @@ class Menu:
             return super().update(*args, **kwargs)
 
     def __init__(self, items: dict[str, int]) -> None:
-        self.font = pygame.sysfont.SysFont("freesansbold", 100)
+        self.font = pygame.sysfont.SysFont(DEFAULT_FONT, 100)
         self._items = [self.Item(txt, id) for txt, id in items.items()]
         self.all_items = pygame.sprite.Group()
         self.all_items.add(self._items)
@@ -142,7 +143,7 @@ class PlayerMode(BaseInterfaceElement):
     def __init__(self, player: BasePlayer) -> None:
         super().__init__()
         self.player = player
-        self.font = pygame.sysfont.SysFont("freesansbold", 20)
+        self.font = pygame.sysfont.SysFont(DEFAULT_FONT, 20)
 
     def draw(self):
         super().draw()
@@ -155,7 +156,7 @@ class TimeDisplay(BaseInterfaceElement):
     def __init__(self, world: BaseWorld) -> None:
         super().__init__()
         self.world = world
-        self.font = pygame.sysfont.SysFont("freesansbold", 20)
+        self.font = pygame.sysfont.SysFont(DEFAULT_FONT, 20)
 
     def draw(self):
         super().draw()
