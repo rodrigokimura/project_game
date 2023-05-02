@@ -9,7 +9,7 @@ lint:
 	@pipenv run isort .
 
 test:
-	@pipenv run pytest
+	@pipenv run pytest --cov
 
 clear:
 	@pipenv run python src/main.py --action clear_db

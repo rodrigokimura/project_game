@@ -12,6 +12,7 @@ isort = "*"
 rich = "*"
 pylint = "*"
 pytest = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.11"
