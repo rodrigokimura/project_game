@@ -1,12 +1,23 @@
 from abc import ABC, abstractmethod
+from typing import Any, Callable
 
 import pygame
 
+ActionCommandType = Callable[..., None]
+
 
 class BaseAction(ABC):
+    def __init__(self, command: ActionCommandType) -> None:
+        self.command = command
+
     @abstractmethod
-    def check(self) -> bool:
+    def check(self, value: bool, dt: float) -> bool:
         ...
+
+    def do(self, value: bool, dt: float, command_args: list[Any] | None = None):
+        command_args = command_args or []
+        if self.check(value, dt):
+            self.command(dt, *command_args)
 
 
 class ResettableAction(BaseAction):
@@ -16,15 +27,16 @@ class ResettableAction(BaseAction):
 
 
 class ContinuousAction(BaseAction):
-    def check(self, value: bool) -> bool:
+    def check(self, value: bool, _: float) -> bool:
         return value
 
 
 class OncePerPressAction(BaseAction):
-    def __init__(self) -> None:
+    def __init__(self, command: ActionCommandType) -> None:
+        super().__init__(command)
         self.state = False
 
-    def check(self, value: bool) -> bool:
+    def check(self, value: bool, _: float) -> bool:
         if value and self.state:
             self.state = False
             return True
@@ -34,7 +46,10 @@ class OncePerPressAction(BaseAction):
 
 
 class ContinuousCounterTimerAction(ResettableAction):
-    def __init__(self, max_count: int, max_time: float) -> None:
+    def __init__(
+        self, command: ActionCommandType, max_count: int, max_time: float
+    ) -> None:
+        super().__init__(command)
         self._past_value = False
         self.state = False
         self.counter = 0
@@ -68,9 +83,13 @@ class ContinuousCounterTimerAction(ResettableAction):
 
 class ContinuousCooldownCounterTimerAction(ContinuousCounterTimerAction):
     def __init__(
-        self, max_count: int, max_time: float, cooldown_max_time: float
+        self,
+        command: ActionCommandType,
+        max_count: int,
+        max_time: float,
+        cooldown_max_time: float,
     ) -> None:
-        super().__init__(max_count, max_time)
+        super().__init__(command, max_count, max_time)
         self.cooldown_timer = 0
         self.cooldown_max_time = cooldown_max_time
 
@@ -88,64 +107,56 @@ class ContinuousCooldownCounterTimerAction(ContinuousCounterTimerAction):
         return check
 
 
-class BaseControl:
-    ...
+class BaseController(ABC):
+    @abstractmethod
+    def control(self, dt: float):
+        ...
 
 
-class JoystickControl(BaseControl):
-    def __init__(self, max_jump_count: int, max_jump_time: float) -> None:
+class JoystickController(BaseController):
+    def __init__(
+        self,
+        move: ActionCommandType,
+        move_cursor: ActionCommandType,
+        change_mode: ActionCommandType,
+        pause: ActionCommandType,
+        jump: ActionCommandType,
+        max_jump_count: int,
+        max_jump_time: float,
+        dash_left: ActionCommandType,
+        dash_right: ActionCommandType,
+        boost: ActionCommandType,
+        glide: ActionCommandType,
+        destroy_block: ActionCommandType,
+    ) -> None:
         self.joystick = pygame.joystick.Joystick(0)
 
-        self._change_mode = OncePerPressAction()
-        self._pause = OncePerPressAction()
-        self._jump = ContinuousCounterTimerAction(max_jump_count, max_jump_time)
-        self._boost = ContinuousAction()
-        self._glide = ContinuousAction()
-        self._destroy = ContinuousAction()
-        self._dash_l = ContinuousCooldownCounterTimerAction(2, 0.2, 1)
-        self._dash_r = ContinuousCooldownCounterTimerAction(2, 0.2, 1)
+        self._jump = ContinuousCounterTimerAction(jump, max_jump_count, max_jump_time)
 
-    def get_linear_movement(self):
-        left_stick_x = self.joystick.get_axis(0)
-        left_stick_x = round(left_stick_x, 1)
-        return left_stick_x
+        self.axis_actions: list[tuple[tuple[int, ...], BaseAction]] = [
+            ((0,), ContinuousAction(move)),
+            ((2, 3), ContinuousAction(move_cursor)),
+        ]
 
-    def get_cursor_position(self):
-        right_stick_x = self.joystick.get_axis(2)
-        right_stick_y = self.joystick.get_axis(3)
-        return right_stick_x, right_stick_y
+        self.button_actions: list[tuple[int, BaseAction]] = [
+            (6, OncePerPressAction(change_mode)),
+            (9, OncePerPressAction(pause)),
+            (4, ContinuousCooldownCounterTimerAction(dash_left, 2, 0.2, 1)),
+            (5, ContinuousCooldownCounterTimerAction(dash_right, 2, 0.2, 1)),
+            (0, ContinuousAction(boost)),
+            (7, ContinuousAction(destroy_block)),
+            (1, self._jump),
+            (1, ContinuousAction(glide)),
+        ]
 
-    def change_mode(self):
-        lt = self.joystick.get_button(6)
-        return self._change_mode.check(lt)
+    def control(self, dt: float):
+        for axes, action in self.axis_actions:
+            axes_values = [round(self.joystick.get_axis(a), 2) for a in axes]
+            action.do(True, dt, axes_values)
 
-    def pause(self):
-        start = self.joystick.get_button(9)
-        return self._pause.check(start)
-
-    def dash_left(self, dt: float):
-        value = self.joystick.get_button(4)
-        return self._dash_l.check(value, dt)
-
-    def dash_right(self, dt: float):
-        value = self.joystick.get_button(5)
-        return self._dash_r.check(value, dt)
-
-    def jump(self, dt: float):
-        b = self.joystick.get_button(1)
-        return self._jump.check(b, dt)
+        for button, action in self.button_actions:
+            value = self.joystick.get_button(button)
+            action.do(value, dt)
 
     def reset_jump(self):
         self._jump.reset()
-
-    def boost(self):
-        y = self.joystick.get_button(0)
-        return self._boost.check(y)
-
-    def glide(self):
-        b = self.joystick.get_button(1)
-        return self._glide.check(b)
-
-    def destroy(self):
-        rt = self.joystick.get_button(7)
-        return self._destroy.check(rt)

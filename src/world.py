@@ -115,7 +115,7 @@ class BaseWorld(Storable, ABC):
         block = self.get_block(coords)
         if block is None:
             return
-        destroyed = player.destroy(block, dt)
+        destroyed = player._destroy_block(block, dt)
         if not destroyed:
             return
         self.blocks.set_element(coords, None)

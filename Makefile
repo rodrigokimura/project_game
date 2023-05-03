@@ -12,4 +12,6 @@ test:
 	@pipenv run pytest --cov
 
 clear:
-	@pipenv run python src/main.py --action clear_db
+	# @pipenv run python src/main.py --action clear_db
+	@rm player_db
+	@rm world_db
