@@ -53,6 +53,9 @@ class Camera:
         return rect
 
     def update(self):
+        if self.player.image is None or self.player.cursor_image is None:
+            raise self.player.UnloadedObject
+
         display_surface = pygame.display.get_surface()
         dx = display_surface.get_rect().centerx - self.get_rect().centerx
         dy = display_surface.get_rect().centery - self.get_rect().centery

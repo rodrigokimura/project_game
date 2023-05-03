@@ -18,6 +18,9 @@ class MockedPlayer(BasePlayer):
     def unload(self):
         pass
 
+    def handle_collision(self):
+        pass
+
     def should_fall(self) -> bool:
         return True
 

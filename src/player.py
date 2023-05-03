@@ -8,7 +8,7 @@ import pygame
 from blocks import BaseBlock, BaseHazard
 from collectibles import BaseCollectible
 from commons import Storable
-from input import JoystickController
+from input import BaseController, JoystickController
 from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
@@ -34,11 +34,21 @@ class StandingBase(pygame.sprite.Sprite):
 
 
 class BasePlayer(Storable, GravitySprite, ABC):
+    IMMUNITY_OVER = pygame.event.custom_type()
+    DEAD = pygame.event.custom_type()
+    PAUSE = pygame.event.custom_type()
+    DESTROY_BLOCK = pygame.event.custom_type()
+    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK]
+
     class UnloadedObject(Exception):
         """Raises when trying to access unpickleble attrs set as None"""
 
     collidable_sprites_buffer: pygame.sprite.Group
+
     rect: pygame.rect.Rect
+    size: pygame.math.Vector2
+    position: pygame.math.Vector2
+
     max_health_points: int
     health_points: int
 
@@ -49,6 +59,7 @@ class BasePlayer(Storable, GravitySprite, ABC):
     original_image: pygame.surface.Surface | None
     cursor_image: pygame.surface.Surface | None
     bottom_sprite: StandingBase | None
+    controller: BaseController | None
 
     cursor_position: pygame.math.Vector2
     mode: Mode = Mode.EXPLORATION
@@ -58,9 +69,54 @@ class BasePlayer(Storable, GravitySprite, ABC):
     collectible_grab_radius: int = 2  # in block size units
     inventory: BaseInventory
 
+    linear_velocity = 16
+    jump_scalar_velocity = 20
+    boost_scalar_velocity = 60
+
+    cursor_position = pygame.math.Vector2(0, 0)
+    cursor_range = 5
+
+    # should be less than gravity, otherwise player will fly up
+    glide_scalar_acceleration = 10
+
     @property
     def hp_percentage(self):
         return self.health_points / self.max_health_points
+
+    def move(self, _: float, amount: float):
+        self.velocity.x = amount * self.linear_velocity
+
+    def move_cursor(self, _: float, x: float, y: float):
+        right_stick = pygame.math.Vector2(x, y)
+        self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
+
+    def destroy_block(self, _: float):
+        if self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
+            pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
+
+    def pause(self, _: float):
+        pygame.event.post(pygame.event.Event(self.PAUSE))
+
+    def dash_left(self, _: float):
+        self.velocity.x = -self.boost_scalar_velocity
+
+    def dash_right(self, _: float):
+        self.velocity.x = self.boost_scalar_velocity
+
+    def boost(self, _: float):
+        self.velocity.x *= 2
+
+    def jump(self, _: float):
+        self.velocity.y = -self.jump_scalar_velocity
+
+    def glide(self, dt: float):
+        if self.velocity.y > 0:
+            self.velocity.y -= self.glide_scalar_acceleration * dt
+
+    def process_control_requests(self, dt: float):
+        if self.controller is None:
+            raise self.UnloadedObject
+        self.controller.control(dt)
 
     def next_mode(self, _: float):
         self.mode = Mode(self.mode + 1)
@@ -101,8 +157,23 @@ class BasePlayer(Storable, GravitySprite, ABC):
             log(f"Grabbing collectible: {collectible}")
         collectible.remove(group)
         self.inventory.add(collectible)
-        print(self.inventory)
         del collectible
+
+    def update_position(self, dt: float):
+        self.position += self.velocity * dt * BLOCK_SIZE
+        if self.bottom_sprite is None:
+            raise self.UnloadedObject
+
+        self.rect.center = (int(self.position.x), int(self.position.y))
+        self.bottom_sprite.rect.topleft = (
+            int(self.position.x - 1),
+            int(self.position.y + self.size.y / 2),
+        )
+
+    def update(self, dt: float):
+        self.process_control_requests(dt)
+        self.fall(dt)
+        self.handle_collision()
 
     @abstractmethod
     def setup(self):
@@ -112,13 +183,13 @@ class BasePlayer(Storable, GravitySprite, ABC):
     def unload(self):
         ...
 
+    @abstractmethod
+    def handle_collision(self):
+        ...
+
 
 class Player(BasePlayer):
-    IMMUNITY_OVER = pygame.event.custom_type()
-    DEAD = pygame.event.custom_type()
-    PAUSE = pygame.event.custom_type()
-    DESTROY_BLOCK = pygame.event.custom_type()
-    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK]
+    controller: JoystickController | None
 
     def __init__(
         self,
@@ -134,13 +205,10 @@ class Player(BasePlayer):
 
         position = position or pygame.display.get_surface().get_rect().center
 
+        self.size = pygame.math.Vector2(2 * BLOCK_SIZE)
         self.position = pygame.math.Vector2(*position)
 
         self.angle = 0
-        self.size = 2 * BLOCK_SIZE
-
-        self.cursor_position = pygame.math.Vector2(0, 0)
-        self.cursor_range = 5
 
         # for jumping mechanics
         self.max_jump_time = 0.2
@@ -151,13 +219,6 @@ class Player(BasePlayer):
         if self.image is None:
             raise self.UnloadedObject
         self.rect = self.image.get_rect(center=self.position)
-
-        self.linear_velocity = 8
-        self.jump_scalar_velocity = 10
-        self.boost_scalar_velocity = 30
-
-        # should be less than gravity, otherwise player will fly up
-        self.glide_scalar_acceleration = 10
 
         self.max_immunity_time = 0.5
         self._is_immune = False
@@ -179,7 +240,9 @@ class Player(BasePlayer):
             self.destroy_block,
         )
         self.bottom_sprite = StandingBase(
-            pygame.rect.Rect(self.position.x - 1, self.position.y + self.size / 2, 2, 1)
+            pygame.rect.Rect(
+                self.position.x - 1, self.position.y + self.size.y / 2, 2, 1
+            )
         )
         self._draw()
         self._create_collision_mask()
@@ -193,7 +256,7 @@ class Player(BasePlayer):
         self.controller = None
 
     def _draw(self):
-        size = self.size
+        size = self.size.x
         sq_size = size // 2
         self.image = pygame.surface.Surface((size, size)).convert_alpha()
         self.image.fill(pygame.Color(0, 0, 0, 0))
@@ -220,67 +283,28 @@ class Player(BasePlayer):
         )
 
     def _create_collision_mask(self):
-        shell = pygame.surface.Surface((self.size, self.size)).convert_alpha()
+        shell = pygame.surface.Surface(self.size).convert_alpha()
         shell.fill(pygame.Color(0, 0, 0, 0))
         if self.image is None:
             raise self.UnloadedObject
         pygame.draw.circle(
-            shell, "green", self.image.get_rect().center, self.size // 2, width=2
+            shell, "green", self.image.get_rect().center, self.size.x // 2, width=2
         )
         self.mask = pygame.mask.from_surface(shell)
 
     def update(self, dt: float) -> None:
+        super().update(dt)
         self.check_immunity()
-        self.process_control_requests(dt)
-        self.fall(dt)
 
-        self.handle_collision()
-
+        self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
-        self.update_position(dt)
-        self.update_rects()
 
     def check_immunity(self):
         immunity_events = pygame.event.get(self.IMMUNITY_OVER, pump=False)
         if immunity_events:
             self._is_immune = False
             pygame.time.set_timer(self.IMMUNITY_OVER, 0)
-
-    def process_control_requests(self, dt: float):
-        if self.controller is None:
-            raise self.UnloadedObject
-        self.controller.control(dt)
-
-    def move(self, _: float, amount: float):
-        self.velocity.x = amount * self.linear_velocity
-
-    def move_cursor(self, _: float, x: float, y: float):
-        right_stick = pygame.math.Vector2(x, y)
-        self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
-
-    def destroy_block(self, _: float):
-        if self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
-            pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
-
-    def pause(self, _: float):
-        pygame.event.post(pygame.event.Event(self.PAUSE))
-
-    def dash_left(self, _: float):
-        self.velocity.x = -self.boost_scalar_velocity
-
-    def dash_right(self, _: float):
-        self.velocity.x = self.boost_scalar_velocity
-
-    def boost(self, _: float):
-        self.velocity.x *= 2
-
-    def jump(self, _: float):
-        self.velocity.y = -self.jump_scalar_velocity
-
-    def glide(self, dt: float):
-        if self.velocity.y > 0:
-            self.velocity.y -= self.glide_scalar_acceleration * dt
 
     def reset_jump(self):
         if self.controller is None:
@@ -348,7 +372,7 @@ class Player(BasePlayer):
 
     def update_angle(self, dt: float):
         if self.velocity.x:
-            self.angle += -self.velocity.x * self.size * dt * math.pi
+            self.angle += -self.velocity.x * self.size.x * dt * math.pi
 
     def update_image(self):
         img = self.rotate()
@@ -357,19 +381,6 @@ class Player(BasePlayer):
 
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
-
-    def update_position(self, dt: float):
-        self.position += self.velocity * dt * self.size
-
-    def update_rects(self):
-        if self.bottom_sprite is None:
-            raise self.UnloadedObject
-
-        self.rect.center = (int(self.position.x), int(self.position.y))
-        self.bottom_sprite.rect.topleft = (
-            int(self.position.x - 1),
-            int(self.position.y + self.size / 2),
-        )
 
     def should_fall(self):
         if self.bottom_sprite is None:
@@ -388,7 +399,7 @@ class Player(BasePlayer):
             self.take_tamage(ground)
 
         ground_rect: pygame.rect.Rect = ground.rect
-        self.position.y = ground_rect.top - self.size // 2
+        self.position.y = ground_rect.top - self.size.y // 2
         self.reset_jump()
         return False
 
