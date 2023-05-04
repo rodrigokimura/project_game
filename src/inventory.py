@@ -44,7 +44,6 @@ class Inventory(BaseInventory, Loadable):
     def __init__(self) -> None:
         self.collectibles: dict[type[BaseCollectible], int] = {}
         self.setup()
-        self.font = pygame.font.SysFont(DEFAULT_FONT, 20)
         self.grid = (20, 10)
         self.selected = (0, 0)
         self.lr = True
@@ -87,7 +86,7 @@ class Inventory(BaseInventory, Loadable):
         self.selected = x, y
 
     def update_image(self):
-        if self.image is None:
+        if self.image is None or self.font is None:
             raise Loadable.UnloadedObject
 
         p = 100
@@ -160,7 +159,9 @@ class Inventory(BaseInventory, Loadable):
         self.image = pygame.surface.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.image = self.image.convert_alpha()
         self.image.fill((0, 0, 0, 0))
+        self.font = pygame.font.SysFont(DEFAULT_FONT, 20)
 
     def unload(self):
         self.joystick = None
         self.image = None
+        self.font = None
