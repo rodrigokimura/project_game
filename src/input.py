@@ -1,3 +1,4 @@
+import enum
 from abc import ABC, abstractmethod
 from typing import Any, Callable
 
@@ -31,7 +32,7 @@ class ContinuousAction(BaseAction):
         return value
 
 
-class OncePerPressAction(BaseAction):
+class OncePerPress(BaseAction):
     def __init__(self, command: ActionCommandType) -> None:
         super().__init__(command)
         self.state = False
@@ -45,7 +46,7 @@ class OncePerPressAction(BaseAction):
         return False
 
 
-class ContinuousCounterTimerAction(ResettableAction):
+class CounterTimer(ResettableAction):
     def __init__(
         self, command: ActionCommandType, max_count: int, max_time: float
     ) -> None:
@@ -81,7 +82,7 @@ class ContinuousCounterTimerAction(ResettableAction):
         self.counter = 0
 
 
-class ContinuousCooldownCounterTimerAction(ContinuousCounterTimerAction):
+class CooldownCounterTimer(CounterTimer):
     def __init__(
         self,
         command: ActionCommandType,
@@ -113,40 +114,90 @@ class BaseController(ABC):
         ...
 
 
+class Controllable(ABC):
+    @abstractmethod
+    def move(self, dt: float, amount: float):
+        ...
+
+    @abstractmethod
+    def move_cursor(self, dt: float, x: float, y: float):
+        ...
+
+    @abstractmethod
+    def next_mode(self, dt: float):
+        ...
+
+    @abstractmethod
+    def pause(self, dt: float):
+        ...
+
+    @abstractmethod
+    def jump(self, dt: float):
+        ...
+
+    @abstractmethod
+    def dash_left(self, dt: float):
+        ...
+
+    @abstractmethod
+    def dash_right(self, dt: float):
+        ...
+
+    @abstractmethod
+    def boost(self, dt: float):
+        ...
+
+    @abstractmethod
+    def glide(self, dt: float):
+        ...
+
+    @abstractmethod
+    def destroy_block(self, dt: float):
+        ...
+
+    @abstractmethod
+    def open_inventory(self, dt: float):
+        ...
+
+
+class Button(enum.IntEnum):
+    A = 2
+    B = 1
+    X = 3
+    Y = 0
+    LB = 4
+    RB = 5
+    LT = 6
+    RT = 7
+    START = 9
+
+
 class JoystickController(BaseController):
     def __init__(
         self,
-        move: ActionCommandType,
-        move_cursor: ActionCommandType,
-        change_mode: ActionCommandType,
-        pause: ActionCommandType,
-        jump: ActionCommandType,
+        controllable: Controllable,
         max_jump_count: int,
         max_jump_time: float,
-        dash_left: ActionCommandType,
-        dash_right: ActionCommandType,
-        boost: ActionCommandType,
-        glide: ActionCommandType,
-        destroy_block: ActionCommandType,
     ) -> None:
         self.joystick = pygame.joystick.Joystick(0)
 
-        self._jump = ContinuousCounterTimerAction(jump, max_jump_count, max_jump_time)
+        self._jump = CounterTimer(controllable.jump, max_jump_count, max_jump_time)
 
         self.axis_actions: list[tuple[tuple[int, ...], BaseAction]] = [
-            ((0,), ContinuousAction(move)),
-            ((2, 3), ContinuousAction(move_cursor)),
+            ((0,), ContinuousAction(controllable.move)),
+            ((2, 3), ContinuousAction(controllable.move_cursor)),
         ]
 
-        self.button_actions: list[tuple[int, BaseAction]] = [
-            (6, OncePerPressAction(change_mode)),
-            (9, OncePerPressAction(pause)),
-            (4, ContinuousCooldownCounterTimerAction(dash_left, 2, 0.2, 1)),
-            (5, ContinuousCooldownCounterTimerAction(dash_right, 2, 0.2, 1)),
-            (0, ContinuousAction(boost)),
-            (7, ContinuousAction(destroy_block)),
-            (1, self._jump),
-            (1, ContinuousAction(glide)),
+        self.button_actions: list[tuple[Button, BaseAction]] = [
+            (Button.LT, OncePerPress(controllable.next_mode)),
+            (Button.START, OncePerPress(controllable.pause)),
+            (Button.LB, CooldownCounterTimer(controllable.dash_left, 2, 0.2, 1)),
+            (Button.RB, CooldownCounterTimer(controllable.dash_right, 2, 0.2, 1)),
+            (Button.Y, ContinuousAction(controllable.boost)),
+            (Button.RT, ContinuousAction(controllable.destroy_block)),
+            (Button.B, self._jump),
+            (Button.B, ContinuousAction(controllable.glide)),
+            (Button.X, OncePerPress(controllable.open_inventory)),
         ]
 
     def control(self, dt: float):

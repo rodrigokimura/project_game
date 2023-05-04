@@ -7,8 +7,8 @@ import pygame
 
 from blocks import BaseBlock, BaseHazard
 from collectibles import BaseCollectible
-from commons import Storable
-from input import BaseController, JoystickController
+from commons import Loadable, Storable
+from input import BaseController, Controllable, JoystickController
 from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
@@ -33,15 +33,14 @@ class StandingBase(pygame.sprite.Sprite):
         self.mask = pygame.mask.Mask(self.rect.size, True)
 
 
-class BasePlayer(Storable, GravitySprite, ABC):
+class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
     IMMUNITY_OVER = pygame.event.custom_type()
     DEAD = pygame.event.custom_type()
     PAUSE = pygame.event.custom_type()
+    OPEN_INVENTORY = pygame.event.custom_type()
     DESTROY_BLOCK = pygame.event.custom_type()
-    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK]
 
-    class UnloadedObject(Exception):
-        """Raises when trying to access unpickleble attrs set as None"""
+    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK, OPEN_INVENTORY]
 
     collidable_sprites_buffer: pygame.sprite.Group
 
@@ -70,8 +69,8 @@ class BasePlayer(Storable, GravitySprite, ABC):
     inventory: BaseInventory
 
     linear_velocity = 16
-    jump_scalar_velocity = 20
-    boost_scalar_velocity = 60
+    jump_scalar_velocity = 15
+    dash_scalar_velocity = 60
 
     cursor_position = pygame.math.Vector2(0, 0)
     cursor_range = 5
@@ -90,6 +89,9 @@ class BasePlayer(Storable, GravitySprite, ABC):
         right_stick = pygame.math.Vector2(x, y)
         self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
 
+    def next_mode(self, _: float):
+        self.mode = Mode(self.mode + 1)
+
     def destroy_block(self, _: float):
         if self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
             pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
@@ -98,10 +100,10 @@ class BasePlayer(Storable, GravitySprite, ABC):
         pygame.event.post(pygame.event.Event(self.PAUSE))
 
     def dash_left(self, _: float):
-        self.velocity.x = -self.boost_scalar_velocity
+        self.velocity.x = -self.dash_scalar_velocity
 
     def dash_right(self, _: float):
-        self.velocity.x = self.boost_scalar_velocity
+        self.velocity.x = self.dash_scalar_velocity
 
     def boost(self, _: float):
         self.velocity.x *= 2
@@ -113,13 +115,13 @@ class BasePlayer(Storable, GravitySprite, ABC):
         if self.velocity.y > 0:
             self.velocity.y -= self.glide_scalar_acceleration * dt
 
+    def open_inventory(self, _: float):
+        pygame.event.post(pygame.event.Event(self.OPEN_INVENTORY))
+
     def process_control_requests(self, dt: float):
         if self.controller is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
         self.controller.control(dt)
-
-    def next_mode(self, _: float):
-        self.mode = Mode(self.mode + 1)
 
     def get_cursor_coords(self):
         cursor_position = self.rect.move(self.cursor_position.x, self.cursor_position.y)
@@ -162,7 +164,7 @@ class BasePlayer(Storable, GravitySprite, ABC):
     def update_position(self, dt: float):
         self.position += self.velocity * dt * BLOCK_SIZE
         if self.bottom_sprite is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
 
         self.rect.center = (int(self.position.x), int(self.position.y))
         self.bottom_sprite.rect.topleft = (
@@ -174,14 +176,6 @@ class BasePlayer(Storable, GravitySprite, ABC):
         self.process_control_requests(dt)
         self.fall(dt)
         self.handle_collision()
-
-    @abstractmethod
-    def setup(self):
-        ...
-
-    @abstractmethod
-    def unload(self):
-        ...
 
     @abstractmethod
     def handle_collision(self):
@@ -217,7 +211,7 @@ class Player(BasePlayer):
         self.setup()
 
         if self.image is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
         self.rect = self.image.get_rect(center=self.position)
 
         self.max_immunity_time = 0.5
@@ -226,18 +220,7 @@ class Player(BasePlayer):
     def setup(self):
         # load unpickleble attributes
         self.controller = JoystickController(
-            self.move,
-            self.move_cursor,
-            self.next_mode,
-            self.pause,
-            self.jump,
-            self.max_jump_count,
-            self.max_jump_time,
-            self.dash_left,
-            self.dash_right,
-            self.boost,
-            self.glide,
-            self.destroy_block,
+            self, self.max_jump_count, self.max_jump_time
         )
         self.bottom_sprite = StandingBase(
             pygame.rect.Rect(
@@ -246,6 +229,7 @@ class Player(BasePlayer):
         )
         self._draw()
         self._create_collision_mask()
+        self.inventory.setup()
 
     def unload(self):
         self.bottom_sprite = None
@@ -254,6 +238,7 @@ class Player(BasePlayer):
         self.image = None
         self.mask = None
         self.controller = None
+        self.inventory.unload()
 
     def _draw(self):
         size = self.size.x
@@ -286,7 +271,7 @@ class Player(BasePlayer):
         shell = pygame.surface.Surface(self.size).convert_alpha()
         shell.fill(pygame.Color(0, 0, 0, 0))
         if self.image is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
         pygame.draw.circle(
             shell, "green", self.image.get_rect().center, self.size.x // 2, width=2
         )
@@ -295,7 +280,6 @@ class Player(BasePlayer):
     def update(self, dt: float) -> None:
         super().update(dt)
         self.check_immunity()
-
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
@@ -308,7 +292,7 @@ class Player(BasePlayer):
 
     def reset_jump(self):
         if self.controller is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
         self.controller.reset_jump()
 
     def handle_collision(self):
@@ -343,7 +327,7 @@ class Player(BasePlayer):
                 ),
             )
         if self.mask is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
         collided_overlap = collided_overlap.overlap_mask(
             self.mask,
             (
@@ -377,14 +361,14 @@ class Player(BasePlayer):
     def update_image(self):
         img = self.rotate()
         if img is None or self.image is None or self.original_image is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
 
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
 
     def should_fall(self):
         if self.bottom_sprite is None:
-            raise self.UnloadedObject
+            raise Loadable.UnloadedObject
 
         ground = pygame.sprite.spritecollide(
             self.bottom_sprite,

@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from datetime import datetime
 from uuid import UUID, uuid4
 
@@ -14,3 +14,16 @@ class Storable(ABC):
 
     def update_timestamp(self):
         self.saved_at = datetime.now()
+
+
+class Loadable(ABC):
+    class UnloadedObject(Exception):
+        """Raises when trying to access unpickleble attrs set as None"""
+
+    @abstractmethod
+    def setup(self):
+        ...
+
+    @abstractmethod
+    def unload(self):
+        ...
