@@ -34,6 +34,55 @@ def clear_db():
     PlayerStorage().clear()
 
 
+def sound():
+    from sounds import Chord, Sample, play_samples, square_wave
+
+    samples = [
+        ("F G", 0.5),
+        ("F G", 0.5),
+        ("F G", 0.5),
+        ("F G", 0.5),
+        ("F G", 0.5),
+        ("F G", 0.5),
+        ("E G", 0.5),
+        ("E G", 0.5),
+        ("E G", 0.5),
+        ("E G", 0.5),
+        ("E G", 0.5),
+        ("D B", 0.5),
+        ("D B", 0.5),
+        ("D B", 0.5),
+        ("D B", 0.5),
+        ("D A", 0.5),
+        ("D B", 0.5),
+        ("C C5", 1.2),
+    ]
+    play_samples(
+        [
+            Sample(Chord.from_str_list(s.split()).to_frequencies(), square_wave, d)
+            for s, d in samples
+        ]
+    )
+
+    samples = [
+        ("G2", 1),
+        ("G2", 1),
+        ("G2", 1),
+        ("D#2", 0.75),
+        ("A#2", 0.25),
+        ("G2", 1),
+        ("D#2", 0.75),
+        ("A#2", 0.25),
+        ("G2", 1),
+    ]
+    play_samples(
+        [
+            Sample(Chord.from_str_list(s.split()).to_frequencies(), square_wave, d)
+            for s, d in samples
+        ]
+    )
+
+
 if __name__ == "__main__":
     options = {
         "play": play,
@@ -41,6 +90,7 @@ if __name__ == "__main__":
         "viewer": world_viewer,
         "builder": world_builder,
         "clear_db": clear_db,
+        "sound": sound,
     }
 
     parser = argparse.ArgumentParser(description="Run game")
