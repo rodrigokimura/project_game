@@ -27,6 +27,10 @@ class BaseInventory(Loadable, ABC):
             else:
                 del self.collectibles[collectible.__class__]
 
+    @abstractmethod
+    def get_selected(self) -> tuple[type[BaseCollectible], int]:
+        ...
+
     def close(self):
         pygame.event.post(pygame.event.Event(self.CLOSE))
 
@@ -48,6 +52,13 @@ class Inventory(BaseInventory, Loadable):
         self.selected = (0, 0)
         self.lr = True
         self.ud = True
+
+    def get_selected(self):
+        x, y = self.selected
+        collectibles = [i for i in self.collectibles.items()]
+        i = (x + 1) * (y + 1) - 1
+        cls, count = collectibles[i]
+        return cls, count
 
     def update(self):
         self.update_image()

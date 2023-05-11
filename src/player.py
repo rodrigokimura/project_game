@@ -96,14 +96,21 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
         if self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
             pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
 
+    def place_block(self, _: float):
+        if self.mode == Mode.CONSTRUCTION:
+            self.inventory.get_selected()
+            print("Placing block")
+
     def pause(self, _: float):
         pygame.event.post(pygame.event.Event(self.PAUSE))
 
     def dash_left(self, _: float):
-        self.velocity.x = -self.dash_scalar_velocity
+        if self.mode != Mode.CONSTRUCTION:
+            self.velocity.x = -self.dash_scalar_velocity
 
     def dash_right(self, _: float):
-        self.velocity.x = self.dash_scalar_velocity
+        if self.mode != Mode.CONSTRUCTION:
+            self.velocity.x = self.dash_scalar_velocity
 
     def boost(self, _: float):
         self.velocity.x *= 2

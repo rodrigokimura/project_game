@@ -144,6 +144,10 @@ class Controllable(ABC):
         ...
 
     @abstractmethod
+    def place_block(self, dt: float):
+        ...
+
+    @abstractmethod
     def boost(self, dt: float):
         ...
 
@@ -193,6 +197,7 @@ class JoystickController(BaseController):
             (Button.START, OncePerPress(controllable.pause)),
             (Button.LB, CooldownCounterTimer(controllable.dash_left, 2, 0.2, 1)),
             (Button.RB, CooldownCounterTimer(controllable.dash_right, 2, 0.2, 1)),
+            (Button.RB, OncePerPress(controllable.place_block)),
             (Button.Y, ContinuousAction(controllable.boost)),
             (Button.RT, ContinuousAction(controllable.destroy_block)),
             (Button.B, self._jump),
