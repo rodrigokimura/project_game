@@ -30,8 +30,11 @@ def world_builder():
 def clear_db():
     from storage import PlayerStorage, WorldStorage
 
-    WorldStorage().clear()
-    PlayerStorage().clear()
+    try:
+        WorldStorage().clear()
+        PlayerStorage().clear()
+    except Exception as e:
+        print(e)
 
 
 def sound():
