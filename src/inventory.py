@@ -14,18 +14,23 @@ class BaseInventory(Loadable, ABC):
 
     collectibles: dict[type[BaseCollectible], int]
 
-    def add(self, collectible: BaseCollectible):
-        if collectible.__class__ in self.collectibles:
-            self.collectibles[collectible.__class__] += 1
+    def add(self, collectible: type[BaseCollectible]):
+        if collectible in self.collectibles:
+            self.collectibles[collectible] += 1
         else:
-            self.collectibles[collectible.__class__] = 1
+            self.collectibles[collectible] = 1
 
-    def remove(self, collectible: BaseCollectible):
-        if collectible.__class__ in self.collectibles:
-            if self.collectibles[collectible.__class__] > 0:
-                self.collectibles[collectible.__class__] -= 1
+    def remove(self, collectible: type[BaseCollectible]):
+        if collectible in self.collectibles:
+            if self.collectibles[collectible] > 0:
+                self.collectibles[collectible] -= 1
             else:
-                del self.collectibles[collectible.__class__]
+                del self.collectibles[collectible]
+
+    def pop(self) -> type[BaseCollectible]:
+        cls, _ = self.get_selected()
+        self.remove(cls)
+        return cls
 
     @abstractmethod
     def get_selected(self) -> tuple[type[BaseCollectible], int]:

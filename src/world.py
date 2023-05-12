@@ -3,7 +3,7 @@ from itertools import product
 
 import pygame
 
-from blocks import BaseCollectible, Rock, Spike, Tree, draw_cached_images
+from blocks import BaseBlock, BaseCollectible, Rock, Spike, Tree, draw_cached_images
 from commons import Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
@@ -79,6 +79,12 @@ class BaseWorld(Storable, ABC):
         for _ in events:
             self.destroy_block(player, dt)
 
+        # perform block placement
+        events = pygame.event.get(Player.PLACE_BLOCK)
+        for e in events:
+            # e: HasBlock
+            self.place_block(player, e.block, dt)
+
     def update_time(self, dt: float):
         self.age += dt
         self.time_of_day += dt
@@ -129,6 +135,10 @@ class BaseWorld(Storable, ABC):
                 )
 
         del block
+
+    def place_block(self, player: BasePlayer, block: BaseBlock, _: float):
+        coords = player.get_cursor_coords()
+        self.blocks.set_element(coords, block)
 
 
 class World(BaseWorld):

@@ -38,8 +38,9 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
     PAUSE = pygame.event.custom_type()
     OPEN_INVENTORY = pygame.event.custom_type()
     DESTROY_BLOCK = pygame.event.custom_type()
+    PLACE_BLOCK = pygame.event.custom_type()
 
-    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK, OPEN_INVENTORY]
+    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK, PLACE_BLOCK, OPEN_INVENTORY]
 
     collidable_sprites_buffer: pygame.sprite.Group
 
@@ -97,8 +98,11 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
 
     def place_block(self, _: float):
         if self.mode == Mode.CONSTRUCTION:
-            self.inventory.get_selected()
-            print("Placing block")
+            cls, _ = self.inventory.get_selected()
+            coords = self.get_cursor_coords()
+            event = pygame.event.Event(self.PLACE_BLOCK)
+            event.block = cls(coords)
+            pygame.event.post(event)
 
     def pause(self, _: float):
         pygame.event.post(pygame.event.Event(self.PAUSE))
@@ -164,7 +168,7 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
         if DEBUG:
             log(f"Grabbing collectible: {collectible}")
         collectible.remove(group)
-        self.inventory.add(collectible)
+        self.inventory.add(collectible.__class__)
         del collectible
 
     def update_position(self, dt: float):

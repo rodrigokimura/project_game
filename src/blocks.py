@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from abc import ABC, ABCMeta, abstractmethod
 from typing import Protocol
@@ -27,12 +29,17 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
             self.__class__, pygame.surface.Surface((COLLECTIBLE_SIZE, COLLECTIBLE_SIZE))
         )
 
+    @property
+    @abstractmethod
+    def block(self) -> BaseBlock:
+        ...
+
     def __init__(
         self,
         coords: tuple[int, int],
-        gravity: int,
-        terminal_velocity: int,
-        *groups: pygame.sprite.Group
+        gravity: int | None = None,
+        terminal_velocity: int | None = None,
+        *groups: pygame.sprite.Group,
     ) -> None:
         self.coords = coords
         self.rect = self.collectible_image.get_rect().copy()
@@ -46,7 +53,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
             (self.coords[1] + 1) * BLOCK_SIZE - COLLECTIBLE_SIZE // 2 - padding,
         )
         self.pulling_velocity = pygame.math.Vector2()
-        super().__init__(gravity, terminal_velocity, *groups)
+        super().__init__(gravity or 0, terminal_velocity or 0, *groups)
 
     def should_fall(self, blocks: Container2d[_HasRect]):
         coords = (
@@ -92,9 +99,9 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
     def __init__(
         self,
         coords: tuple[int, int],
-        gravity: int,
-        terminal_velocity: int,
-        *groups: pygame.sprite.Group
+        gravity: int | None = None,
+        terminal_velocity: int | None = None,
+        *groups: pygame.sprite.Group,
     ) -> None:
         super().__init__(coords, gravity, terminal_velocity, *groups)
         self.coords = coords
@@ -126,6 +133,10 @@ class Rock(BaseBlock):
     def collectibles(self) -> dict[type[BaseCollectible], int]:
         return {self.__class__: 4}
 
+    @property
+    def block(self) -> BaseBlock:
+        return self
+
 
 class Wood(BaseBlock):
     material: BaseMaterial = all_materials[WoodMaterial]
@@ -133,6 +144,10 @@ class Wood(BaseBlock):
     @property
     def collectibles(self) -> dict[type[BaseCollectible], int]:
         return {self.__class__: 1}
+
+    @property
+    def block(self) -> BaseBlock:
+        return self
 
 
 class Spike(BaseHazard):
@@ -142,6 +157,10 @@ class Spike(BaseHazard):
     @property
     def collectibles(self) -> dict[type[BaseCollectible], int]:
         return {Rock: 4}
+
+    @property
+    def block(self) -> BaseBlock:
+        return self
 
 
 class ChangingBlock(BaseBlock, metaclass=ABCMeta):
@@ -194,6 +213,10 @@ class Tree(ChangingBlock):
     @property
     def collectibles(self) -> dict[type[BaseCollectible], int]:
         return {Wood: 4}
+
+    @property
+    def block(self) -> BaseBlock:
+        return self
 
     @property
     def mask(self):
