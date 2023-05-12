@@ -1,18 +1,84 @@
+import random
 from abc import ABC, ABCMeta, abstractmethod
+from typing import Protocol
 
 import pygame
 
-from collectibles import BaseCollectible
-from collectibles import Rock as RockCollectible
-from collectibles import Wood as WoodCollectible
-from collectibles import load_collectible_images
 from materials import BaseMaterial
 from materials import Rock as RockMaterial
-from materials import Wood, all_materials
+from materials import Wood as WoodMaterial
+from materials import all_materials
 from settings import BLOCK_SIZE
+from sprites import GravitySprite
+from utils import Container2d
+
+COLLECTIBLE_SIZE = BLOCK_SIZE // 2
 
 
-class BaseBlock(pygame.sprite.Sprite, ABC, metaclass=ABCMeta):
+class _HasRect(Protocol):
+    rect: pygame.rect.Rect
+
+
+class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
+    @property
+    def collectible_image(self):
+        global collectible_images
+        return collectible_images.get(
+            self.__class__, pygame.surface.Surface((COLLECTIBLE_SIZE, COLLECTIBLE_SIZE))
+        )
+
+    def __init__(
+        self,
+        coords: tuple[int, int],
+        gravity: int,
+        terminal_velocity: int,
+        *groups: pygame.sprite.Group
+    ) -> None:
+        self.coords = coords
+        self.rect = self.collectible_image.get_rect().copy()
+        padding = 1
+        self.rect.centerx = random.randint(
+            self.coords[0] * BLOCK_SIZE + COLLECTIBLE_SIZE // 2 + padding,
+            (self.coords[0] + 1) * BLOCK_SIZE - COLLECTIBLE_SIZE // 2 - padding,
+        )
+        self.rect.centery = random.randint(
+            self.coords[1] * BLOCK_SIZE + COLLECTIBLE_SIZE // 2 + padding,
+            (self.coords[1] + 1) * BLOCK_SIZE - COLLECTIBLE_SIZE // 2 - padding,
+        )
+        self.pulling_velocity = pygame.math.Vector2()
+        super().__init__(gravity, terminal_velocity, *groups)
+
+    def should_fall(self, blocks: Container2d[_HasRect]):
+        coords = (
+            self.rect.centerx // BLOCK_SIZE,
+            int((self.rect.bottom + 1) // BLOCK_SIZE),
+        )
+        block_below = blocks.get_element(coords)
+        if block_below is None:
+            return True
+        self.rect.bottom = block_below.rect.top - 1
+        if self.velocity.y > 0:
+            self.velocity.y = 0
+        return False
+
+    def update(self, dt: int, blocks: Container2d[_HasRect]):
+        self.fall(dt, blocks)
+        self.update_position(dt)
+
+    def update_position(self, dt: float):
+        self.rect.centery += int(
+            (self.velocity.y + self.pulling_velocity.y) * dt * BLOCK_SIZE * 10
+        )
+        self.rect.centerx += int(
+            (self.velocity.x + self.pulling_velocity.x) * dt * BLOCK_SIZE * 10
+        )
+        self.coords = (
+            self.rect.centerx // BLOCK_SIZE,
+            self.rect.centery // BLOCK_SIZE,
+        )
+
+
+class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
     @property
     @abstractmethod
     def material(self) -> BaseMaterial:
@@ -23,10 +89,15 @@ class BaseBlock(pygame.sprite.Sprite, ABC, metaclass=ABCMeta):
     def collectibles(self) -> dict[type[BaseCollectible], int]:
         ...
 
-    def __init__(self, coords: tuple[int, int], *groups: pygame.sprite.Group) -> None:
-        super().__init__(*groups)
+    def __init__(
+        self,
+        coords: tuple[int, int],
+        gravity: int,
+        terminal_velocity: int,
+        *groups: pygame.sprite.Group
+    ) -> None:
+        super().__init__(coords, gravity, terminal_velocity, *groups)
         self.coords = coords
-        self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = (coords[0] * BLOCK_SIZE, coords[1] * BLOCK_SIZE)
         self.integrity: float = self.material.resistance
 
@@ -50,13 +121,27 @@ class BaseHazard(BaseBlock, metaclass=ABCMeta):
 
 class Rock(BaseBlock):
     material: BaseMaterial = all_materials[RockMaterial]
-    collectibles: dict[type[BaseCollectible], int] = {RockCollectible: 4}
+
+    @property
+    def collectibles(self) -> dict[type[BaseCollectible], int]:
+        return {self.__class__: 4}
+
+
+class Wood(BaseBlock):
+    material: BaseMaterial = all_materials[WoodMaterial]
+
+    @property
+    def collectibles(self) -> dict[type[BaseCollectible], int]:
+        return {self.__class__: 1}
 
 
 class Spike(BaseHazard):
     material: BaseMaterial = all_materials[RockMaterial]
-    collectibles: dict[type[BaseCollectible], int] = {RockCollectible: 4}
     damage: int = 10
+
+    @property
+    def collectibles(self) -> dict[type[BaseCollectible], int]:
+        return {Rock: 4}
 
 
 class ChangingBlock(BaseBlock, metaclass=ABCMeta):
@@ -100,12 +185,15 @@ tree_images = (
 
 
 class Tree(ChangingBlock):
-    material: BaseMaterial = all_materials[Wood]
-    collectibles: dict[type[BaseCollectible], int] = {WoodCollectible: 4}
+    material: BaseMaterial = all_materials[WoodMaterial]
     interval: int = 1
     counter: int = 0
     images: tuple[pygame.surface.Surface, ...] = tree_images
     max_state: int = 6
+
+    @property
+    def collectibles(self) -> dict[type[BaseCollectible], int]:
+        return {Wood: 4}
 
     @property
     def mask(self):
@@ -143,8 +231,16 @@ class Tree(ChangingBlock):
 cached_images: dict[type[BaseBlock], pygame.surface.Surface] = {
     Rock: pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
     Spike: pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
+    Wood: pygame.surface.Surface((BLOCK_SIZE, BLOCK_SIZE)),
 }
+
 cached_masks: dict[type[BaseBlock], pygame.mask.Mask] = {}
+
+collectible_images: dict[type[BaseCollectible], pygame.surface.Surface] = {
+    Rock: pygame.surface.Surface((COLLECTIBLE_SIZE, COLLECTIBLE_SIZE)),
+    Spike: pygame.surface.Surface((COLLECTIBLE_SIZE, COLLECTIBLE_SIZE)),
+    Wood: pygame.surface.Surface((COLLECTIBLE_SIZE, COLLECTIBLE_SIZE)),
+}
 
 
 def get_tree_image(state: int, s: pygame.surface.Surface):
@@ -198,6 +294,19 @@ def get_tree_image(state: int, s: pygame.surface.Surface):
         )
 
 
+def load_collectible_images():
+    global collectible_images
+
+    img = collectible_images[Rock]
+    pygame.draw.rect(img, "blue", img.get_rect(), 1, 2)
+
+    img = collectible_images[Spike]
+    pygame.draw.rect(img, "blue", img.get_rect(), 1, 2)
+
+    img = collectible_images[Wood]
+    pygame.draw.rect(img, "yellow", img.get_rect(), 1, 2)
+
+
 def load_tree_images():
     for i, s in enumerate(tree_images):
         get_tree_image(i, s)
@@ -213,6 +322,10 @@ def draw_cached_images():
     cached_masks[Rock] = pygame.mask.from_surface(img)
 
     img = cached_images[Spike]
+    pygame.draw.rect(img, "white", img.get_rect(), 1)
+    cached_masks[Spike] = pygame.mask.from_surface(img)
+
+    img = cached_images[Wood]
     pygame.draw.rect(img, "white", img.get_rect(), 1)
     cached_masks[Spike] = pygame.mask.from_surface(img)
 

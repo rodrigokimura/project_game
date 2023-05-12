@@ -5,8 +5,7 @@ from typing import Any, Optional
 
 import pygame
 
-from blocks import BaseBlock, BaseHazard
-from collectibles import BaseCollectible
+from blocks import BaseBlock, BaseCollectible, BaseHazard
 from commons import Loadable, Storable
 from input import BaseController, Controllable, JoystickController
 from inventory import BaseInventory, Inventory

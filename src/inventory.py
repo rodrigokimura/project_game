@@ -3,7 +3,7 @@ from itertools import product
 
 import pygame
 
-from collectibles import BaseCollectible, collectible_images
+from blocks import BaseCollectible, collectible_images
 from commons import Loadable
 from input import Button
 from settings import DEFAULT_FONT, SCREEN_HEIGHT, SCREEN_WIDTH
@@ -118,7 +118,7 @@ class Inventory(BaseInventory, Loadable):
             )
             pygame.draw.rect(self.image, "blue", slot_rect, 1)
 
-            i = (x + 1) * (y + 1) - 1
+            i = y * self.grid[0] + x
             if i < len(collectibles):
                 cls, count = collectibles[i]
                 img = collectible_images[cls]
@@ -145,7 +145,7 @@ class Inventory(BaseInventory, Loadable):
         )
         pygame.draw.rect(self.image, "grey", slot_rect, 2)
         x, y = self.selected
-        i = (x + 1) * (y + 1) - 1
+        i = y * self.grid[0] + x
         try:
             cls, count = collectibles[i]
             txt = self.font.render(cls.__name__, True, "white")

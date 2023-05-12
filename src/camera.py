@@ -70,7 +70,7 @@ class Camera:
         # draw all collectibles
         display_surface.blits(
             tuple(
-                (spr.image, spr.rect.move(dx, dy))
+                (spr.collectible_image, spr.rect.move(dx, dy))
                 for spr in self.world.collectibles.sprites()
             )
         )
