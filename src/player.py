@@ -104,7 +104,13 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
             return
         coords = self.get_cursor_coords()
         event = pygame.event.Event(self.PLACE_BLOCK)
-        event.block = cls(coords)
+
+        # for placed blocks, rect must be resized for proper collision detection
+        block = cls(coords)
+        block.rect.height = BLOCK_SIZE
+        block.rect.width = BLOCK_SIZE
+        event.block = block
+
         pygame.event.post(event)
 
     def pause(self, _: float):

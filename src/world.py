@@ -133,8 +133,6 @@ class BaseWorld(Storable, ABC):
                     self.collectibles,
                 )
 
-        del block
-
     def place_block(self, player: BasePlayer, block: BaseBlock, _: float):
         coords = player.get_cursor_coords()
         self.blocks.set_element(coords, block)
