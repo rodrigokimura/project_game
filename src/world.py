@@ -82,7 +82,6 @@ class BaseWorld(Storable, ABC):
         # perform block placement
         events = pygame.event.get(Player.PLACE_BLOCK)
         for e in events:
-            # e: HasBlock
             self.place_block(player, e.block, dt)
 
     def update_time(self, dt: float):

@@ -22,18 +22,27 @@ class BaseInventory(Loadable, ABC):
 
     def remove(self, collectible: type[BaseCollectible]):
         if collectible in self.collectibles:
-            if self.collectibles[collectible] > 0:
+            if self.collectibles[collectible] > 1:
                 self.collectibles[collectible] -= 1
             else:
                 del self.collectibles[collectible]
 
-    def pop(self) -> type[BaseCollectible]:
-        cls, _ = self.get_selected()
+    def pop(self) -> type[BaseCollectible] | None:
+        if self.is_empty():
+            return None
+        selected = self.get_selected()
+        if selected is None:
+            return None
+        cls, _ = selected
         self.remove(cls)
         return cls
 
     @abstractmethod
-    def get_selected(self) -> tuple[type[BaseCollectible], int]:
+    def is_empty(self) -> bool:
+        ...
+
+    @abstractmethod
+    def get_selected(self) -> tuple[type[BaseCollectible], int] | None:
         ...
 
     def close(self):
@@ -58,12 +67,20 @@ class Inventory(BaseInventory, Loadable):
         self.lr = True
         self.ud = True
 
+    def is_empty(self) -> bool:
+        return not self.collectibles
+
     def get_selected(self):
+        if self.is_empty():
+            return None
         x, y = self.selected
         collectibles = [i for i in self.collectibles.items()]
         i = (x + 1) * (y + 1) - 1
-        cls, count = collectibles[i]
-        return cls, count
+        try:
+            cls, count = collectibles[i]
+            return cls, count
+        except IndexError:
+            return None
 
     def update(self):
         self.update_image()
@@ -166,9 +183,6 @@ class Inventory(BaseInventory, Loadable):
 
         display = pygame.display.get_surface()
         display.blit(self.image, (0, 0))
-
-    def select(self):
-        ...
 
     def setup(self):
         self.joystick = pygame.joystick.Joystick(0)

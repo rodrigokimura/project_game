@@ -97,12 +97,15 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
             pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
 
     def place_block(self, _: float):
-        if self.mode == Mode.CONSTRUCTION:
-            cls, _ = self.inventory.get_selected()
-            coords = self.get_cursor_coords()
-            event = pygame.event.Event(self.PLACE_BLOCK)
-            event.block = cls(coords)
-            pygame.event.post(event)
+        if self.mode != Mode.CONSTRUCTION:
+            return
+        cls = self.inventory.pop()
+        if cls is None:
+            return
+        coords = self.get_cursor_coords()
+        event = pygame.event.Event(self.PLACE_BLOCK)
+        event.block = cls(coords)
+        pygame.event.post(event)
 
     def pause(self, _: float):
         pygame.event.post(pygame.event.Event(self.PAUSE))
