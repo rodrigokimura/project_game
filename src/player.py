@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 import pygame
 
-from blocks import BaseBlock, BaseCollectible, BaseHazard
+from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
 from commons import Loadable, Storable
 from input import BaseController, Controllable, JoystickController
 from inventory import BaseInventory, Inventory
@@ -105,10 +105,7 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
         coords = self.get_cursor_coords()
         event = pygame.event.Event(self.PLACE_BLOCK)
 
-        # for placed blocks, rect must be resized for proper collision detection
-        block = cls(coords)
-        block.rect.height = BLOCK_SIZE
-        block.rect.width = BLOCK_SIZE
+        block = make_block(cls, coords)  # type: ignore
         event.block = block
 
         pygame.event.post(event)

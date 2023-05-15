@@ -3,7 +3,15 @@ from itertools import product
 
 import pygame
 
-from blocks import BaseBlock, BaseCollectible, Rock, Spike, Tree, draw_cached_images
+from blocks import (
+    BaseBlock,
+    BaseCollectible,
+    Rock,
+    Spike,
+    Tree,
+    draw_cached_images,
+    make_block,
+)
 from commons import Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
@@ -159,7 +167,7 @@ class SimpleWorld(BaseWorld):
         for y in range(int(self.size.y)):
             for x in range(int(self.size.x)):
                 if y > (self.size.y / 2):
-                    block = Rock((x, y), int(self.gravity.y), self.terminal_velocity)
+                    block = make_block(Rock, (x, y))
                     self.blocks.set_element((x, y), block)
 
 
@@ -172,7 +180,7 @@ class SampleWorld(SimpleWorld):
         # trees
         _y = y
         _x = x - 5
-        block = Tree((_x, _y), int(self.gravity.y), self.terminal_velocity)
+        block = make_block(Tree, (_x, _y))
         self.blocks.set_element((_x, _y), block)
         self.changing_blocks.add(block)
 
@@ -181,21 +189,21 @@ class SampleWorld(SimpleWorld):
         _x = x + 5
         for i in range(1, 5):
             _x = x + i
-            block = Spike((_x, _y), int(self.gravity.y), self.terminal_velocity)
+            block = make_block(Spike, (_x, _y))
             self.blocks.set_element((_x, _y), block)
 
         # second level
         _y = y - 2
         for i in range(10):
             _x = x + 10 + i
-            block = Rock((_x, _y), int(self.gravity.y), self.terminal_velocity)
+            block = make_block(Rock, (_x, _y))
             self.blocks.set_element((_x, _y), block)
 
         # third level
         _y = y - 6
         for i in range(10):
             _x = x + 15 + i
-            block = Rock((_x, _y), int(self.gravity.y), self.terminal_velocity)
+            block = make_block(Rock, (_x, _y))
             self.blocks.set_element((_x, _y), block)
 
         # slope
@@ -204,5 +212,5 @@ class SampleWorld(SimpleWorld):
         for i in range(10):
             _x += 1
             _y -= 1
-            block = Rock((_x, _y), int(self.gravity.y), self.terminal_velocity)
+            block = make_block(Rock, (_x, _y))
             self.blocks.set_element((_x, _y), block)

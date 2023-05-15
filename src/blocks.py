@@ -354,3 +354,17 @@ def draw_cached_images():
 
     load_tree_images()
     load_collectible_images()
+
+
+def make_block(
+    cls: type[BaseBlock],
+    coords: tuple[int, int],
+    gravity: int | None = None,
+    terminal_velocity: int | None = None,
+):
+    x, y = coords
+    block = cls((x, y), gravity, terminal_velocity)
+    # for blocks, rect must be resized for proper collision detection
+    block.rect.height = BLOCK_SIZE
+    block.rect.width = BLOCK_SIZE
+    return block
