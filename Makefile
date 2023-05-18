@@ -1,3 +1,5 @@
+export PYGAME_HIDE_SUPPORT_PROMPT := 1
+
 run:
 	@pipenv run python src/main.py
 
