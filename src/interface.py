@@ -3,13 +3,15 @@ from typing import Any
 
 import pygame
 
-from input import JoystickMenuController, MenuControllable
+from input import BaseController, JoystickMenuController, MenuControllable
 from player import BasePlayer
 from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
 from world import BaseWorld
 
 
 class Menu(MenuControllable):
+    controller: BaseController
+
     class Item(pygame.sprite.Sprite):
         def __init__(self, text, event_id, *groups: pygame.sprite.Group) -> None:
             super().__init__(*groups)
@@ -22,16 +24,16 @@ class Menu(MenuControllable):
             x, y = text_surf.get_size()
             padded_text_surf = pygame.surface.Surface(
                 (x + 2 * font_padding, y + 2 * font_padding)
-            )
+            ).convert_alpha()
+            padded_text_surf.fill((0, 0, 0, 0))
             padded_text_surf.blit(text_surf, (font_padding, font_padding))
 
             self.original_image = padded_text_surf
-            self.highlighted_image = self.original_image.copy()
             self.image = self.original_image.copy()
+            self.highlighted_image = self.original_image.copy()
             pygame.draw.rect(
                 self.highlighted_image, "blue", self.highlighted_image.get_rect(), 1
             )
-
             self.rect = self.image.get_rect()
             self.enabled = True
             self.highlighted = False
@@ -49,7 +51,7 @@ class Menu(MenuControllable):
         self.all_items.add(self._items)
 
         self.display = pygame.display.get_surface()
-        self.surface = pygame.surface.Surface(self.display.get_size())
+        self.static_image = pygame.surface.Surface(self.display.get_size())
         self.highlighted_item = 0
         self.draw_static()
         pygame.joystick.init()
@@ -67,7 +69,7 @@ class Menu(MenuControllable):
         w, h = w - 2 * padding, h - 2 * padding
         menu_rect = pygame.rect.Rect(padding, padding, w, h)
 
-        pygame.draw.rect(self.surface, "blue", menu_rect, 1)
+        pygame.draw.rect(self.static_image, "blue", menu_rect, 1)
 
         for i, item in enumerate(self.all_items):
             if i == self.highlighted_item:
@@ -78,10 +80,10 @@ class Menu(MenuControllable):
             )
 
     def run(self, dt: float):
-        self.all_items.draw(self.surface)
         self.controller.control(dt)
         self.all_items.update()
-        self.display.blit(self.surface, (0, 0))
+        self.display.blit(self.static_image, (0, 0))
+        self.display.blits(tuple((s.image, s.rect) for s in self.all_items))
 
     def highlight_prev(self):
         self.highlight_item(self.highlighted_item - 1)

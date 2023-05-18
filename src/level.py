@@ -5,6 +5,7 @@ import pygame
 
 from blocks import draw_cached_images
 from camera import Camera
+from input import ControllerDetection
 from interface import Menu, PlayerMode, PlayerStats, TimeDisplay
 from inventory import Inventory
 from player import BasePlayer, Player
@@ -33,13 +34,16 @@ class Level:
     EVENTS = [FINISHED, RESUME, SAVE]
 
     @classmethod
-    def from_storage(cls):
+    def from_storage(cls, controller: ControllerDetection.Controller):
         world = WorldStorage().get_newest()
         player = PlayerStorage().get_newest()
-        return cls(world, player)
+        return cls(controller, world, player)
 
     def __init__(
-        self, world: Optional[BaseWorld] = None, player: Optional[BasePlayer] = None
+        self,
+        controller: ControllerDetection.Controller,
+        world: Optional[BaseWorld] = None,
+        player: Optional[BasePlayer] = None,
     ) -> None:
         draw_cached_images()
         self.status = Level.Status.RUNNING
@@ -52,15 +56,21 @@ class Level:
                 "exit": self.FINISHED,
             }
         )
-        self.setup(world, player)
+        self.setup(controller, world, player)
 
-    def setup(self, world: Optional[BaseWorld], player: Optional[BasePlayer]):
+    def setup(
+        self,
+        controller: ControllerDetection.Controller,
+        world: Optional[BaseWorld],
+        player: Optional[BasePlayer],
+    ):
         self.player = player or Player(
             GRAVITY,
             TERMINAL_VELOCITY,
             (WORLD_SIZE[0] * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
             self.all_sprites,
         )
+        self.player.set_controller(controller)
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
         self.player.collidable_sprites_buffer = self.world.collision_buffer
         self.camera = Camera(

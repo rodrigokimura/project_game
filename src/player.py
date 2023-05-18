@@ -7,7 +7,14 @@ import pygame
 
 from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
 from commons import Loadable, Storable
-from input import BaseController, JoystickPlayerController, PlayerControllable
+from input import (
+    BaseController,
+    ControllerDetection,
+    JoystickPlayerController,
+    KeyboardPlayerController,
+    PlayerControllable,
+    PlayerController,
+)
 from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
@@ -194,12 +201,16 @@ class BasePlayer(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         self.handle_collision()
 
     @abstractmethod
+    def set_controller(self, controller_id: ControllerDetection.Controller):
+        ...
+
+    @abstractmethod
     def handle_collision(self):
         ...
 
 
 class Player(BasePlayer):
-    controller: JoystickPlayerController | None
+    controller: PlayerController | None
 
     def __init__(
         self,
@@ -235,9 +246,6 @@ class Player(BasePlayer):
 
     def setup(self):
         # load unpickleble attributes
-        self.controller = JoystickPlayerController(
-            self, self.max_jump_count, self.max_jump_time
-        )
         self.bottom_sprite = StandingBase(
             pygame.rect.Rect(
                 self.position.x - 1, self.position.y + self.size.y / 2, 2, 1
@@ -246,6 +254,16 @@ class Player(BasePlayer):
         self._draw()
         self._create_collision_mask()
         self.inventory.setup()
+
+    def set_controller(self, controller_id: ControllerDetection.Controller):
+        if controller_id == ControllerDetection.Controller.JOYSTICK:
+            self.controller = JoystickPlayerController(
+                self, self.max_jump_count, self.max_jump_time
+            )
+        elif controller_id == ControllerDetection.Controller.KEYBOARD:
+            self.controller = KeyboardPlayerController(
+                self, self.max_jump_count, self.max_jump_time
+            )
 
     def unload(self):
         self.bottom_sprite = None

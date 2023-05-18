@@ -4,6 +4,8 @@ from typing import Any, Callable
 
 import pygame
 
+from settings import BLOCK_SIZE, MENU_FONT
+
 ActionCommandType = Callable[..., None]
 
 
@@ -114,6 +116,12 @@ class BaseController(ABC):
         ...
 
 
+class PlayerController(BaseController):
+    @abstractmethod
+    def reset_jump(self):
+        ...
+
+
 class PlayerControllable(ABC):
     @abstractmethod
     def move(self, dt: float, amount: float):
@@ -186,7 +194,30 @@ class Button(enum.IntEnum):
     START = 9
 
 
-class JoystickPlayerController(BaseController):
+class Key(enum.IntEnum):
+    ESC = pygame.K_ESCAPE
+    Q = pygame.K_q
+    W = pygame.K_w
+    R = pygame.K_r
+    T = pygame.K_t
+
+    E = pygame.K_e
+    D = pygame.K_d
+    S = pygame.K_s
+    F = pygame.K_f
+
+    V = pygame.K_v
+
+    SPACE = pygame.K_SPACE
+
+
+class MouseButton(enum.IntEnum):
+    MAIN = 0
+    MIDDLE = 1
+    SECONDARY = 2
+
+
+class JoystickPlayerController(PlayerController):
     def __init__(
         self,
         controllable: PlayerControllable,
@@ -228,6 +259,74 @@ class JoystickPlayerController(BaseController):
         self._jump.reset()
 
 
+class KeyboardPlayerController(PlayerController):
+    def __init__(
+        self,
+        controllable: PlayerControllable,
+        max_jump_count: int,
+        max_jump_time: float,
+    ) -> None:
+        self._jump = CounterTimer(controllable.jump, max_jump_count, max_jump_time)
+
+        self.move_cursor = ContinuousAction(controllable.move_cursor)
+
+        self.direction_key_actions: list[tuple[tuple[Key, Key], BaseAction]] = [
+            ((Key.S, Key.F), ContinuousAction(controllable.move)),
+        ]
+
+        self.key_actions: list[tuple[Key, BaseAction]] = [
+            (Key.Q, OncePerPress(controllable.next_mode)),
+            (Key.ESC, OncePerPress(controllable.pause)),
+            (Key.W, CooldownCounterTimer(controllable.dash_left, 2, 0.2, 1)),
+            (Key.R, CooldownCounterTimer(controllable.dash_right, 2, 0.2, 1)),
+            (Key.R, OncePerPress(controllable.place_block)),
+            (Key.V, ContinuousAction(controllable.boost)),
+            (Key.SPACE, self._jump),
+            (Key.SPACE, ContinuousAction(controllable.glide)),
+            (Key.T, OncePerPress(controllable.open_inventory)),
+        ]
+        self.mouse_button_actions: list[tuple[MouseButton, BaseAction]] = [
+            (MouseButton.MAIN, OncePerPress(controllable.place_block)),
+            (MouseButton.SECONDARY, ContinuousAction(controllable.destroy_block)),
+        ]
+
+    def control(self, dt: float):
+        self._perform_cursor_movement(dt)
+
+        for d_keys, action in self.direction_key_actions:
+            left, right = d_keys
+            keys = pygame.key.get_pressed()
+            if keys[left] and keys[right]:
+                x = 0
+            elif keys[left]:
+                x = -1
+            elif keys[right]:
+                x = 1
+            else:
+                x = 0
+            action.do(True, dt, [x])
+
+        for key, action in self.key_actions:
+            value = pygame.key.get_pressed()[key]
+            action.do(value, dt)
+
+        for key, action in self.mouse_button_actions:
+            value = pygame.mouse.get_pressed()[key]
+            action.do(value, dt)
+
+    def _perform_cursor_movement(self, dt: float):
+        # assuming player position on center
+        mouse_position = pygame.math.Vector2(pygame.mouse.get_pos())
+        middle_screen = pygame.math.Vector2(pygame.display.get_surface().get_size()) / 2
+        rel = mouse_position - middle_screen
+        rel = rel.clamp_magnitude(BLOCK_SIZE * 5) / (BLOCK_SIZE * 5)
+        axes_values = [round(rel.x, 2), round(rel.y, 2)]
+        self.move_cursor.do(True, dt, axes_values)
+
+    def reset_jump(self):
+        self._jump.reset()
+
+
 class JoystickMenuController(BaseController):
     def __init__(self, controllable: MenuControllable) -> None:
         self.joystick = pygame.joystick.Joystick(0)
@@ -246,3 +345,107 @@ class JoystickMenuController(BaseController):
         for button, action in self.button_actions:
             value = self.joystick.get_button(button)
             action.do(value, dt)
+
+
+class KeyboardMenuController(BaseController):
+    def __init__(self, controllable: MenuControllable) -> None:
+        udlr = (Key.E, Key.D, Key.S, Key.F)
+
+        self.direction_actions: list[tuple[tuple[Key, Key, Key, Key], BaseAction]] = [
+            (udlr, OncePerPress(controllable.move))
+        ]
+        self.key_actions: list[tuple[Key, BaseAction]] = [
+            (Key.SPACE, OncePerPress(controllable.select)),
+        ]
+
+    def control(self, dt: float):
+        for d_keys, action in self.direction_actions:
+            up, down, left, right = d_keys
+            keys = pygame.key.get_pressed()
+
+            if keys[up] and keys[down]:
+                x = 0
+            elif keys[up]:
+                x = 1
+            elif keys[down]:
+                x = -1
+            else:
+                x = 0
+
+            if keys[left] and keys[right]:
+                y = 0
+            elif keys[left]:
+                y = 1
+            elif keys[right]:
+                y = -1
+            else:
+                y = 0
+            action.do(bool(x or y), dt, [x, y])
+
+        for key, action in self.key_actions:
+            value = pygame.key.get_pressed()[key]
+            action.do(value, dt)
+
+
+class ControllerDetection:
+    CONTROLLER_DETECTED = pygame.event.custom_type()
+    EVENTS = [CONTROLLER_DETECTED]
+
+    class Controller(enum.IntEnum):
+        AI = enum.auto()
+        KEYBOARD = enum.auto()
+        JOYSTICK = enum.auto()
+
+    def __init__(self) -> None:
+        self.joystick_count = 0
+        self.animation_time = 500
+        self.display = pygame.display.get_surface()
+        self.surface = pygame.surface.Surface(self.display.get_size())
+        self.font = pygame.font.Font(MENU_FONT, 100)
+        self.draw_static()
+
+    def run(self, dt: float):
+        self.draw(dt)
+        self.detect_controller()
+
+    def draw_static(self):
+        self.surface.fill("black")
+
+    def draw(self, _: float):
+        text = self.font.render("Press any key/button", False, "white")
+        self.surface.blit(text, (0, 0))
+        self.display.blit(self.surface, self.display.get_rect())
+
+    def detect_controller(self):
+        joysticks = pygame.joystick.get_count()
+        if self.joystick_count != joysticks:
+            self.joystick_count = joysticks
+            print(f"Joysticks detected: {joysticks}")
+
+        if self.joystick_count > 0:
+            if self.detect_joystick():
+                return
+
+        self.detect_keyboard_and_mouse()
+
+    def detect_joystick(self):
+        for joystick_id in range(self.joystick_count):
+            joystick = pygame.joystick.Joystick(joystick_id)
+            for button_id in range(joystick.get_numbuttons()):
+                if joystick.get_button(button_id):
+                    event = pygame.event.Event(self.CONTROLLER_DETECTED)
+                    event.controller = self.Controller.JOYSTICK
+                    pygame.event.post(event)
+                    return True
+        return False
+
+    def detect_keyboard_and_mouse(self):
+        r = pygame.key.get_pressed()
+
+        # HACK: pygame prevents iterating directly over r
+        if any(r[i] for i in range(len(r))):
+            event = pygame.event.Event(self.CONTROLLER_DETECTED)
+            event.controller = self.Controller.KEYBOARD
+            pygame.event.post(event)
+            return True
+        return False
