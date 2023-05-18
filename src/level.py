@@ -82,7 +82,7 @@ class Level:
             self.camera.update()
             self.check_player_dead()
         elif self.status == Level.Status.PAUSED:
-            self.pause_menu.run()
+            self.pause_menu.run(dt)
             self.handle_menu_commands()
         elif self.status == Level.Status.INVENTORY_OPEN:
             self.player.inventory.update()

@@ -7,7 +7,7 @@ import pygame
 
 from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
 from commons import Loadable, Storable
-from input import BaseController, Controllable, JoystickController
+from input import BaseController, JoystickPlayerController, PlayerControllable
 from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
@@ -32,7 +32,7 @@ class StandingBase(pygame.sprite.Sprite):
         self.mask = pygame.mask.Mask(self.rect.size, True)
 
 
-class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
+class BasePlayer(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
     IMMUNITY_OVER = pygame.event.custom_type()
     DEAD = pygame.event.custom_type()
     PAUSE = pygame.event.custom_type()
@@ -199,7 +199,7 @@ class BasePlayer(Storable, Loadable, Controllable, GravitySprite, ABC):
 
 
 class Player(BasePlayer):
-    controller: JoystickController | None
+    controller: JoystickPlayerController | None
 
     def __init__(
         self,
@@ -235,7 +235,7 @@ class Player(BasePlayer):
 
     def setup(self):
         # load unpickleble attributes
-        self.controller = JoystickController(
+        self.controller = JoystickPlayerController(
             self, self.max_jump_count, self.max_jump_time
         )
         self.bottom_sprite = StandingBase(

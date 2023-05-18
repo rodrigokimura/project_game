@@ -37,7 +37,7 @@ class Game:
         }
         self.menu = Menu(start_menu)
 
-        self.main_loop = self.load_menu
+        self.main_loop = self.run_menu
 
         running = True
         while running:
@@ -46,7 +46,7 @@ class Game:
                     running = False
 
                 if event.type == Level.FINISHED:
-                    self.main_loop = self.load_menu
+                    self.main_loop = self.run_menu
 
                 if event.type == self.NEW_GAME:
                     self.level = Level()
@@ -58,7 +58,7 @@ class Game:
                     self.internal_events = Player.EVENTS
                     self.main_loop = self.run_level
 
-            dt = self.clock.tick(100) / 1000
+            dt = self.clock.tick() / 1000
 
             self.main_loop(dt)
 
@@ -66,8 +66,8 @@ class Game:
 
         pygame.quit()
 
-    def load_menu(self, _):
-        self.menu.run()
+    def run_menu(self, dt: float):
+        self.menu.run(dt)
 
     def run_level(self, dt: float):
         self.level.run(dt)

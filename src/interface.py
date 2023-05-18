@@ -3,12 +3,13 @@ from typing import Any
 
 import pygame
 
+from input import JoystickMenuController, MenuControllable
 from player import BasePlayer
 from settings import DEFAULT_FONT
 from world import BaseWorld
 
 
-class Menu:
+class Menu(MenuControllable):
     class Item(pygame.sprite.Sprite):
         def __init__(self, text, event_id, *groups: pygame.sprite.Group) -> None:
             super().__init__(*groups)
@@ -56,6 +57,7 @@ class Menu:
             pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())
         ]
         self.joystick = joysticks[0] if joysticks else None
+        self.controller = JoystickMenuController(self)
 
     def draw_static(self):
         padding = 80
@@ -75,23 +77,9 @@ class Menu:
                 padding + font_padding + i * (item.image.get_size()[1] + font_padding)
             )
 
-    def run(self):
+    def run(self, dt: float):
         self.all_items.draw(self.surface)
-
-        d_pad_events = pygame.event.get(pygame.JOYHATMOTION)
-        d_pad_events = [e for e in d_pad_events if e.hat == 0]
-        if d_pad_events:
-            d = d_pad_events[0].value[1]
-            if d == 1:
-                self.highlight_prev()
-            elif d == -1:
-                self.highlight_next()
-        button_events = pygame.event.get(pygame.JOYBUTTONDOWN)
-        if button_events:
-            b = button_events[0].button
-            if b == 2:
-                self.select()
-
+        self.controller.control(dt)
         self.all_items.update()
         self.display.blit(self.surface, (0, 0))
 
@@ -107,9 +95,19 @@ class Menu:
         self.highlighted_item = index
         self._items[self.highlighted_item].highlighted = True
 
-    def select(self):
+    def select(self, _: float):
         event = self._items[self.highlighted_item].event
         pygame.event.post(event)
+
+    def move(self, _: float, x: float, y: float):
+        if x < 0:
+            self.highlight_next()
+        elif x > 0:
+            self.highlight_prev()
+        if y < 0:
+            self.highlight_next()
+        elif y > 0:
+            self.highlight_prev()
 
 
 class BaseInterfaceElement(ABC):

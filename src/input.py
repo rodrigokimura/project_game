@@ -114,7 +114,7 @@ class BaseController(ABC):
         ...
 
 
-class Controllable(ABC):
+class PlayerControllable(ABC):
     @abstractmethod
     def move(self, dt: float, amount: float):
         ...
@@ -164,6 +164,16 @@ class Controllable(ABC):
         ...
 
 
+class MenuControllable(ABC):
+    @abstractmethod
+    def move(self, dt: float, x: float, y: float):
+        ...
+
+    @abstractmethod
+    def select(self, dt: float):
+        ...
+
+
 class Button(enum.IntEnum):
     A = 2
     B = 1
@@ -176,10 +186,10 @@ class Button(enum.IntEnum):
     START = 9
 
 
-class JoystickController(BaseController):
+class JoystickPlayerController(BaseController):
     def __init__(
         self,
-        controllable: Controllable,
+        controllable: PlayerControllable,
         max_jump_count: int,
         max_jump_time: float,
     ) -> None:
@@ -216,3 +226,23 @@ class JoystickController(BaseController):
 
     def reset_jump(self):
         self._jump.reset()
+
+
+class JoystickMenuController(BaseController):
+    def __init__(self, controllable: MenuControllable) -> None:
+        self.joystick = pygame.joystick.Joystick(0)
+        self.hat_actions: list[tuple[int, BaseAction]] = [
+            (0, OncePerPress(controllable.move))
+        ]
+        self.button_actions: list[tuple[Button, BaseAction]] = [
+            (Button.A, OncePerPress(controllable.select)),
+        ]
+
+    def control(self, dt: float):
+        for hat, action in self.hat_actions:
+            x, y = self.joystick.get_hat(hat)
+            action.do(bool(y), dt, [x, y])
+
+        for button, action in self.button_actions:
+            value = self.joystick.get_button(button)
+            action.do(value, dt)
