@@ -5,7 +5,7 @@ import pygame
 
 from input import JoystickMenuController, MenuControllable
 from player import BasePlayer
-from settings import DEFAULT_FONT
+from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
 from world import BaseWorld
 
 
@@ -16,9 +16,9 @@ class Menu(MenuControllable):
             self.text = text
             self.event = pygame.event.Event(event_id)
 
-            font = pygame.sysfont.SysFont(DEFAULT_FONT, 100)
+            font = pygame.font.Font(MENU_FONT, 100)
             font_padding = 20
-            text_surf = font.render(text, True, "blue")
+            text_surf = font.render(text, False, "blue")
             x, y = text_surf.get_size()
             padded_text_surf = pygame.surface.Surface(
                 (x + 2 * font_padding, y + 2 * font_padding)
@@ -43,7 +43,7 @@ class Menu(MenuControllable):
             return super().update(*args, **kwargs)
 
     def __init__(self, items: dict[str, int]) -> None:
-        self.font = pygame.sysfont.SysFont(DEFAULT_FONT, 100)
+        self.font = pygame.font.Font(DEFAULT_FONT, 100)
         self._items = [self.Item(txt, id) for txt, id in items.items()]
         self.all_items = pygame.sprite.Group()
         self.all_items.add(self._items)
@@ -141,12 +141,12 @@ class PlayerMode(BaseInterfaceElement):
     def __init__(self, player: BasePlayer) -> None:
         super().__init__()
         self.player = player
-        self.font = pygame.sysfont.SysFont(DEFAULT_FONT, 20)
+        self.font = pygame.font.Font(CONSOLE_FONT, 30)
 
     def draw(self):
         super().draw()
         display_surface = pygame.display.get_surface()
-        s = self.font.render(self.player.mode.name, True, "white")
+        s = self.font.render(self.player.mode.name, False, "white")
         display_surface.blit(s, (10, 70))
 
 
@@ -154,12 +154,12 @@ class TimeDisplay(BaseInterfaceElement):
     def __init__(self, world: BaseWorld) -> None:
         super().__init__()
         self.world = world
-        self.font = pygame.sysfont.SysFont(DEFAULT_FONT, 20)
+        self.font = pygame.font.Font(DEFAULT_FONT, 20)
 
     def draw(self):
         super().draw()
         display_surface = pygame.display.get_surface()
-        s = self.font.render(self.world.time.strftime("%H:%M"), True, "white")
+        s = self.font.render(self.world.time.strftime("%H:%M"), False, "white")
         display_surface.blit(s, (10, 25))
-        s = self.font.render(self.world.day_part.value, True, "white")
+        s = self.font.render(self.world.day_part.value, False, "white")
         display_surface.blit(s, (10, 45))

@@ -151,7 +151,7 @@ class Inventory(BaseInventory, Loadable):
                         p + m + y * (slot_size + slot_p),
                     ),
                 )
-                txt = self.font.render(f"x {count}", True, "white")
+                txt = self.font.render(f"x {count}", False, "white")
                 self.image.blit(
                     txt,
                     (
@@ -170,7 +170,7 @@ class Inventory(BaseInventory, Loadable):
         i = y * self.grid[0] + x
         try:
             cls, count = collectibles[i]
-            txt = self.font.render(cls.__name__, True, "white")
+            txt = self.font.render(cls.__name__, False, "white")
             self.image.blit(
                 txt,
                 (
@@ -189,7 +189,7 @@ class Inventory(BaseInventory, Loadable):
         self.image = pygame.surface.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.image = self.image.convert_alpha()
         self.image.fill((0, 0, 0, 0))
-        self.font = pygame.font.SysFont(DEFAULT_FONT, 20)
+        self.font = pygame.font.Font(DEFAULT_FONT, 20)
 
     def unload(self):
         self.joystick = None

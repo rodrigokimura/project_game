@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 DEBUG = bool(os.getenv("DEBUG", False))
 
@@ -21,4 +22,10 @@ DAY_DURATION = 10
 GRAVITY = 30
 TERMINAL_VELOCITY = 30
 
-DEFAULT_FONT = "freesansbold"
+
+PROJECT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+
+# DEFAULT_FONT = "freesansbold"
+DEFAULT_FONT = PROJECT_DIR / "assets" / "pixeldroidBoticRegular.ttf"
+CONSOLE_FONT = PROJECT_DIR / "assets" / "pixeldroidConsoleRegular.ttf"
+MENU_FONT = PROJECT_DIR / "assets" / "pixeldroidMenuRegular.ttf"
