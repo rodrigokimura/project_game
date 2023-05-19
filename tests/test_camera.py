@@ -13,13 +13,16 @@ class MockedPlayer(BasePlayer):
         self.rect = pygame.rect.Rect(0, 0, 10, 10)
 
     def setup(self):
-        pass
+        ...
 
     def unload(self):
-        pass
+        ...
 
     def handle_collision(self):
-        pass
+        ...
+
+    def set_controller(self):
+        ...
 
     def should_fall(self) -> bool:
         return True
