@@ -350,7 +350,7 @@ def draw_cached_images():
 
     img = cached_images[Wood]
     pygame.draw.rect(img, "white", img.get_rect(), 1)
-    cached_masks[Spike] = pygame.mask.from_surface(img)
+    cached_masks[Wood] = pygame.mask.from_surface(img)
 
     load_tree_images()
     load_collectible_images()
