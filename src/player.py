@@ -256,6 +256,7 @@ class Player(BasePlayer):
         self.inventory.setup()
 
     def set_controller(self, controller_id: Controller):
+        self.inventory.set_controller(controller_id)
         if controller_id == Controller.JOYSTICK:
             self.controller = JoystickPlayerController(
                 self, self.max_jump_count, self.max_jump_time

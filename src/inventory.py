@@ -1,15 +1,20 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from itertools import product
 
 import pygame
 
 from blocks import BaseCollectible, collectible_images
 from commons import Loadable
-from input.constants import Button
+from input.constants import Controller
+from input.controllers import (
+    InventoryControllable,
+    JoystickInventoryController,
+    KeyboardInventoryController,
+)
 from settings import DEFAULT_FONT, SCREEN_HEIGHT, SCREEN_WIDTH
 
 
-class BaseInventory(Loadable, ABC):
+class BaseInventory(Loadable, InventoryControllable):
     CLOSE = pygame.event.custom_type()
 
     collectibles: dict[type[BaseCollectible], int]
@@ -45,11 +50,17 @@ class BaseInventory(Loadable, ABC):
     def get_selected(self) -> tuple[type[BaseCollectible], int] | None:
         ...
 
-    def close(self):
+    def close(self, _: float):
         pygame.event.post(pygame.event.Event(self.CLOSE))
 
+    def set_controller(self, controller_id: Controller):
+        if controller_id == Controller.JOYSTICK:
+            self.controller = JoystickInventoryController(self)
+        elif controller_id == Controller.KEYBOARD:
+            self.controller = KeyboardInventoryController(self)
+
     @abstractmethod
-    def update(self):
+    def update(self, dt: float):
         ...
 
     def __str__(self) -> str:
@@ -82,41 +93,31 @@ class Inventory(BaseInventory, Loadable):
         except IndexError:
             return None
 
-    def update(self):
+    def update(self, dt: float):
         self.update_image()
 
         if self.joystick is None:
             raise Loadable.UnloadedObject
+        self.controller.control(dt)
 
-        if self.joystick.get_button(Button.B):
-            self.close()
+    def move(self, _: float, x: float, y: float):
+        _x, _y = self.selected
 
-        x, y = self.selected
-        left_right, up_down = self.joystick.get_hat(0)
+        if x == -1:
+            if _x > 0:
+                _x -= 1
+        elif x == 1:
+            if _x < self.grid[0] - 1:
+                _x += 1
 
-        if self.lr and left_right == -1:
-            if x > 0:
-                x -= 1
-                self.lr = False
-        elif self.lr and left_right == 1:
-            if x < self.grid[0] - 1:
-                x += 1
-                self.lr = False
-        elif left_right == 0:
-            self.lr = True
+        if y == 1:
+            if _y > 0:
+                _y -= 1
+        elif y == -1:
+            if _y < self.grid[1] - 1:
+                _y += 1
 
-        if self.ud and up_down == 1:
-            if y > 0:
-                y -= 1
-                self.ud = False
-        elif self.ud and up_down == -1:
-            if y < self.grid[1] - 1:
-                y += 1
-                self.ud = False
-        elif up_down == 0:
-            self.ud = True
-
-        self.selected = x, y
+        self.selected = int(_x), int(_y)
 
     def update_image(self):
         if self.image is None or self.font is None:

@@ -168,9 +168,9 @@ class Menu(MenuControllable):
 
     def move(self, _: float, x: float, y: float):
         if x < 0:
-            self.highlight_next()
-        elif x > 0:
             self.highlight_prev()
+        elif x > 0:
+            self.highlight_next()
         if y < 0:
             self.highlight_next()
         elif y > 0:
