@@ -5,7 +5,7 @@ import pygame
 
 from blocks import draw_cached_images
 from camera import Camera
-from input import ControllerDetection
+from input.constants import Controller
 from interface import Menu, PlayerMode, PlayerStats, TimeDisplay
 from inventory import Inventory
 from player import BasePlayer, Player
@@ -34,14 +34,14 @@ class Level:
     EVENTS = [FINISHED, RESUME, SAVE]
 
     @classmethod
-    def from_storage(cls, controller: ControllerDetection.Controller):
+    def from_storage(cls, controller: Controller):
         world = WorldStorage().get_newest()
         player = PlayerStorage().get_newest()
         return cls(controller, world, player)
 
     def __init__(
         self,
-        controller: ControllerDetection.Controller,
+        controller: Controller,
         world: Optional[BaseWorld] = None,
         player: Optional[BasePlayer] = None,
     ) -> None:
@@ -60,7 +60,7 @@ class Level:
 
     def setup(
         self,
-        controller: ControllerDetection.Controller,
+        controller: Controller,
         world: Optional[BaseWorld],
         player: Optional[BasePlayer],
     ):

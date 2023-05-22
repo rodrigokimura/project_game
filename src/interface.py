@@ -3,10 +3,70 @@ from typing import Any
 
 import pygame
 
-from input import BaseController, JoystickMenuController, MenuControllable
+from input.constants import Controller
+from input.controllers import BaseController, JoystickMenuController, MenuControllable
 from player import BasePlayer
 from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
 from world import BaseWorld
+
+
+class ControllerDetection:
+    CONTROLLER_DETECTED = pygame.event.custom_type()
+    EVENTS = [CONTROLLER_DETECTED]
+
+    def __init__(self) -> None:
+        self.joystick_count = 0
+        self.animation_time = 500
+        self.display = pygame.display.get_surface()
+        self.surface = pygame.surface.Surface(self.display.get_size())
+        self.font = pygame.font.Font(MENU_FONT, 100)
+        self.draw_static()
+
+    def run(self, dt: float):
+        self.draw(dt)
+        self.detect_controller()
+
+    def draw_static(self):
+        self.surface.fill("black")
+
+    def draw(self, _: float):
+        text = self.font.render("Press any key/button", False, "white")
+        self.surface.blit(text, (0, 0))
+        self.display.blit(self.surface, self.display.get_rect())
+
+    def detect_controller(self):
+        joysticks = pygame.joystick.get_count()
+        if self.joystick_count != joysticks:
+            self.joystick_count = joysticks
+            print(f"Joysticks detected: {joysticks}")
+
+        if self.joystick_count > 0:
+            if self.detect_joystick():
+                return
+
+        self.detect_keyboard_and_mouse()
+
+    def detect_joystick(self):
+        for joystick_id in range(self.joystick_count):
+            joystick = pygame.joystick.Joystick(joystick_id)
+            for button_id in range(joystick.get_numbuttons()):
+                if joystick.get_button(button_id):
+                    event = pygame.event.Event(self.CONTROLLER_DETECTED)
+                    event.controller = Controller.JOYSTICK
+                    pygame.event.post(event)
+                    return True
+        return False
+
+    def detect_keyboard_and_mouse(self):
+        r = pygame.key.get_pressed()
+
+        # HACK: pygame prevents iterating directly over r
+        if any(r[i] for i in range(len(r))):
+            event = pygame.event.Event(self.CONTROLLER_DETECTED)
+            event.controller = Controller.KEYBOARD
+            pygame.event.post(event)
+            return True
+        return False
 
 
 class Menu(MenuControllable):

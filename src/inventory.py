@@ -5,7 +5,7 @@ import pygame
 
 from blocks import BaseCollectible, collectible_images
 from commons import Loadable
-from input import Button
+from input.constants import Button
 from settings import DEFAULT_FONT, SCREEN_HEIGHT, SCREEN_WIDTH
 
 

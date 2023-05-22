@@ -7,9 +7,9 @@ import pygame
 
 from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
 from commons import Loadable, Storable
-from input import (
+from input.constants import Controller
+from input.controllers import (
     BaseController,
-    ControllerDetection,
     JoystickPlayerController,
     KeyboardPlayerController,
     PlayerControllable,
@@ -201,7 +201,7 @@ class BasePlayer(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         self.handle_collision()
 
     @abstractmethod
-    def set_controller(self, controller_id: ControllerDetection.Controller):
+    def set_controller(self, controller_id: Controller):
         ...
 
     @abstractmethod
@@ -255,12 +255,12 @@ class Player(BasePlayer):
         self._create_collision_mask()
         self.inventory.setup()
 
-    def set_controller(self, controller_id: ControllerDetection.Controller):
-        if controller_id == ControllerDetection.Controller.JOYSTICK:
+    def set_controller(self, controller_id: Controller):
+        if controller_id == Controller.JOYSTICK:
             self.controller = JoystickPlayerController(
                 self, self.max_jump_count, self.max_jump_time
             )
-        elif controller_id == ControllerDetection.Controller.KEYBOARD:
+        elif controller_id == Controller.KEYBOARD:
             self.controller = KeyboardPlayerController(
                 self, self.max_jump_count, self.max_jump_time
             )

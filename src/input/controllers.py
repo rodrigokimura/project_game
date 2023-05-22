@@ -1,113 +1,16 @@
-import enum
 from abc import ABC, abstractmethod
-from typing import Any, Callable
 
 import pygame
 
-from settings import BLOCK_SIZE, MENU_FONT
-
-ActionCommandType = Callable[..., None]
-
-
-class BaseAction(ABC):
-    def __init__(self, command: ActionCommandType) -> None:
-        self.command = command
-
-    @abstractmethod
-    def check(self, value: bool, dt: float) -> bool:
-        ...
-
-    def do(self, value: bool, dt: float, command_args: list[Any] | None = None):
-        command_args = command_args or []
-        if self.check(value, dt):
-            self.command(dt, *command_args)
-
-
-class ResettableAction(BaseAction):
-    @abstractmethod
-    def reset(self) -> bool:
-        ...
-
-
-class ContinuousAction(BaseAction):
-    def check(self, value: bool, _: float) -> bool:
-        return value
-
-
-class OncePerPress(BaseAction):
-    def __init__(self, command: ActionCommandType) -> None:
-        super().__init__(command)
-        self.state = False
-
-    def check(self, value: bool, _: float) -> bool:
-        if value and self.state:
-            self.state = False
-            return True
-        elif not value:
-            self.state = True
-        return False
-
-
-class CounterTimer(ResettableAction):
-    def __init__(
-        self, command: ActionCommandType, max_count: int, max_time: float
-    ) -> None:
-        super().__init__(command)
-        self._past_value = False
-        self.state = False
-        self.counter = 0
-        self.timer = 0
-        self.max_count = max_count
-        self.max_time = max_time
-
-    def check(self, value: bool, dt: float):
-        # TODO: decrease complexity
-        if value != self._past_value:
-            self._past_value = value
-            if value:
-                self.state = True
-                self.counter += 1
-            else:
-                if self.counter < self.max_count:
-                    self.timer = 0
-        elif value:
-            if self.counter < self.max_count and self.timer < self.max_time:
-                if self.state:
-                    self.timer += dt
-                    return True
-            else:
-                self.state = False
-        return False
-
-    def reset(self):
-        self.timer = 0
-        self.counter = 0
-
-
-class CooldownCounterTimer(CounterTimer):
-    def __init__(
-        self,
-        command: ActionCommandType,
-        max_count: int,
-        max_time: float,
-        cooldown_max_time: float,
-    ) -> None:
-        super().__init__(command, max_count, max_time)
-        self.cooldown_timer = 0
-        self.cooldown_max_time = cooldown_max_time
-
-    def reset_cooldown(self):
-        self.cooldown_timer = 0
-
-    def check(self, value: bool, dt: float):
-        if self.cooldown_timer >= self.cooldown_max_time:
-            self.reset()
-            self.reset_cooldown()
-
-        check = super().check(value, dt)
-        if not check:
-            self.cooldown_timer += dt
-        return check
+from input.actions import (
+    BaseAction,
+    ContinuousAction,
+    CooldownCounterTimer,
+    CounterTimer,
+    OncePerPress,
+)
+from input.constants import Button, Key, MouseButton
+from settings import BLOCK_SIZE
 
 
 class BaseController(ABC):
@@ -180,41 +83,6 @@ class MenuControllable(ABC):
     @abstractmethod
     def select(self, dt: float):
         ...
-
-
-class Button(enum.IntEnum):
-    A = 2
-    B = 1
-    X = 3
-    Y = 0
-    LB = 4
-    RB = 5
-    LT = 6
-    RT = 7
-    START = 9
-
-
-class Key(enum.IntEnum):
-    ESC = pygame.K_ESCAPE
-    Q = pygame.K_q
-    W = pygame.K_w
-    R = pygame.K_r
-    T = pygame.K_t
-
-    E = pygame.K_e
-    D = pygame.K_d
-    S = pygame.K_s
-    F = pygame.K_f
-
-    V = pygame.K_v
-
-    SPACE = pygame.K_SPACE
-
-
-class MouseButton(enum.IntEnum):
-    MAIN = 0
-    MIDDLE = 1
-    SECONDARY = 2
 
 
 class JoystickPlayerController(PlayerController):
@@ -385,67 +253,3 @@ class KeyboardMenuController(BaseController):
         for key, action in self.key_actions:
             value = pygame.key.get_pressed()[key]
             action.do(value, dt)
-
-
-class ControllerDetection:
-    CONTROLLER_DETECTED = pygame.event.custom_type()
-    EVENTS = [CONTROLLER_DETECTED]
-
-    class Controller(enum.IntEnum):
-        AI = enum.auto()
-        KEYBOARD = enum.auto()
-        JOYSTICK = enum.auto()
-
-    def __init__(self) -> None:
-        self.joystick_count = 0
-        self.animation_time = 500
-        self.display = pygame.display.get_surface()
-        self.surface = pygame.surface.Surface(self.display.get_size())
-        self.font = pygame.font.Font(MENU_FONT, 100)
-        self.draw_static()
-
-    def run(self, dt: float):
-        self.draw(dt)
-        self.detect_controller()
-
-    def draw_static(self):
-        self.surface.fill("black")
-
-    def draw(self, _: float):
-        text = self.font.render("Press any key/button", False, "white")
-        self.surface.blit(text, (0, 0))
-        self.display.blit(self.surface, self.display.get_rect())
-
-    def detect_controller(self):
-        joysticks = pygame.joystick.get_count()
-        if self.joystick_count != joysticks:
-            self.joystick_count = joysticks
-            print(f"Joysticks detected: {joysticks}")
-
-        if self.joystick_count > 0:
-            if self.detect_joystick():
-                return
-
-        self.detect_keyboard_and_mouse()
-
-    def detect_joystick(self):
-        for joystick_id in range(self.joystick_count):
-            joystick = pygame.joystick.Joystick(joystick_id)
-            for button_id in range(joystick.get_numbuttons()):
-                if joystick.get_button(button_id):
-                    event = pygame.event.Event(self.CONTROLLER_DETECTED)
-                    event.controller = self.Controller.JOYSTICK
-                    pygame.event.post(event)
-                    return True
-        return False
-
-    def detect_keyboard_and_mouse(self):
-        r = pygame.key.get_pressed()
-
-        # HACK: pygame prevents iterating directly over r
-        if any(r[i] for i in range(len(r))):
-            event = pygame.event.Event(self.CONTROLLER_DETECTED)
-            event.controller = self.Controller.KEYBOARD
-            pygame.event.post(event)
-            return True
-        return False

@@ -1,8 +1,9 @@
 import pygame
 
 import settings
-from input import ControllerDetection, JoystickMenuController, KeyboardMenuController
-from interface import Menu
+from input.constants import Controller
+from input.controllers import JoystickMenuController, KeyboardMenuController
+from interface import ControllerDetection, Menu
 from level import Level
 from player import Player
 
@@ -11,7 +12,7 @@ class Game:
     NEW_GAME = pygame.event.custom_type()
     LOAD_GAME = pygame.event.custom_type()
     EXIT = pygame.QUIT
-    controller: ControllerDetection.Controller
+    controller: Controller
 
     def run(self):
         self.setup()
@@ -37,9 +38,9 @@ class Game:
 
                 elif event.type == ControllerDetection.CONTROLLER_DETECTED:
                     self.controller = event.controller
-                    if self.controller == ControllerDetection.Controller.JOYSTICK:
+                    if self.controller == Controller.JOYSTICK:
                         self.menu.controller = JoystickMenuController(self.menu)
-                    elif self.controller == ControllerDetection.Controller.KEYBOARD:
+                    elif self.controller == Controller.KEYBOARD:
                         self.menu.controller = KeyboardMenuController(self.menu)
 
                     self.main_loop = self.run_menu
