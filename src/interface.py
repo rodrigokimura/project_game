@@ -4,7 +4,12 @@ from typing import Any
 import pygame
 
 from input.constants import Controller
-from input.controllers import BaseController, JoystickMenuController, MenuControllable
+from input.controllers import (
+    BaseController,
+    JoystickMenuController,
+    KeyboardMenuController,
+    MenuControllable,
+)
 from player import BasePlayer
 from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
 from world import BaseWorld
@@ -170,6 +175,12 @@ class Menu(MenuControllable):
             self.highlight_next()
         elif y > 0:
             self.highlight_prev()
+
+    def set_controller(self, controller_id: Controller):
+        if controller_id == Controller.JOYSTICK:
+            self.controller = JoystickMenuController(self)
+        elif controller_id == Controller.KEYBOARD:
+            self.controller = KeyboardMenuController(self)
 
 
 class BaseInterfaceElement(ABC):

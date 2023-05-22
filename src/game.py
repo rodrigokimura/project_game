@@ -2,7 +2,6 @@ import pygame
 
 import settings
 from input.constants import Controller
-from input.controllers import JoystickMenuController, KeyboardMenuController
 from interface import ControllerDetection, Menu
 from level import Level
 from player import Player
@@ -38,10 +37,7 @@ class Game:
 
                 elif event.type == ControllerDetection.CONTROLLER_DETECTED:
                     self.controller = event.controller
-                    if self.controller == Controller.JOYSTICK:
-                        self.menu.controller = JoystickMenuController(self.menu)
-                    elif self.controller == Controller.KEYBOARD:
-                        self.menu.controller = KeyboardMenuController(self.menu)
+                    self.menu.set_controller(self.controller)
 
                     self.main_loop = self.run_menu
 

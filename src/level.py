@@ -56,6 +56,7 @@ class Level:
                 "exit": self.FINISHED,
             }
         )
+        self.pause_menu.set_controller(controller)
         self.setup(controller, world, player)
 
     def setup(

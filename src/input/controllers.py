@@ -9,7 +9,7 @@ from input.actions import (
     CounterTimer,
     OncePerPress,
 )
-from input.constants import Button, Key, MouseButton
+from input.constants import Button, Controller, Key, MouseButton
 from settings import BLOCK_SIZE
 
 
@@ -25,7 +25,13 @@ class PlayerController(BaseController):
         ...
 
 
-class PlayerControllable(ABC):
+class BaseControllable(ABC):
+    @abstractmethod
+    def set_controller(self, controller_id: Controller):
+        ...
+
+
+class PlayerControllable(BaseControllable):
     @abstractmethod
     def move(self, dt: float, amount: float):
         ...
@@ -75,7 +81,7 @@ class PlayerControllable(ABC):
         ...
 
 
-class MenuControllable(ABC):
+class MenuControllable(BaseControllable):
     @abstractmethod
     def move(self, dt: float, x: float, y: float):
         ...
