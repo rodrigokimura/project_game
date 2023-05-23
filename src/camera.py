@@ -16,11 +16,13 @@ class Camera:
         player: BasePlayer,
         world: BaseWorld,
         interface_elements: Iterable[BaseInterfaceElement] | None = None,
+        other_sprites: list[pygame.sprite.Sprite] | None = None,
     ) -> None:
         self.width, self.height = size
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
+        self.other_sprites = other_sprites or []
         self._setup()
 
     def _setup(self):
@@ -73,6 +75,11 @@ class Camera:
             )
         )
         display_surface.blit(self.player.image, self.player.rect.move(dx, dy))
+
+        # draw all other sprites
+        display_surface.blits(
+            tuple((spr.image, spr.rect.move(dx, dy)) for spr in self.other_sprites)
+        )
 
         # render player cursor
         cursor_position = self.player.rect.move(

@@ -165,6 +165,22 @@ class KeyboardInventoryController(BaseController):
             action.do(value, dt)
 
 
+class AiPlayerController(PlayerController):
+    def __init__(
+        self,
+        controllable: PlayerControllable,
+        max_jump_count: int,
+        max_jump_time: float,
+    ) -> None:
+        ...
+
+    def control(self, dt: float):
+        ...
+
+    def reset_jump(self):
+        ...
+
+
 class JoystickPlayerController(PlayerController):
     def __init__(
         self,

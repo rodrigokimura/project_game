@@ -8,7 +8,7 @@ from camera import Camera
 from input.constants import Controller
 from interface import Menu, PlayerMode, PlayerStats, TimeDisplay
 from inventory import Inventory
-from player import BasePlayer, Player
+from player import BasePlayer, Enemy, Player
 from settings import (
     BLOCK_SIZE,
     GRAVITY,
@@ -73,6 +73,17 @@ class Level:
         )
         self.player.set_controller(controller)
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
+
+        self.enemy = Enemy(
+            GRAVITY,
+            TERMINAL_VELOCITY,
+            (WORLD_SIZE[0] * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
+            self.all_sprites,
+        )
+        self.enemy.set_controller(Controller.AI)
+        # TODO: make enemy's collision buffer independent
+        self.enemy.collidable_sprites_buffer = self.world.collision_buffer
+
         self.player.collidable_sprites_buffer = self.world.collision_buffer
         self.camera = Camera(
             (SCREEN_WIDTH, SCREEN_HEIGHT),
@@ -83,13 +94,14 @@ class Level:
                 PlayerMode(self.player),
                 TimeDisplay(self.world),
             ],
+            [self.enemy],
         )
 
     def run(self, dt: float):
         visibility_rect = self.camera.get_rect()
 
         if self.status == Level.Status.RUNNING:
-            self.world.update(dt, visibility_rect, self.player)
+            self.world.update(dt, visibility_rect, self.player, [self.enemy])
             self.camera.update()
             self.check_player_dead()
         elif self.status == Level.Status.PAUSED:

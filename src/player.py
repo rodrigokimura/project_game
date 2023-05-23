@@ -9,6 +9,7 @@ from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
 from commons import Loadable, Storable
 from input.constants import Controller
 from input.controllers import (
+    AiPlayerController,
     BaseController,
     JoystickPlayerController,
     KeyboardPlayerController,
@@ -445,3 +446,11 @@ class Player(BasePlayer):
         new_y = new_y - self.original_image.get_size()[1]
         img.scroll(-int(new_x / 2), -int(new_y / 2))
         return img
+
+
+class Enemy(Player):
+    def set_controller(self, controller_id: Controller):
+        self.inventory.set_controller(controller_id)
+        self.controller = AiPlayerController(
+            self, self.max_jump_count, self.max_jump_time
+        )

@@ -47,7 +47,13 @@ class BaseWorld(Storable, ABC):
     def populate(self):
         ...
 
-    def update(self, dt: float, visibility_rect: pygame.rect.Rect, player: BasePlayer):
+    def update(
+        self,
+        dt: float,
+        visibility_rect: pygame.rect.Rect,
+        player: BasePlayer,
+        other_sprites: list[pygame.sprite.Sprite],
+    ):
         self.visibility_buffer.empty()
         self.collision_buffer.empty()
         m = 3
@@ -77,6 +83,9 @@ class BaseWorld(Storable, ABC):
 
         self.update_time(dt)
         player.update(dt)
+
+        for s in other_sprites:
+            s.update(dt)
 
         # update collectibles
         player.pull_collectibles(self.collectibles)
