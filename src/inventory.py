@@ -75,8 +75,6 @@ class Inventory(BaseInventory, Loadable):
         self.setup()
         self.grid = (20, 10)
         self.selected = (0, 0)
-        self.lr = True
-        self.ud = True
 
     def is_empty(self) -> bool:
         return not self.collectibles
@@ -101,23 +99,23 @@ class Inventory(BaseInventory, Loadable):
         self.controller.control(dt)
 
     def move(self, _: float, x: float, y: float):
-        _x, _y = self.selected
+        selected_x, selected_y = self.selected
 
         if x == -1:
-            if _x > 0:
-                _x -= 1
+            if selected_x > 0:
+                selected_x -= 1
         elif x == 1:
-            if _x < self.grid[0] - 1:
-                _x += 1
+            if selected_x < self.grid[0] - 1:
+                selected_x += 1
 
         if y == 1:
-            if _y > 0:
-                _y -= 1
+            if selected_y > 0:
+                selected_y -= 1
         elif y == -1:
-            if _y < self.grid[1] - 1:
-                _y += 1
+            if selected_y < self.grid[1] - 1:
+                selected_y += 1
 
-        self.selected = int(_x), int(_y)
+        self.selected = int(selected_x), int(selected_y)
 
     def update_image(self):
         if self.image is None or self.font is None:

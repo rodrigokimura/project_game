@@ -35,16 +35,14 @@ class Camera:
         rect.center = self.player.rect.center
 
         top = self.player.rect.centery - self.height / 2
-        if top <= 0:
-            rect.top = 0
+        rect.top = max(top, 0)  # type: ignore
 
         bottom = self.player.rect.centery + self.height / 2
         if bottom >= self.world.rect.height:
             rect.bottom = self.world.rect.height
 
         left = self.player.rect.centerx - self.width / 2
-        if left < 0:
-            rect.left = 0
+        rect.left = max(left, 0)  # type: ignore
 
         right = self.player.rect.centerx + self.width / 2
         if right >= self.world.rect.width:

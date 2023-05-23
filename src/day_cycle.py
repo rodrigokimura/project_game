@@ -10,10 +10,7 @@ class DayPart(enum.Enum):
 
 
 def convert_to_time(relative_time: float) -> time:
-    td = timedelta(days=relative_time)
-    dt = datetime(1, 1, 1)
-    t = (dt + td).time()
-    return t
+    return (datetime(1, 1, 1) + timedelta(days=relative_time)).time()
 
 
 def get_day_part(t: time) -> DayPart:

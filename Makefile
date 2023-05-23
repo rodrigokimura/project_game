@@ -14,7 +14,7 @@ lint:
 	@pipenv run isort .
 
 test:
-	@pipenv run pytest --cov
+	@pipenv run pytest --cov -s
 
 clear:
 	@pipenv run python src/main.py --action clear_db

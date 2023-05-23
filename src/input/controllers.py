@@ -116,8 +116,8 @@ class JoystickInventoryController(BaseController):
 
     def control(self, dt: float):
         for hat, action in self.hat_actions:
-            x, y = self.joystick.get_hat(hat)
-            action.do(bool(x or y), dt, [x, y])
+            x_axis, y_axis = self.joystick.get_hat(hat)
+            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for button, action in self.button_actions:
             value = self.joystick.get_button(button)
@@ -141,24 +141,24 @@ class KeyboardInventoryController(BaseController):
             keys = pygame.key.get_pressed()
 
             if keys[up] and keys[down]:
-                y = 0
+                y_axis = 0
             elif keys[up]:
-                y = 1
+                y_axis = 1
             elif keys[down]:
-                y = -1
+                y_axis = -1
             else:
-                y = 0
+                y_axis = 0
 
             if keys[left] and keys[right]:
-                x = 0
+                x_axis = 0
             elif keys[left]:
-                x = -1
+                x_axis = -1
             elif keys[right]:
-                x = 1
+                x_axis = 1
             else:
-                x = 0
+                x_axis = 0
 
-            action.do(bool(x or y), dt, [x, y])
+            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for key, action in self.key_actions:
             value = pygame.key.get_pressed()[key]
@@ -245,14 +245,14 @@ class KeyboardPlayerController(PlayerController):
             left, right = d_keys
             keys = pygame.key.get_pressed()
             if keys[left] and keys[right]:
-                x = 0
+                x_axis = 0
             elif keys[left]:
-                x = -1
+                x_axis = -1
             elif keys[right]:
-                x = 1
+                x_axis = 1
             else:
-                x = 0
-            action.do(True, dt, [x])
+                x_axis = 0
+            action.do(True, dt, [x_axis])
 
         for key, action in self.key_actions:
             value = pygame.key.get_pressed()[key]
@@ -287,8 +287,8 @@ class JoystickMenuController(BaseController):
 
     def control(self, dt: float):
         for hat, action in self.hat_actions:
-            x, y = self.joystick.get_hat(hat)
-            action.do(bool(x or y), dt, [x, y])
+            x_axis, y_axis = self.joystick.get_hat(hat)
+            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for button, action in self.button_actions:
             value = self.joystick.get_button(button)
@@ -312,23 +312,23 @@ class KeyboardMenuController(BaseController):
             keys = pygame.key.get_pressed()
 
             if keys[up] and keys[down]:
-                y = 0
+                y_axis = 0
             elif keys[up]:
-                y = 1
+                y_axis = 1
             elif keys[down]:
-                y = -1
+                y_axis = -1
             else:
-                y = 0
+                y_axis = 0
 
             if keys[left] and keys[right]:
-                x = 0
+                x_axis = 0
             elif keys[left]:
-                x = -1
+                x_axis = -1
             elif keys[right]:
-                x = 1
+                x_axis = 1
             else:
-                x = 0
-            action.do(bool(x or y), dt, [x, y])
+                x_axis = 0
+            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for key, action in self.key_actions:
             value = pygame.key.get_pressed()[key]
