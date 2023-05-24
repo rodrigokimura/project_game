@@ -82,7 +82,7 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
     dash_scalar_velocity = 60
 
     cursor_position = pygame.math.Vector2(0, 0)
-    cursor_range = 5
+    cursor_range = 10
 
     # should be less than gravity, otherwise player will fly up
     glide_scalar_acceleration = 10
