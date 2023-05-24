@@ -12,10 +12,10 @@ from blocks import (
     draw_cached_images,
     make_block,
 )
+from characters import BaseCharacter, Player
 from commons import Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
-from player import BasePlayer, Player
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
 from utils import Container2d
 
@@ -51,8 +51,8 @@ class BaseWorld(Storable, ABC):
         self,
         dt: float,
         visibility_rect: pygame.rect.Rect,
-        player: BasePlayer,
-        other_sprites: list[pygame.sprite.Sprite],
+        player: BaseCharacter,
+        other_characters: list[BaseCharacter],
     ):
         self.visibility_buffer.empty()
         self.collision_buffer.empty()
@@ -78,14 +78,12 @@ class BaseWorld(Storable, ABC):
             if s is None:
                 continue
             self.visibility_buffer.add(s)
-            if x in range(xp - m, xp + m) and y in range(yp - m, yp + m):
-                self.collision_buffer.add(s)
 
         self.update_time(dt)
-        player.update(dt)
+        player.update(dt, self.blocks)
 
-        for s in other_sprites:
-            s.update(dt)
+        for character in other_characters:
+            character.update(dt, self.blocks)
 
         # update collectibles
         player.pull_collectibles(self.collectibles)
@@ -131,7 +129,7 @@ class BaseWorld(Storable, ABC):
         except IndexError:
             return None
 
-    def destroy_block(self, player: BasePlayer, dt: float):
+    def destroy_block(self, player: BaseCharacter, dt: float):
         coords = player.get_cursor_coords()
         block = self.get_block(coords)
         if block is None:
@@ -150,7 +148,7 @@ class BaseWorld(Storable, ABC):
                     self.collectibles,
                 )
 
-    def place_block(self, player: BasePlayer, block: BaseBlock, _: float):
+    def place_block(self, player: BaseCharacter, block: BaseBlock, _: float):
         coords = player.get_cursor_coords()
         self.blocks.set_element(coords, block)
 

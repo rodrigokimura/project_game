@@ -5,10 +5,10 @@ import pygame
 
 from blocks import draw_cached_images
 from camera import Camera
+from characters import BaseCharacter, Enemy, Player
 from input.constants import Controller
 from interface import Menu, PlayerMode, PlayerStats, TimeDisplay
 from inventory import Inventory
-from player import BasePlayer, Enemy, Player
 from settings import (
     BLOCK_SIZE,
     GRAVITY,
@@ -43,7 +43,7 @@ class Level:
         self,
         controller: Controller,
         world: Optional[BaseWorld] = None,
-        player: Optional[BasePlayer] = None,
+        player: Optional[BaseCharacter] = None,
     ) -> None:
         draw_cached_images()
         self.status = Level.Status.RUNNING
@@ -63,7 +63,7 @@ class Level:
         self,
         controller: Controller,
         world: Optional[BaseWorld],
-        player: Optional[BasePlayer],
+        player: Optional[BaseCharacter],
     ):
         self.player = player or Player(
             GRAVITY,
@@ -81,10 +81,7 @@ class Level:
             self.all_sprites,
         )
         self.enemy.set_controller(Controller.AI)
-        # TODO: make enemy's collision buffer independent
-        self.enemy.collidable_sprites_buffer = self.world.collision_buffer
 
-        self.player.collidable_sprites_buffer = self.world.collision_buffer
         self.camera = Camera(
             (SCREEN_WIDTH, SCREEN_HEIGHT),
             self.player,

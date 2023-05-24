@@ -2,9 +2,9 @@ from typing import Iterable
 
 import pygame
 
+from characters import BaseCharacter, Mode
 from interface import BaseInterfaceElement
 from log import log
-from player import BasePlayer, Mode
 from settings import BLOCK_SIZE, DEBUG
 from world import BaseWorld
 
@@ -13,7 +13,7 @@ class Camera:
     def __init__(
         self,
         size: tuple[int, int],
-        player: BasePlayer,
+        player: BaseCharacter,
         world: BaseWorld,
         interface_elements: Iterable[BaseInterfaceElement] | None = None,
         other_sprites: list[pygame.sprite.Sprite] | None = None,
@@ -78,7 +78,7 @@ class Camera:
 
         # draw all other sprites
         display_surface.blits(
-            tuple((spr.image, spr.rect.move(dx, dy)) for spr in self.other_sprites)
+            tuple((spr.image, spr.rect.move(dx, dy)) for spr in self.other_sprites)  # type: ignore
         )
 
         # render player cursor

@@ -3,6 +3,7 @@ from typing import Any
 
 import pygame
 
+from characters import BaseCharacter
 from input.constants import Controller
 from input.controllers import (
     BaseController,
@@ -10,7 +11,6 @@ from input.controllers import (
     KeyboardMenuController,
     MenuControllable,
 )
-from player import BasePlayer
 from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
 from world import BaseWorld
 
@@ -192,7 +192,7 @@ class BaseInterfaceElement(ABC):
 
 
 class PlayerStats(BaseInterfaceElement):
-    def __init__(self, player: BasePlayer) -> None:
+    def __init__(self, player: BaseCharacter) -> None:
         super().__init__()
         self.player = player
         self.line_positions = (10, 10)
@@ -211,7 +211,7 @@ class PlayerStats(BaseInterfaceElement):
 
 
 class PlayerMode(BaseInterfaceElement):
-    def __init__(self, player: BasePlayer) -> None:
+    def __init__(self, player: BaseCharacter) -> None:
         super().__init__()
         self.player = player
         self.font = pygame.font.Font(CONSOLE_FONT, 30)

@@ -1,10 +1,10 @@
 import pygame
 
 import settings
+from characters import Player
 from input.constants import Controller
 from interface import ControllerDetection, Menu
 from level import Level
-from player import Player
 
 
 class Game:

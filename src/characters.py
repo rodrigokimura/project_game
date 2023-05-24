@@ -1,6 +1,7 @@
 import enum
 import math
 from abc import ABC, abstractmethod
+from itertools import product
 from typing import Any, Optional
 
 import pygame
@@ -20,7 +21,7 @@ from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
 from sprites import GravitySprite
-from utils import CyclingIntEnum
+from utils import Container2d, CyclingIntEnum
 
 
 def custom_collision_detection(sprite_left: Any, sprite_right: Any):
@@ -40,7 +41,7 @@ class StandingBase(pygame.sprite.Sprite):
         self.mask = pygame.mask.Mask(self.rect.size, True)
 
 
-class BasePlayer(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
+class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
     IMMUNITY_OVER = pygame.event.custom_type()
     DEAD = pygame.event.custom_type()
     PAUSE = pygame.event.custom_type()
@@ -196,7 +197,24 @@ class BasePlayer(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
             int(self.position.y + self.size.y / 2),
         )
 
-    def update(self, dt: float):
+    def update_collision_buffer(self, blocks: Container2d[BaseBlock]):
+        margin = 3
+        ref_x, ref_y = self.rect.center
+        ref_x, ref_y = ref_x // BLOCK_SIZE, ref_y // BLOCK_SIZE
+        self.collidable_sprites_buffer.empty()
+        for x, y in product(
+            range(ref_x - margin, ref_x + margin), range(ref_y - margin, ref_y + margin)
+        ):
+            try:
+                block = blocks.get_element((x, y))
+            except IndexError:
+                continue
+            if block is None:
+                continue
+            self.collidable_sprites_buffer.add(block)
+
+    def update(self, dt: float, blocks: Container2d[BaseBlock]):
+        self.update_collision_buffer(blocks)
         self.process_control_requests(dt)
         self.fall(dt)
         self.handle_collision()
@@ -210,7 +228,7 @@ class BasePlayer(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         ...
 
 
-class Player(BasePlayer):
+class Player(BaseCharacter):
     controller: PlayerController | None
 
     def __init__(
@@ -313,8 +331,8 @@ class Player(BasePlayer):
         )
         self.mask = pygame.mask.from_surface(shell)
 
-    def update(self, dt: float) -> None:
-        super().update(dt)
+    def update(self, dt: float, blocks: Container2d[BaseBlock]) -> None:
+        super().update(dt, blocks)
         self.check_immunity()
         self.update_position(dt)
         self.update_angle(dt)

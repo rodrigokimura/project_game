@@ -4,11 +4,11 @@ import pygame
 import pytest
 
 from camera import Camera
-from player import BasePlayer
+from characters import BaseCharacter
 from world import World
 
 
-class MockedPlayer(BasePlayer):
+class MockedPlayer(BaseCharacter):
     def __init__(self) -> None:
         self.rect = pygame.rect.Rect(0, 0, 10, 10)
 
@@ -44,7 +44,7 @@ class TestCamera:
             yield m
 
     def test_camera_on_center(
-        self, mocked_setup: MagicMock, player: BasePlayer, world: World
+        self, mocked_setup: MagicMock, player: BaseCharacter, world: World
     ):
         player.rect.center = (50, 50)
         camera = Camera((20, 20), player, world)
@@ -55,7 +55,7 @@ class TestCamera:
         assert rect.center == (50, 50)
 
     def test_camera_on_topleft_corner(
-        self, mocked_setup: MagicMock, player: BasePlayer, world: World
+        self, mocked_setup: MagicMock, player: BaseCharacter, world: World
     ):
         player.rect.center = (5, 5)
         camera = Camera((20, 20), player, world)
@@ -66,7 +66,7 @@ class TestCamera:
         assert rect.topleft == (0, 0)
 
     def test_camera_on_topright_corner(
-        self, mocked_setup: MagicMock, player: BasePlayer, world: World
+        self, mocked_setup: MagicMock, player: BaseCharacter, world: World
     ):
         player.rect.center = (90, 5)
         camera = Camera((20, 20), player, world)
@@ -78,7 +78,7 @@ class TestCamera:
         assert rect.right == 100
 
     def test_camera_on_bottomleft_corner(
-        self, mocked_setup: MagicMock, player: BasePlayer, world: World
+        self, mocked_setup: MagicMock, player: BaseCharacter, world: World
     ):
         player.rect.center = (5, 90)
         camera = Camera((20, 20), player, world)
@@ -90,7 +90,7 @@ class TestCamera:
         assert rect.left == 0
 
     def test_camera_on_bottomright_corner(
-        self, mocked_setup: MagicMock, player: BasePlayer, world: World
+        self, mocked_setup: MagicMock, player: BaseCharacter, world: World
     ):
         player.rect.center = (90, 90)
         camera = Camera((20, 20), player, world)
