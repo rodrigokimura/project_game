@@ -55,7 +55,6 @@ class BaseWorld(Storable, ABC):
         other_characters: list[BaseCharacter],
     ):
         self.visibility_buffer.empty()
-        self.collision_buffer.empty()
         m = 3
 
         x1, y1 = visibility_rect.topleft
@@ -80,10 +79,10 @@ class BaseWorld(Storable, ABC):
             self.visibility_buffer.add(s)
 
         self.update_time(dt)
-        player.update(dt, self.blocks)
+        player.update(dt, self.blocks, other_characters)
 
         for character in other_characters:
-            character.update(dt, self.blocks)
+            character.update(dt, self.blocks, [player])
 
         # update collectibles
         player.pull_collectibles(self.collectibles)

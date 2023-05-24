@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Callable
 from uuid import UUID, uuid4
 
 
@@ -27,3 +28,22 @@ class Loadable(ABC):
     @abstractmethod
     def unload(self):
         ...
+
+
+class Timer:
+    def __init__(self, timeout: float, callback: Callable | None = None) -> None:
+        self.time = 0
+        self.timeout = timeout
+        self.is_over = False
+        self.callback = callback
+
+    def inc(self, dt: float):
+        self.time += dt
+        if self.time >= self.timeout:
+            self.is_over = True
+            if self.callback:
+                self.callback()
+
+    def reset(self):
+        self.time = 0
+        self.is_over = False

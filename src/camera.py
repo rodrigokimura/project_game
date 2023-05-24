@@ -16,13 +16,13 @@ class Camera:
         player: BaseCharacter,
         world: BaseWorld,
         interface_elements: Iterable[BaseInterfaceElement] | None = None,
-        other_sprites: list[pygame.sprite.Sprite] | None = None,
+        characters: list[BaseCharacter] | None = None,
     ) -> None:
         self.width, self.height = size
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
-        self.other_sprites = other_sprites or []
+        self.characters = characters or []
         self._setup()
 
     def _setup(self):
@@ -76,10 +76,19 @@ class Camera:
         )
         display_surface.blit(self.player.image, self.player.rect.move(dx, dy))
 
-        # draw all other sprites
-        display_surface.blits(
-            tuple((spr.image, spr.rect.move(dx, dy)) for spr in self.other_sprites)  # type: ignore
-        )
+        # draw all other characters
+        w, h = 50, 5
+        for character in self.characters:
+            if character.image is None:
+                continue
+            character_rect = character.rect.move(dx, dy)
+            display_surface.blit(character.image, character_rect)
+            hp_bar = character_rect.move(-(w - character.size.x) / 2, -10)
+            hp_bar.size = w, h
+            hp_bar_border = hp_bar.copy()
+            hp_bar.width = int(hp_bar.width * character.hp_percentage)
+            pygame.draw.rect(display_surface, "red", hp_bar)
+            pygame.draw.rect(display_surface, "white", hp_bar_border, 1)
 
         # render player cursor
         cursor_position = self.player.rect.move(

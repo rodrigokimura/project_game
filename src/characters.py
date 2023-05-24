@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 import math
 from abc import ABC, abstractmethod
@@ -6,8 +8,8 @@ from typing import Any, Optional
 
 import pygame
 
-from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
-from commons import Loadable, Storable
+from blocks import BaseBlock, BaseCollectible, BaseHazard, HasDamage, make_block
+from commons import Loadable, Storable, Timer
 from input.constants import Controller
 from input.controllers import (
     AiPlayerController,
@@ -42,14 +44,13 @@ class StandingBase(pygame.sprite.Sprite):
 
 
 class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
-    IMMUNITY_OVER = pygame.event.custom_type()
     DEAD = pygame.event.custom_type()
     PAUSE = pygame.event.custom_type()
     OPEN_INVENTORY = pygame.event.custom_type()
     DESTROY_BLOCK = pygame.event.custom_type()
     PLACE_BLOCK = pygame.event.custom_type()
 
-    EVENTS = [IMMUNITY_OVER, DEAD, PAUSE, DESTROY_BLOCK, PLACE_BLOCK, OPEN_INVENTORY]
+    EVENTS = [DEAD, PAUSE, DESTROY_BLOCK, PLACE_BLOCK, OPEN_INVENTORY]
 
     collidable_sprites_buffer: pygame.sprite.Group
 
@@ -199,7 +200,9 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
             int(self.position.y + self.size.y / 2),
         )
 
-    def update_collision_buffer(self, blocks: Container2d[BaseBlock]):
+    def update_collision_buffer(
+        self, blocks: Container2d[BaseBlock], enemies: list[Enemy] | None = None
+    ):
         margin = 3
         ref_x, ref_y = self.rect.center
         ref_x, ref_y = ref_x // BLOCK_SIZE, ref_y // BLOCK_SIZE
@@ -215,18 +218,26 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
                 continue
             self.collidable_sprites_buffer.add(block)
 
-    def update(self, dt: float, blocks: Container2d[BaseBlock]):
-        self.update_collision_buffer(blocks)
+        if enemies:
+            self.collidable_sprites_buffer.add(*enemies)
+
+    def update(
+        self,
+        dt: float,
+        blocks: Container2d[BaseBlock],
+        enemies: list[Enemy] | None = None,
+    ):
+        self.update_collision_buffer(blocks, enemies)
         self.process_control_requests(dt)
         self.fall(dt)
-        self.handle_collision()
+        self.handle_collision(dt)
 
     @abstractmethod
     def set_controller(self, controller_id: Controller):
         ...
 
     @abstractmethod
-    def handle_collision(self):
+    def handle_collision(self, dt: float):
         ...
 
 
@@ -264,6 +275,7 @@ class Player(BaseCharacter):
 
         self.max_immunity_time = 0.5
         self._is_immune = False
+        self.immunity_timer = Timer(self.max_immunity_time, self.reset_immunity)
 
     def setup(self):
         # load unpickleble attributes
@@ -333,25 +345,23 @@ class Player(BaseCharacter):
         )
         self.mask = pygame.mask.from_surface(shell)
 
-    def update(self, dt: float, blocks: Container2d[BaseBlock]) -> None:
-        super().update(dt, blocks)
-        self.check_immunity()
+    def update(
+        self,
+        dt: float,
+        blocks: Container2d[BaseBlock],
+        enemies: list[Enemy] | None = None,
+    ) -> None:
+        super().update(dt, blocks, enemies)
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
-
-    def check_immunity(self):
-        immunity_events = pygame.event.get(self.IMMUNITY_OVER, pump=False)
-        if immunity_events:
-            self._is_immune = False
-            pygame.time.set_timer(self.IMMUNITY_OVER, 0)
 
     def reset_jump(self):
         if self.controller is None:
             raise Loadable.UnloadedObject
         self.controller.reset_jump()
 
-    def handle_collision(self):
+    def handle_collision(self, dt: float):
         collided_sprites = pygame.sprite.spritecollide(
             self,
             self.collidable_sprites_buffer,
@@ -362,11 +372,9 @@ class Player(BaseCharacter):
         if not collided_sprites:
             return
 
-        first_hazard = next(
-            iter(s for s in collided_sprites if isinstance(s, BaseHazard)), None
-        )
-        if first_hazard:
-            self.take_tamage(first_hazard)
+        for s in collided_sprites:
+            if isinstance(s, (BaseHazard, Enemy)):
+                self.take_tamage(dt, s)
 
         first_collided_sprite: BaseBlock = collided_sprites[0]
         bounding_rect = first_collided_sprite.rect
@@ -422,7 +430,7 @@ class Player(BaseCharacter):
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
 
-    def should_fall(self):
+    def should_fall(self, dt: float):
         if self.bottom_sprite is None:
             raise Loadable.UnloadedObject
 
@@ -435,26 +443,27 @@ class Player(BaseCharacter):
         if not ground:
             return True
         ground = ground[0]
-        if isinstance(ground, BaseHazard):
-            self.take_tamage(ground)
+        if isinstance(ground, (BaseHazard, Enemy)):
+            self.take_tamage(dt, ground)
 
         ground_rect: pygame.rect.Rect = ground.rect
         self.position.y = ground_rect.top - self.size.y // 2
         self.reset_jump()
         return False
 
-    def take_tamage(self, hazard: BaseHazard):
+    def take_tamage(self, dt: float, hazard: HasDamage):
         # TODO: knockback
+        self.immunity_timer.inc(dt)
         if not self._is_immune:
             self._is_immune = True
-            pygame.time.set_timer(
-                self.IMMUNITY_OVER, int(self.max_immunity_time * 1000)
-            )
-
             self.health_points -= hazard.damage
             self.health_points = max(self.health_points, 0)
             if self.health_points == 0:
                 pygame.event.post(pygame.event.Event(self.DEAD))
+
+    def reset_immunity(self):
+        self._is_immune = False
+        self.immunity_timer.reset()
 
     def rotate(self):
         if self.original_image is None:
@@ -469,8 +478,30 @@ class Player(BaseCharacter):
 
 
 class Enemy(Player):
+    damage = 20
+
     def set_controller(self, controller_id: Controller):
         self.inventory.set_controller(controller_id)
         self.controller = AiPlayerController(
             self, self.max_jump_count, self.max_jump_time
         )
+
+    def _draw(self):
+        size = self.size.x
+        sq_size = size // 2
+        self.image = pygame.surface.Surface((size, size)).convert_alpha()
+        self.image.fill(pygame.Color(0, 0, 0, 0))
+        pygame.draw.circle(
+            self.image, "purple", self.image.get_rect().center, size // 2
+        )
+        rect = pygame.Rect(
+            (size - sq_size) // 2, (size - sq_size) // 2, sq_size, sq_size
+        )
+        pygame.draw.rect(self.image, "red", rect, 0)
+        self.original_image = self.image.copy()
+
+        # draw cursor image
+        self.cursor_image = pygame.surface.Surface(
+            (BLOCK_SIZE, BLOCK_SIZE)
+        ).convert_alpha()
+        self.cursor_image.fill(pygame.Color(0, 0, 0, 0))

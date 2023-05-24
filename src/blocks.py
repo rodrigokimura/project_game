@@ -21,6 +21,12 @@ class _HasRect(Protocol):
     rect: pygame.rect.Rect
 
 
+class HasDamage(Protocol):
+    @property
+    def damage(self) -> int:
+        ...
+
+
 class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
     @property
     def collectible_image(self):
