@@ -172,10 +172,17 @@ class AiPlayerController(PlayerController):
         max_jump_count: int,
         max_jump_time: float,
     ) -> None:
-        ...
+        self.controllable = controllable
+        self.timer = 0
 
     def control(self, dt: float):
-        ...
+        self.timer += dt
+        if self.timer < 0.8:
+            self.controllable.move(dt, 0.5)
+        elif self.timer < 1.6:
+            self.controllable.move(dt, -0.5)
+        else:
+            self.timer = 0
 
     def reset_jump(self):
         ...

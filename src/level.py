@@ -77,7 +77,7 @@ class Level:
         self.enemy = Enemy(
             GRAVITY,
             TERMINAL_VELOCITY,
-            (WORLD_SIZE[0] * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
+            ((WORLD_SIZE[0] - 100) * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
             self.all_sprites,
         )
         self.enemy.set_controller(Controller.AI)
