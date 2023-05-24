@@ -96,6 +96,8 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
 
     def move_cursor(self, _: float, x: float, y: float):
         right_stick = pygame.math.Vector2(x, y)
+        if right_stick:
+            right_stick.clamp_magnitude_ip(1)
         self.cursor_position = right_stick * self.cursor_range * BLOCK_SIZE
 
     def next_mode(self, _: float):
