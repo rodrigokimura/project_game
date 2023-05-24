@@ -32,6 +32,8 @@ class BaseControllable(ABC):
 
 
 class PlayerControllable(BaseControllable):
+    cursor_range: int
+
     @abstractmethod
     def move(self, dt: float, amount: float):
         ...
@@ -239,6 +241,7 @@ class KeyboardPlayerController(PlayerController):
     ) -> None:
         self._jump = CounterTimer(controllable.jump, max_jump_count, max_jump_time)
 
+        self.cursor_range = controllable.cursor_range
         self.move_cursor = ContinuousAction(controllable.move_cursor)
 
         self.direction_key_actions: list[tuple[tuple[Key, Key], BaseAction]] = [
@@ -290,7 +293,9 @@ class KeyboardPlayerController(PlayerController):
         mouse_position = pygame.math.Vector2(pygame.mouse.get_pos())
         middle_screen = pygame.math.Vector2(pygame.display.get_surface().get_size()) / 2
         rel = mouse_position - middle_screen
-        rel = rel.clamp_magnitude(BLOCK_SIZE * 5) / (BLOCK_SIZE * 5)
+        rel = rel.clamp_magnitude(BLOCK_SIZE * self.cursor_range) / (
+            BLOCK_SIZE * self.cursor_range
+        )
         axes_values = [round(rel.x, 2), round(rel.y, 2)]
         self.move_cursor.do(True, dt, axes_values)
 
