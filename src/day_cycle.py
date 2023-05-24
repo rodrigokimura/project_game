@@ -16,11 +16,10 @@ def convert_to_time(relative_time: float) -> time:
 def get_day_part(t: time) -> DayPart:
     if t < time(5):
         return DayPart.NIGHT
-    elif t < time(12):
+    if t < time(12):
         return DayPart.MORNING
-    elif t < time(17):
+    if t < time(17):
         return DayPart.AFTERNOON
-    elif t < time(21):
+    if t < time(21):
         return DayPart.EVENING
-    else:
-        return DayPart.NIGHT
+    return DayPart.NIGHT
