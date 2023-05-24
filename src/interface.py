@@ -203,7 +203,6 @@ class PlayerStats(BaseInterfaceElement):
         self.hp_bar_fill = self.hp_bar.copy()
 
     def draw(self):
-        super().draw()
         display_surface = pygame.display.get_surface()
         self.hp_bar_fill.width = int(self.player.hp_percentage * self.width)
         pygame.draw.rect(display_surface, self.fill_color, self.hp_bar_fill)
@@ -217,7 +216,6 @@ class PlayerMode(BaseInterfaceElement):
         self.font = pygame.font.Font(CONSOLE_FONT, 30)
 
     def draw(self):
-        super().draw()
         display_surface = pygame.display.get_surface()
         s = self.font.render(self.player.mode.name, False, "white")
         display_surface.blit(s, (10, 70))
@@ -230,7 +228,6 @@ class TimeDisplay(BaseInterfaceElement):
         self.font = pygame.font.Font(DEFAULT_FONT, 20)
 
     def draw(self):
-        super().draw()
         display_surface = pygame.display.get_surface()
         s = self.font.render(self.world.time.strftime("%H:%M"), False, "white")
         display_surface.blit(s, (10, 25))
