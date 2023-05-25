@@ -48,7 +48,6 @@ class Level:
         draw_cached_images()
         self.status = Level.Status.RUNNING
         self.display_surface = pygame.display.get_surface()
-        self.all_sprites = pygame.sprite.Group()
         self.pause_menu = Menu(
             {
                 "resume": self.RESUME,
@@ -69,7 +68,6 @@ class Level:
             GRAVITY,
             TERMINAL_VELOCITY,
             (WORLD_SIZE[0] * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
-            self.all_sprites,
         )
         self.player.set_controller(controller)
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
@@ -78,7 +76,6 @@ class Level:
             GRAVITY,
             TERMINAL_VELOCITY,
             ((WORLD_SIZE[0] - 100) * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
-            self.all_sprites,
         )
         self.enemy.set_controller(Controller.AI)
 

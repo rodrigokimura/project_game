@@ -28,5 +28,5 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
                 )
 
     @abstractmethod
-    def should_fall(self, dt: float) -> bool:
+    def should_fall(self) -> bool:
         ...

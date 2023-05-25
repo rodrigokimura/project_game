@@ -21,6 +21,7 @@ class Button(enum.IntEnum):
     START = 9
 
 
+# pylint: disable=no-member
 class Key(enum.IntEnum):
     ESC = pygame.K_ESCAPE
     Q = pygame.K_q

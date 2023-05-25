@@ -119,11 +119,11 @@ class JoystickInventoryController(BaseController):
     def control(self, dt: float):
         for hat, action in self.hat_actions:
             x_axis, y_axis = self.joystick.get_hat(hat)
-            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
+            action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for button, action in self.button_actions:
             value = self.joystick.get_button(button)
-            action.do(value, dt)
+            action.execute(value, dt)
 
 
 class KeyboardInventoryController(BaseController):
@@ -160,19 +160,17 @@ class KeyboardInventoryController(BaseController):
             else:
                 x_axis = 0
 
-            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
+            action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for key, action in self.key_actions:
             value = pygame.key.get_pressed()[key]
-            action.do(value, dt)
+            action.execute(value, dt)
 
 
 class AiPlayerController(PlayerController):
     def __init__(
         self,
         controllable: PlayerControllable,
-        max_jump_count: int,
-        max_jump_time: float,
     ) -> None:
         self.controllable = controllable
         self.timer = 0
@@ -222,11 +220,11 @@ class JoystickPlayerController(PlayerController):
     def control(self, dt: float):
         for axes, action in self.axis_actions:
             axes_values = [round(self.joystick.get_axis(a), 2) for a in axes]
-            action.do(True, dt, axes_values)
+            action.execute(True, dt, axes_values)
 
         for button, action in self.button_actions:
             value = self.joystick.get_button(button)
-            action.do(value, dt)
+            action.execute(value, dt)
 
     def reset_jump(self):
         self._jump.reset()
@@ -278,15 +276,15 @@ class KeyboardPlayerController(PlayerController):
                 x_axis = 1
             else:
                 x_axis = 0
-            action.do(True, dt, [x_axis])
+            action.execute(True, dt, [x_axis])
 
         for key, action in self.key_actions:
             value = pygame.key.get_pressed()[key]
-            action.do(value, dt)
+            action.execute(value, dt)
 
         for key, action in self.mouse_button_actions:
             value = pygame.mouse.get_pressed()[key]
-            action.do(value, dt)
+            action.execute(value, dt)
 
     def _perform_cursor_movement(self, dt: float):
         # assuming player position on center
@@ -297,7 +295,7 @@ class KeyboardPlayerController(PlayerController):
             BLOCK_SIZE * self.cursor_range
         )
         axes_values = [round(rel.x, 2), round(rel.y, 2)]
-        self.move_cursor.do(True, dt, axes_values)
+        self.move_cursor.execute(True, dt, axes_values)
 
     def reset_jump(self):
         self._jump.reset()
@@ -316,11 +314,11 @@ class JoystickMenuController(BaseController):
     def control(self, dt: float):
         for hat, action in self.hat_actions:
             x_axis, y_axis = self.joystick.get_hat(hat)
-            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
+            action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for button, action in self.button_actions:
             value = self.joystick.get_button(button)
-            action.do(value, dt)
+            action.execute(value, dt)
 
 
 class KeyboardMenuController(BaseController):
@@ -356,8 +354,8 @@ class KeyboardMenuController(BaseController):
                 x_axis = 1
             else:
                 x_axis = 0
-            action.do(bool(x_axis or y_axis), dt, [x_axis, y_axis])
+            action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for key, action in self.key_actions:
             value = pygame.key.get_pressed()[key]
-            action.do(value, dt)
+            action.execute(value, dt)

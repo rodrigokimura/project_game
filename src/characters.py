@@ -90,6 +90,16 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
     # should be less than gravity, otherwise player will fly up
     glide_scalar_acceleration = 10
 
+    def __init__(
+        self,
+        gravity: int,
+        terminal_velocity: int,
+        position: tuple[int, int] | None,
+    ) -> None:
+        super().__init__(gravity, terminal_velocity)
+        position = position or pygame.display.get_surface().get_rect().center
+        self.position = pygame.math.Vector2(*position)
+
     @property
     def hp_percentage(self):
         return self.health_points / self.max_health_points
@@ -160,7 +170,7 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
             cursor_position.y // BLOCK_SIZE + 1,
         )
 
-    def _destroy_block(self, block: BaseBlock, dt: float):
+    def perform_block_destruction(self, block: BaseBlock, dt: float):
         block.integrity -= self.destruction_power * dt
         return block.integrity <= 0
 
@@ -229,11 +239,13 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         self,
         dt: float,
         blocks: Container2d[BaseBlock],
-        other_collidable_characters: list[BaseCharacter] | None = None,
+        other_collidable_characters: list[BaseCharacter],
+        *args,
+        **kwargs,
     ):
+        super().fall(dt, *args, **kwargs)
         self.update_collision_buffer(blocks, other_collidable_characters)
         self.process_control_requests(dt)
-        self.fall(dt)
         self.handle_collision()
 
     @abstractmethod
@@ -253,29 +265,21 @@ class Player(BaseCharacter):
         gravity: int,
         terminal_velocity: int,
         position: Optional[tuple[int, int]],
-        *groups: pygame.sprite.Group,
     ) -> None:
-        super().__init__(gravity, terminal_velocity, *groups)
+        super().__init__(gravity, terminal_velocity, position)
         self.inventory = Inventory()
         self.max_health_points = 100
         self.health_points = self.max_health_points
 
-        position = position or pygame.display.get_surface().get_rect().center
-
         self.size = pygame.math.Vector2(2 * BLOCK_SIZE)
-        self.position = pygame.math.Vector2(*position)
-
         self.angle = 0
+        self.rect = pygame.rect.Rect(self.position.xy, self.size.xy)
 
         # for jumping mechanics
         self.max_jump_time = 0.2
         self.max_jump_count = 2
 
         self.setup()
-
-        if self.image is None:
-            raise Loadable.UnloadedObject
-        self.rect = self.image.get_rect(center=self.position)
 
         self.max_immunity_time = 0.5
         self._is_immune = False
@@ -353,9 +357,11 @@ class Player(BaseCharacter):
         self,
         dt: float,
         blocks: Container2d[BaseBlock],
-        other_collidable_characters: list[BaseCharacter] | None = None,
+        other_collidable_characters: list[BaseCharacter],
+        *args,
+        **kwargs,
     ) -> None:
-        super().update(dt, blocks, other_collidable_characters)
+        super().update(dt, blocks, other_collidable_characters, *args, **kwargs)
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
@@ -377,9 +383,9 @@ class Player(BaseCharacter):
         if not collided_sprites:
             return
 
-        for s in collided_sprites:
-            if isinstance(s, (BaseHazard, Enemy)):
-                self.take_tamage(s)
+        for sprite in collided_sprites:
+            if isinstance(sprite, (BaseHazard, Enemy)):
+                self.take_tamage(sprite)
 
         first_collided_sprite: BaseBlock = collided_sprites[0]
         bounding_rect = first_collided_sprite.rect
@@ -472,7 +478,7 @@ class Player(BaseCharacter):
 
     def rotate(self):
         if self.original_image is None:
-            return
+            return self.original_image
         img = pygame.Surface(self.original_image.get_size())
         img = pygame.transform.rotate(self.original_image, self.angle)
         new_x, new_y = img.get_size()
@@ -487,9 +493,7 @@ class Enemy(Player):
 
     def set_controller(self, controller_id: Controller):
         self.inventory.set_controller(controller_id)
-        self.controller = AiPlayerController(
-            self, self.max_jump_count, self.max_jump_time
-        )
+        self.controller = AiPlayerController(self)
 
     def _draw(self):
         size = self.size.x

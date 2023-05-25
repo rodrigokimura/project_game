@@ -12,7 +12,7 @@ class BaseAction(ABC):
     def check(self, value: bool, dt: float) -> bool:
         ...
 
-    def do(self, value: bool, dt: float, command_args: list[Any] | None = None):
+    def execute(self, value: bool, dt: float, command_args: list[Any] | None = None):
         command_args = command_args or []
         if self.check(value, dt):
             self.command(dt, *command_args)
@@ -38,7 +38,7 @@ class OncePerPress(BaseAction):
         if value and self.state:
             self.state = False
             return True
-        elif not value:
+        if not value:
             self.state = True
         return False
 

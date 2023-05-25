@@ -45,7 +45,6 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         coords: tuple[int, int],
         gravity: int | None = None,
         terminal_velocity: int | None = None,
-        *groups: pygame.sprite.Group,
     ) -> None:
         self.coords = coords
         self.rect = self.collectible_image.get_rect().copy()
@@ -59,7 +58,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
             (self.coords[1] + 1) * BLOCK_SIZE - COLLECTIBLE_SIZE // 2 - padding,
         )
         self.pulling_velocity = pygame.math.Vector2()
-        super().__init__(gravity or 0, terminal_velocity or 0, *groups)
+        super().__init__(gravity or 0, terminal_velocity or 0)
 
     def should_fall(self, blocks: Container2d[_HasRect]):
         coords = (

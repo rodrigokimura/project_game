@@ -55,28 +55,27 @@ class BaseWorld(Storable, ABC):
         other_characters: list[BaseCharacter],
     ):
         self.visibility_buffer.empty()
-        m = 3
+        margin = 3
 
-        x1, y1 = visibility_rect.topleft
-        x2, y2 = visibility_rect.bottomright
-        x1, y1, x2, y2 = (
-            x1 // BLOCK_SIZE,
-            y1 // BLOCK_SIZE,
-            x2 // BLOCK_SIZE,
-            y2 // BLOCK_SIZE,
+        x_1, y_1 = visibility_rect.topleft
+        x_2, y_2 = visibility_rect.bottomright
+        x_1, y_1, x_2, y_2 = (
+            x_1 // BLOCK_SIZE,
+            y_1 // BLOCK_SIZE,
+            x_2 // BLOCK_SIZE,
+            y_2 // BLOCK_SIZE,
         )
 
-        xp, yp = player.rect.center
-        xp, yp = xp // BLOCK_SIZE, yp // BLOCK_SIZE
-
-        for x, y in product(range(x1 - m, x2 + m), range(y1 - m, y2 + m)):
+        for x, y in product(
+            range(x_1 - margin, x_2 + margin), range(y_1 - margin, y_2 + margin)
+        ):
             try:
-                s = self.blocks.get_element((x, y))
+                block = self.blocks.get_element((x, y))
             except IndexError:
                 continue
-            if s is None:
+            if block is None:
                 continue
-            self.visibility_buffer.add(s)
+            self.visibility_buffer.add(block)
 
         self.update_time(dt)
         player.update(dt, self.blocks, other_characters)
@@ -95,8 +94,8 @@ class BaseWorld(Storable, ABC):
 
         # perform block placement
         events = pygame.event.get(Player.PLACE_BLOCK)
-        for e in events:
-            self.place_block(player, e.block, dt)
+        for event in events:
+            self.place_block(player, event.block, dt)
 
     def update_time(self, dt: float):
         self.age += dt
@@ -133,7 +132,7 @@ class BaseWorld(Storable, ABC):
         block = self.get_block(coords)
         if block is None:
             return
-        destroyed = player._destroy_block(block, dt)
+        destroyed = player.perform_block_destruction(block, dt)
         if not destroyed:
             return
         self.blocks.set_element(coords, None)
