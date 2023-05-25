@@ -9,7 +9,7 @@ from typing import Any, Optional
 import pygame
 
 from blocks import BaseBlock, BaseCollectible, BaseHazard, HasDamage, make_block
-from commons import Loadable, Storable, Timer
+from commons import Loadable, Storable
 from input.constants import Controller
 from input.controllers import (
     AiPlayerController,
@@ -23,7 +23,9 @@ from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
 from sprites import GravitySprite
-from utils import Container2d, CyclingIntEnum
+from utils.container import Container2d
+from utils.enum import CyclingIntEnum
+from utils.timer import Timer
 
 
 def custom_collision_detection(sprite_left: Any, sprite_right: Any):
@@ -201,7 +203,9 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         )
 
     def update_collision_buffer(
-        self, blocks: Container2d[BaseBlock], enemies: list[Enemy] | None = None
+        self,
+        blocks: Container2d[BaseBlock],
+        other_collidable_characters: list[BaseCharacter] | None = None,
     ):
         margin = 3
         ref_x, ref_y = self.rect.center
@@ -218,16 +222,16 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
                 continue
             self.collidable_sprites_buffer.add(block)
 
-        if enemies:
-            self.collidable_sprites_buffer.add(*enemies)
+        if other_collidable_characters:
+            self.collidable_sprites_buffer.add(*other_collidable_characters)
 
     def update(
         self,
         dt: float,
         blocks: Container2d[BaseBlock],
-        enemies: list[Enemy] | None = None,
+        other_collidable_characters: list[BaseCharacter] | None = None,
     ):
-        self.update_collision_buffer(blocks, enemies)
+        self.update_collision_buffer(blocks, other_collidable_characters)
         self.process_control_requests(dt)
         self.fall(dt)
         self.handle_collision()
@@ -349,9 +353,9 @@ class Player(BaseCharacter):
         self,
         dt: float,
         blocks: Container2d[BaseBlock],
-        enemies: list[Enemy] | None = None,
+        other_collidable_characters: list[BaseCharacter] | None = None,
     ) -> None:
-        super().update(dt, blocks, enemies)
+        super().update(dt, blocks, other_collidable_characters)
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()

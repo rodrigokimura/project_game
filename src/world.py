@@ -17,7 +17,7 @@ from commons import Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
-from utils import Container2d
+from utils.container import Container2d
 
 
 class BaseWorld(Storable, ABC):
