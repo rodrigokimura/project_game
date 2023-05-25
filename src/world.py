@@ -139,12 +139,12 @@ class BaseWorld(Storable, ABC):
         for collectible_class, count in block.collectibles.items():
             collectible_class: type[BaseCollectible]
             for _ in range(count):
-                collectible_class(
+                collectible = collectible_class(
                     coords,
-                    int(self.gravity.y),
-                    self.terminal_velocity,
-                    self.collectibles,
+                    gravity=int(self.gravity.y),
+                    terminal_velocity=self.terminal_velocity,
                 )
+                self.collectibles.add(collectible)
 
     def place_block(self, player: BaseCharacter, block: BaseBlock, _: float):
         coords = player.get_cursor_coords()
