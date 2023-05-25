@@ -230,14 +230,14 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         self.update_collision_buffer(blocks, enemies)
         self.process_control_requests(dt)
         self.fall(dt)
-        self.handle_collision(dt)
+        self.handle_collision()
 
     @abstractmethod
     def set_controller(self, controller_id: Controller):
         ...
 
     @abstractmethod
-    def handle_collision(self, dt: float):
+    def handle_collision(self):
         ...
 
 
@@ -355,13 +355,14 @@ class Player(BaseCharacter):
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
+        self.immunity_timer.inc(dt)
 
     def reset_jump(self):
         if self.controller is None:
             raise Loadable.UnloadedObject
         self.controller.reset_jump()
 
-    def handle_collision(self, dt: float):
+    def handle_collision(self):
         collided_sprites = pygame.sprite.spritecollide(
             self,
             self.collidable_sprites_buffer,
@@ -374,7 +375,7 @@ class Player(BaseCharacter):
 
         for s in collided_sprites:
             if isinstance(s, (BaseHazard, Enemy)):
-                self.take_tamage(dt, s)
+                self.take_tamage(s)
 
         first_collided_sprite: BaseBlock = collided_sprites[0]
         bounding_rect = first_collided_sprite.rect
@@ -430,7 +431,7 @@ class Player(BaseCharacter):
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
 
-    def should_fall(self, dt: float):
+    def should_fall(self):
         if self.bottom_sprite is None:
             raise Loadable.UnloadedObject
 
@@ -444,16 +445,16 @@ class Player(BaseCharacter):
             return True
         ground = ground[0]
         if isinstance(ground, (BaseHazard, Enemy)):
-            self.take_tamage(dt, ground)
+            self.take_tamage(ground)
 
         ground_rect: pygame.rect.Rect = ground.rect
         self.position.y = ground_rect.top - self.size.y // 2
         self.reset_jump()
         return False
 
-    def take_tamage(self, dt: float, hazard: HasDamage):
+    def take_tamage(self, hazard: HasDamage):
         # TODO: knockback
-        self.immunity_timer.inc(dt)
+        self.immunity_timer.start()
         if not self._is_immune:
             self._is_immune = True
             self.health_points -= hazard.damage
