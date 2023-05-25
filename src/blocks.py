@@ -30,7 +30,6 @@ class HasDamage(Protocol):
 class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
     @property
     def collectible_image(self):
-        global collectible_images
         return collectible_images.get(
             self.__class__, pygame.surface.Surface((COLLECTIBLE_SIZE, COLLECTIBLE_SIZE))
         )
@@ -74,7 +73,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         return False
 
     def update(self, dt: int, blocks: Container2d[_HasRect]):
-        self.fall(dt, blocks)
+        super().fall(dt, blocks)
         self.update_position(dt)
 
     def update_position(self, dt: float):
@@ -115,12 +114,10 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
 
     @property
     def image(self):
-        global cached_images
         return cached_images[self.__class__]
 
     @property
     def mask(self):
-        global cached_masks
         return cached_masks[self.__class__]
 
 
@@ -190,7 +187,8 @@ class ChangingBlock(BaseBlock, metaclass=ABCMeta):
     def max_state(self) -> int:
         ...
 
-    def update(self):
+    def update(self, _: int, blocks: Container2d[_HasRect]):
+        print(blocks)
         if self.state <= self.max_state:
             self.counter += 1
             if self.counter >= self.interval and self.state < self.max_state:
@@ -271,51 +269,53 @@ collectible_images: dict[type[BaseCollectible], pygame.surface.Surface] = {
 }
 
 
-def get_tree_image(state: int, s: pygame.surface.Surface):
-    global tree_images
+def get_tree_image(state: int, surf: pygame.surface.Surface):
     if state == 0:
-        pygame.draw.rect(s, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 1)
+        pygame.draw.rect(surf, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 1)
     elif state == 1:
-        pygame.draw.rect(s, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2)
+        pygame.draw.rect(surf, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2)
         pygame.draw.rect(
-            s, "yellow", (BLOCK_SIZE // 4, BLOCK_SIZE, BLOCK_SIZE // 2, BLOCK_SIZE), 1
+            surf,
+            "yellow",
+            (BLOCK_SIZE // 4, BLOCK_SIZE, BLOCK_SIZE // 2, BLOCK_SIZE),
+            1,
         )
     elif state == 2:
-        pygame.draw.rect(s, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2)
+        pygame.draw.rect(surf, "green", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2)
         pygame.draw.rect(
-            s,
+            surf,
             "yellow",
             (BLOCK_SIZE // 4, BLOCK_SIZE, BLOCK_SIZE // 2, 2 * BLOCK_SIZE),
             1,
         )
     elif state == 3:
-        pygame.draw.rect(s, "green", (0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE), 2)
+        pygame.draw.rect(surf, "green", (0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE), 2)
         pygame.draw.rect(
-            s,
+            surf,
             "yellow",
             (BLOCK_SIZE, 3 * BLOCK_SIZE, BLOCK_SIZE, 2 * BLOCK_SIZE),
             1,
         )
     elif state == 4:
-        pygame.draw.rect(s, "green", (0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE), 2)
+        pygame.draw.rect(surf, "green", (0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE), 2)
         pygame.draw.rect(
-            s,
+            surf,
             "yellow",
             (BLOCK_SIZE, 3 * BLOCK_SIZE, BLOCK_SIZE, 3 * BLOCK_SIZE),
             1,
         )
     elif state == 5:
-        pygame.draw.rect(s, "green", (0, 0, 3 * BLOCK_SIZE, 4 * BLOCK_SIZE), 2)
+        pygame.draw.rect(surf, "green", (0, 0, 3 * BLOCK_SIZE, 4 * BLOCK_SIZE), 2)
         pygame.draw.rect(
-            s,
+            surf,
             "yellow",
             (BLOCK_SIZE, 4 * BLOCK_SIZE, BLOCK_SIZE, 3 * BLOCK_SIZE),
             1,
         )
     elif state == 6:
-        pygame.draw.rect(s, "green", (0, 0, 5 * BLOCK_SIZE, 5 * BLOCK_SIZE), 2)
+        pygame.draw.rect(surf, "green", (0, 0, 5 * BLOCK_SIZE, 5 * BLOCK_SIZE), 2)
         pygame.draw.rect(
-            s,
+            surf,
             "yellow",
             (2 * BLOCK_SIZE, 5 * BLOCK_SIZE, BLOCK_SIZE, 4 * BLOCK_SIZE),
             1,
@@ -323,8 +323,6 @@ def get_tree_image(state: int, s: pygame.surface.Surface):
 
 
 def load_collectible_images():
-    global collectible_images
-
     img = collectible_images[Rock]
     pygame.draw.rect(img, "blue", img.get_rect(), 1, 2)
 
@@ -336,15 +334,11 @@ def load_collectible_images():
 
 
 def load_tree_images():
-    for i, s in enumerate(tree_images):
-        get_tree_image(i, s)
+    for index, surf in enumerate(tree_images):
+        get_tree_image(index, surf)
 
 
 def draw_cached_images():
-    global cached_images
-    global cached_masks
-    global tree_images
-
     img = cached_images[Rock]
     pygame.draw.rect(img, "blue", img.get_rect(), 1)
     cached_masks[Rock] = pygame.mask.from_surface(img)

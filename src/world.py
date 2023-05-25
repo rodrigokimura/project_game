@@ -102,12 +102,12 @@ class BaseWorld(Storable, ABC):
         self.time_of_day += dt
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
-            self.update_changing_blocks()
+            self.update_changing_blocks(dt)
             if DEBUG:
                 log("Updating ChangingBlock instances")
 
-    def update_changing_blocks(self):
-        self.changing_blocks.update()
+    def update_changing_blocks(self, dt: float):
+        self.changing_blocks.update(dt, self.blocks)
 
     @property
     def relative_time(self):
