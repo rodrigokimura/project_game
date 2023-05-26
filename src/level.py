@@ -115,7 +115,7 @@ class Level:
 
     def save_game(self):
         WorldStorage().store(self.world)
-        # PlayerStorage().store(self.player)
+        PlayerStorage().store(self.player)
 
     def check_player_dead(self):
         if pygame.event.get(Player.DEAD):
