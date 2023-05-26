@@ -19,7 +19,7 @@ class BaseInventory(Loadable, InventoryControllable):
     CLOSE = pygame.event.custom_type()
 
     collectibles: dict[type[BaseCollectible], int]
-    controller: BaseController
+    controller: BaseController | None = None
 
     def add(self, collectible: type[BaseCollectible]):
         if collectible in self.collectibles:
@@ -164,8 +164,12 @@ class Inventory(BaseInventory, Loadable):
         self._static_image = None
         self.image = None
         self.font = None
+        self.controller = None
 
     def update(self, dt: float):
+        if self.controller is None:
+            raise self.UnloadedObject
+
         self._update_image()
         self.controller.control(dt)
 
@@ -213,9 +217,7 @@ class Inventory(BaseInventory, Loadable):
         self.slot_rect.topleft = self._get_slot_rel_coords((x, y))
         pygame.draw.rect(self.image, "grey", self.slot_rect, 2)
         i = y * self.grid[0] + x
-        try:
+        if i < len(collectibles):
             cls, _ = collectibles[i]
             txt = self.font.render(cls.__name__, False, "white")
             self.image.blit(txt, self._get_slot_rel_coords((x, y), (10, 10)))
-        except IndexError:
-            ...

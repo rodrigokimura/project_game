@@ -54,8 +54,6 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
 
     EVENTS = [DEAD, PAUSE, DESTROY_BLOCK, PLACE_BLOCK, OPEN_INVENTORY]
 
-    collidable_sprites_buffer: pygame.sprite.Group
-
     rect: pygame.rect.Rect
     size: pygame.math.Vector2
     position: pygame.math.Vector2
@@ -99,6 +97,7 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         super().__init__(gravity, terminal_velocity)
         position = position or pygame.display.get_surface().get_rect().center
         self.position = pygame.math.Vector2(*position)
+        self.collision_buffer = pygame.sprite.Group()
 
     @property
     def hp_percentage(self):
@@ -220,16 +219,16 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         margin = 3
         ref_x, ref_y = self.rect.center
         ref_x, ref_y = ref_x // BLOCK_SIZE, ref_y // BLOCK_SIZE
-        self.collidable_sprites_buffer.empty()
+        self.collision_buffer.empty()
         for x, y in product(
             range(ref_x - margin, ref_x + margin), range(ref_y - margin, ref_y + margin)
         ):
             block = blocks.get_element((x, y))
             if block is not None:
-                self.collidable_sprites_buffer.add(block)
+                self.collision_buffer.add(block)
 
         if other_collidable_characters:
-            self.collidable_sprites_buffer.add(*other_collidable_characters)
+            self.collision_buffer.add(*other_collidable_characters)
 
     def update(
         self,
@@ -309,6 +308,7 @@ class Player(BaseCharacter):
         self.image = None
         self.mask = None
         self.controller = None
+        self.collision_buffer.empty()
         self.inventory.unload()
 
     def _draw(self):
@@ -370,7 +370,7 @@ class Player(BaseCharacter):
     def handle_collision(self):
         collided_sprites = pygame.sprite.spritecollide(
             self,
-            self.collidable_sprites_buffer,
+            self.collision_buffer,
             False,
             collided=custom_collision_detection,
         )
@@ -442,7 +442,7 @@ class Player(BaseCharacter):
 
         ground = pygame.sprite.spritecollide(
             self.bottom_sprite,
-            self.collidable_sprites_buffer,
+            self.collision_buffer,
             False,
             collided=custom_collision_detection,
         )

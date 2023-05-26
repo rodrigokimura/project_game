@@ -71,6 +71,8 @@ class Level:
         )
         self.player.set_controller(controller)
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
+        if world:
+            self.world.populate()
 
         enemy = Enemy(
             GRAVITY,

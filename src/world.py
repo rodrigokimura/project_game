@@ -34,10 +34,9 @@ class BaseWorld(Storable, Loadable, ABC):
         self.gravity = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
-
-        self.setup()
         self.age = 0  # in seconds
         self.time_of_day = 0  # cycling counter
+        self.setup()
 
     @abstractmethod
     def populate(self):
@@ -50,7 +49,6 @@ class BaseWorld(Storable, Loadable, ABC):
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
         self.characters_buffer = pygame.sprite.Group()
-
         self.populate()
 
     def unload(self):
