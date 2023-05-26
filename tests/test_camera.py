@@ -49,10 +49,10 @@ class TestCamera:
         player.rect.center = (50, 50)
         camera = Camera((20, 20), player, world)
 
-        rect = camera.get_rect()
+        camera.update_rect()
 
         mocked_setup.assert_called()
-        assert rect.center == (50, 50)
+        assert camera.rect.center == (50, 50)
 
     def test_camera_on_topleft_corner(
         self, mocked_setup: MagicMock, player: BaseCharacter, world: World
@@ -60,10 +60,10 @@ class TestCamera:
         player.rect.center = (5, 5)
         camera = Camera((20, 20), player, world)
 
-        rect = camera.get_rect()
+        camera.update_rect()
 
         mocked_setup.assert_called()
-        assert rect.topleft == (0, 0)
+        assert camera.rect.topleft == (0, 0)
 
     def test_camera_on_topright_corner(
         self, mocked_setup: MagicMock, player: BaseCharacter, world: World
@@ -71,11 +71,11 @@ class TestCamera:
         player.rect.center = (90, 5)
         camera = Camera((20, 20), player, world)
 
-        rect = camera.get_rect()
+        camera.update_rect()
 
         mocked_setup.assert_called()
-        assert rect.top == 0
-        assert rect.right == 100
+        assert camera.rect.top == 0
+        assert camera.rect.right == 100
 
     def test_camera_on_bottomleft_corner(
         self, mocked_setup: MagicMock, player: BaseCharacter, world: World
@@ -83,11 +83,11 @@ class TestCamera:
         player.rect.center = (5, 90)
         camera = Camera((20, 20), player, world)
 
-        rect = camera.get_rect()
+        camera.update_rect()
 
         mocked_setup.assert_called()
-        assert rect.bottom == 100
-        assert rect.left == 0
+        assert camera.rect.bottom == 100
+        assert camera.rect.left == 0
 
     def test_camera_on_bottomright_corner(
         self, mocked_setup: MagicMock, player: BaseCharacter, world: World
@@ -95,8 +95,8 @@ class TestCamera:
         player.rect.center = (90, 90)
         camera = Camera((20, 20), player, world)
 
-        rect = camera.get_rect()
+        camera.update_rect()
 
         mocked_setup.assert_called()
-        assert rect.bottom == 100
-        assert rect.right == 100
+        assert camera.rect.bottom == 100
+        assert camera.rect.right == 100
