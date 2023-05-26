@@ -44,7 +44,7 @@ def notation_to_note_octave(note: str) -> tuple[str, int]:
 def frequencies_to_sound(
     frequencies: Collection[float], waveform: Callable[[float, int], ArrayLike]
 ) -> pygame.mixer.Sound:
-    arr = sum([waveform(f, SAMPLE_LENGTH) for f in frequencies])  # type: ignore
+    arr = sum(waveform(f, SAMPLE_LENGTH) for f in frequencies)  # type: ignore
     arr = numpy.c_[arr, arr]
     return pygame.sndarray.make_sound(arr)
 
@@ -73,11 +73,11 @@ class Chord:
         self.notes = notes
 
     def to_frequencies(self) -> list[float]:
-        return [n.frequency for n in self.notes]
+        return [note.frequency for note in self.notes]
 
     @classmethod
-    def from_str_list(cls, str_list: list[str]):
-        return cls([Note(s) for s in str_list])
+    def from_strings(cls, strings: list[str]):
+        return cls([Note(string) for string in strings])
 
 
 class Sample:
@@ -94,8 +94,8 @@ class Sample:
 def play_samples(samples: Collection[Sample]):
     millis = 300
     pygame.time.delay(80)
-    for s in samples:
-        s.sound.play(-1)
-        pygame.time.delay(int(s.duration * millis))
-        s.sound.fadeout(50)
+    for sample in samples:
+        sample.sound.play(-1)
+        pygame.time.delay(int(sample.duration * millis))
+        sample.sound.fadeout(50)
         pygame.time.delay(80)

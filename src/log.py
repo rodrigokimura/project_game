@@ -1,10 +1,10 @@
 from typing import Any
 
 try:
-    from rich import print
+    from rich import print as _print
 except ImportError:
     pass
 
 
 def log(msg: Any):
-    print(msg)
+    _print(msg)

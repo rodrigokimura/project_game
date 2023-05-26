@@ -19,10 +19,13 @@ class Camera:
         characters: list[BaseCharacter] | None = None,
     ) -> None:
         self.width, self.height = size
+        self.rect = pygame.rect.Rect(0, 0, self.width, self.height)
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
         self.characters = characters or []
+        self.delta_x, self.delta_y = (0, 0)
+        self.delta = pygame.math.Vector2()
         self._setup()
 
     def _setup(self):
@@ -31,102 +34,104 @@ class Camera:
         ).convert_alpha()
         self.highlight.fill((0, 0, 0, 0))
         pygame.draw.rect(self.highlight, "red", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2, 4)
+        self.display_surface = pygame.display.get_surface()
 
-    def get_rect(self):
-        rect = pygame.rect.Rect(0, 0, self.width, self.height)
-        rect.center = self.player.rect.center
+    def update(self):
+        self.update_rect()
+
+        rect = self.display_surface.get_rect()
+        self.delta_x = rect.x - self.rect.x
+        self.delta_y = rect.y - self.rect.y
+
+        self.display_surface.fill("black")
+
+        self.draw_visibility_buffer()
+        self.draw_collectibles()
+        self.draw_player()
+        self.draw_characters()
+
+        for element in self.interface_elements:
+            element.draw()
+
+    def update_rect(self):
+        self.rect.center = self.player.rect.center
 
         top = self.player.rect.centery - self.height / 2
-        rect.top = max(top, 0)  # type: ignore
+        self.rect.top = max(top, 0)  # type: ignore
 
         bottom = self.player.rect.centery + self.height / 2
         if bottom >= self.world.rect.height:
-            rect.bottom = self.world.rect.height
+            self.rect.bottom = self.world.rect.height
 
         left = self.player.rect.centerx - self.width / 2
-        rect.left = max(left, 0)  # type: ignore
+        self.rect.left = max(left, 0)  # type: ignore
 
         right = self.player.rect.centerx + self.width / 2
         if right >= self.world.rect.width:
-            rect.right = self.world.rect.width
+            self.rect.right = self.world.rect.width
 
-        return rect
-
-    def update(self):
-        if self.player.image is None or self.player.cursor_image is None:
-            raise self.player.UnloadedObject
-
-        display_surface = pygame.display.get_surface()
-        dx = display_surface.get_rect().centerx - self.get_rect().centerx
-        dy = display_surface.get_rect().centery - self.get_rect().centery
-
-        display_surface.fill("black")
-        display_surface.blits(
+    def draw_visibility_buffer(self):
+        self.display_surface.blits(
             tuple(
-                (spr.image, spr.rect.move(dx, dy))
+                (spr.image, spr.rect.move(self.delta_x, self.delta_y))
                 for spr in self.world.visibility_buffer.sprites()
             )
         )
-        # draw all collectibles
-        display_surface.blits(
+
+    def draw_collectibles(self):
+        self.display_surface.blits(
             tuple(
-                (spr.collectible_image, spr.rect.move(dx, dy))
+                (spr.collectible_image, spr.rect.move(self.delta_x, self.delta_y))
                 for spr in self.world.collectibles.sprites()
             )
         )
-        display_surface.blit(self.player.image, self.player.rect.move(dx, dy))
 
-        # draw all other characters
-        w, h = 50, 5
-        for character in self.characters:
-            if character.image is None:
-                continue
-            character_rect = character.rect.move(dx, dy)
-            display_surface.blit(character.image, character_rect)
-            hp_bar = character_rect.move(-(w - character.size.x) / 2, -10)
-            hp_bar.size = w, h
-            hp_bar_border = hp_bar.copy()
-            hp_bar.width = int(hp_bar.width * character.hp_percentage)
-            pygame.draw.rect(display_surface, "red", hp_bar)
-            pygame.draw.rect(display_surface, "white", hp_bar_border, 1)
-
-        # render player cursor
+    def draw_player(self):
+        if self.player.image is None or self.player.cursor_image is None:
+            raise self.player.UnloadedObject
+        self.display_surface.blit(
+            self.player.image, self.player.rect.move(self.delta_x, self.delta_y)
+        )
         cursor_position = self.player.rect.move(
             self.player.cursor_position.x, self.player.cursor_position.y
         )
         if DEBUG:
-            display_surface.blit(
+            self.display_surface.blit(
                 self.player.cursor_image,
                 cursor_position.move(
                     self.player.cursor_image.get_size()[0] / 2,
                     self.player.cursor_image.get_size()[1] / 2,
-                ).move(dx, dy),
+                ).move(self.delta_x, self.delta_y),
             )
-
-        self.highlight_block()
-
-        for el in self.interface_elements:
-            el.draw()
-
-    def highlight_block(self):
-        display_surface = pygame.display.get_surface()
-        dx = display_surface.get_rect().centerx - self.get_rect().centerx
-        dy = display_surface.get_rect().centery - self.get_rect().centery
-        cursor_position = self.player.rect.move(
-            self.player.cursor_position.x, self.player.cursor_position.y
-        )
         if self.player.mode == Mode.CONSTRUCTION:
             coords = self.player.get_cursor_coords()
-            display_surface.blit(
+            self.display_surface.blit(
                 self.highlight,
-                (coords[0] * BLOCK_SIZE + dx, coords[1] * BLOCK_SIZE + dy),
+                (
+                    coords[0] * BLOCK_SIZE + self.delta_x,
+                    coords[1] * BLOCK_SIZE + self.delta_y,
+                ),
             )
             if DEBUG:
                 log(self.world.get_block(coords))
         elif self.player.mode == Mode.COMBAT:
             pygame.draw.line(
-                display_surface,
+                self.display_surface,
                 "red",
-                self.player.rect.move(dx, dy).center,
-                cursor_position.move(dx, dy).center,
+                self.player.rect.move(self.delta_x, self.delta_y).center,
+                cursor_position.move(self.delta_x, self.delta_y).center,
             )
+
+    def draw_characters(self):
+        width, height = 50, 5
+        for character in self.characters:
+            if character.image is None:
+                continue
+            character_rect = character.rect.move(self.delta_x, self.delta_y)
+            self.display_surface.blit(character.image, character_rect)
+            hp_bar = character_rect.move(-(width - character.size.x) / 2, -10)
+            hp_bar.size = width, height
+            hp_bar_border = hp_bar.copy()
+            hp_bar.width = int(hp_bar.width * character.hp_percentage)
+            pygame.draw.rect(self.display_surface, "red", hp_bar)
+            pygame.draw.rect(self.display_surface, "white", hp_bar_border, 1)

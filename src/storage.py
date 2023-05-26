@@ -10,7 +10,7 @@ from world import BaseWorld
 
 class BaseStorage(ABC):
     @abstractmethod
-    def get(self, id: UUID) -> Storable:
+    def get(self, _id: UUID) -> Storable:
         ...
 
     @abstractmethod
@@ -43,33 +43,33 @@ class ShelveStorage(BaseStorage):
     def store(self, item: Storable) -> bool:
         print("updating timestamp")
         item.update_timestamp()
-        with shelve.open(self.filename) as d:
-            d[str(item.id)] = item
+        with shelve.open(self.filename) as database:
+            database[str(item.id)] = item
         log(f"Saved to {self.filename}")
         return True
 
-    def get(self, id: UUID) -> Storable:
-        with shelve.open(self.filename) as d:
+    def get(self, _id: UUID) -> Storable:
+        with shelve.open(self.filename) as database:
             log(f"Loaded from {self.filename}")
-            return d[str(id)]
+            return database[str(_id)]
 
     def delete(self, item: Storable) -> bool:
-        with shelve.open(self.filename) as d:
+        with shelve.open(self.filename) as database:
             try:
-                del d[str(item.id)]
+                del database[str(item.id)]
             except KeyError:
                 return False
         log(f"Deleted from {self.filename}")
         return True
 
     def list_all(self) -> list[Storable]:
-        with shelve.open(self.filename) as d:
+        with shelve.open(self.filename) as database:
             log(f"Loaded from {self.filename}")
-            return list(d.values())
+            return list(database.values())
 
     def clear(self):
-        with shelve.open(self.filename) as d:
-            d.clear()
+        with shelve.open(self.filename) as database:
+            database.clear()
             log(f"Deleted all records from {self.filename}")
 
 
@@ -80,10 +80,11 @@ class WorldStorage(ShelveStorage):
     def store(self, world: BaseWorld) -> bool:
         if not isinstance(world, BaseWorld):
             raise ValueError("Cannot store non-worlds in WorldStorage")
+        world.unload()
         return super().store(world)
 
-    def get(self, id: UUID) -> BaseWorld:
-        world = super().get(id)
+    def get(self, _id: UUID) -> BaseWorld:
+        world = super().get(_id)
         if not isinstance(world, BaseWorld):
             raise ValueError("Cannot store non-worlds in WorldStorage")
         return world
@@ -111,8 +112,8 @@ class PlayerStorage(ShelveStorage):
         player.unload()
         return super().store(player)
 
-    def get(self, id: UUID) -> BaseCharacter:
-        player = super().get(id)
+    def get(self, _id: UUID) -> BaseCharacter:
+        player = super().get(_id)
         if not isinstance(player, BaseCharacter):
             raise ValueError("Cannot store non-players in PlayerStorage")
         player.setup()

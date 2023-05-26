@@ -1,3 +1,5 @@
+from typing import Callable
+
 import pygame
 
 import settings
@@ -6,12 +8,21 @@ from input.constants import Controller
 from interface import ControllerDetection, Menu
 from level import Level
 
+# pylint: disable=no-member
+
 
 class Game:
     NEW_GAME = pygame.event.custom_type()
     LOAD_GAME = pygame.event.custom_type()
     EXIT = pygame.QUIT
+
     controller: Controller
+    main_loop: Callable
+    level: Level
+    internal_events: list[int]
+    clock: pygame.time.Clock
+    controller_detection: ControllerDetection
+    menu: Menu
 
     def run(self):
         self.setup()
@@ -57,9 +68,9 @@ class Game:
         size = [settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT]
         flags = pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF
         if settings.DEBUG:
-            self.screen = pygame.display.set_mode(size)  # no fullscreen
+            pygame.display.set_mode(size)  # no fullscreen
         else:
-            self.screen = pygame.display.set_mode(size, flags)
+            pygame.display.set_mode(size, flags)
 
         self.clock = pygame.time.Clock()
         self.internal_events = []
@@ -72,12 +83,12 @@ class Game:
                 "exit": self.EXIT,
             }
         )
-        self.controller_detection_screen = ControllerDetection()
+        self.controller_detection = ControllerDetection()
 
         self.main_loop = self.run_controller_detection
 
     def run_controller_detection(self, dt: float):
-        self.controller_detection_screen.run(dt)
+        self.controller_detection.run(dt)
 
     def run_menu(self, dt: float):
         self.menu.run(dt)

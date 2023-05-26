@@ -68,8 +68,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         if block_below is None:
             return True
         self.rect.bottom = block_below.rect.top - 1
-        if self.velocity.y > 0:
-            self.velocity.y = 0
+        self.velocity.y = min(self.velocity.y, 0)
         return False
 
     def update(self, dt: int, blocks: Container2d[_HasRect]):
@@ -187,8 +186,7 @@ class ChangingBlock(BaseBlock, metaclass=ABCMeta):
     def max_state(self) -> int:
         ...
 
-    def update(self, _: int, blocks: Container2d[_HasRect]):
-        print(blocks)
+    def update(self):
         if self.state <= self.max_state:
             self.counter += 1
             if self.counter >= self.interval and self.state < self.max_state:

@@ -72,12 +72,13 @@ class Level:
         self.player.set_controller(controller)
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
 
-        self.enemy = Enemy(
+        enemy = Enemy(
             GRAVITY,
             TERMINAL_VELOCITY,
             ((WORLD_SIZE[0] - 100) * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
         )
-        self.enemy.set_controller(Controller.AI)
+        enemy.set_controller(Controller.AI)
+        self.world.characters_buffer.add(enemy)
 
         self.camera = Camera(
             (SCREEN_WIDTH, SCREEN_HEIGHT),
@@ -88,14 +89,13 @@ class Level:
                 PlayerMode(self.player),
                 TimeDisplay(self.world),
             ],
-            [self.enemy],
+            self.world.characters_buffer.sprites(),
         )
 
     def run(self, dt: float):
-        visibility_rect = self.camera.get_rect()
-
+        self.camera.update_rect()
         if self.status == Level.Status.RUNNING:
-            self.world.update(dt, visibility_rect, self.player, [self.enemy])
+            self.world.update(dt, self.camera.rect, self.player)
             self.camera.update()
             self.check_player_dead()
         elif self.status == Level.Status.PAUSED:
@@ -109,13 +109,13 @@ class Level:
     def handle_menu_commands(self):
         events = pygame.event.get(self.SAVE)
         if events:
-            ev = events[0]
-            if ev.type == self.SAVE:
+            event = events[0]
+            if event.type == self.SAVE:
                 self.save_game()
 
     def save_game(self):
         WorldStorage().store(self.world)
-        PlayerStorage().store(self.player)
+        # PlayerStorage().store(self.player)
 
     def check_player_dead(self):
         if pygame.event.get(Player.DEAD):
@@ -128,10 +128,10 @@ class Level:
         elif self.status == Level.Status.RUNNING:
             events = pygame.event.get((Player.PAUSE, Player.OPEN_INVENTORY))
             if events:
-                ev = events[0]
-                if ev.type == Player.PAUSE:
+                event = events[0]
+                if event.type == Player.PAUSE:
                     self.status = Level.Status.PAUSED
-                elif ev.type == Player.OPEN_INVENTORY:
+                elif event.type == Player.OPEN_INVENTORY:
                     self.status = Level.Status.INVENTORY_OPEN
         elif self.status == Level.Status.INVENTORY_OPEN:
             if pygame.event.get(Inventory.CLOSE):

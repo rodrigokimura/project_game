@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-DEBUG = bool(os.getenv("DEBUG", False))
+DEBUG = bool(os.getenv("DEBUG", ""))
 
 BLOCK_SIZE = 16
 

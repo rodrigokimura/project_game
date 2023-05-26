@@ -1,18 +1,19 @@
 import argparse
+import os
+from pickle import UnpicklingError
 
+from game import Game
 from log import log
+from sounds import Chord, Sample, play_samples, square_wave
+from storage import PlayerStorage, WorldStorage
 
 
 def play():
-    from game import Game
-
     game = Game()
     game.run()
 
 
 def debug():
-    import os
-
     os.environ["DEBUG"] = "1"
     play()
 
@@ -28,18 +29,14 @@ def world_builder():
 
 
 def clear_db():
-    from storage import PlayerStorage, WorldStorage
-
     try:
         WorldStorage().clear()
         PlayerStorage().clear()
-    except Exception as e:
-        print(e)
+    except (UnpicklingError, AttributeError) as exc:
+        print(exc)
 
 
 def sound():
-    from sounds import Chord, Sample, play_samples, square_wave
-
     samples = [
         ("F G", 0.5),
         ("F G", 0.5),
@@ -62,8 +59,12 @@ def sound():
     ]
     play_samples(
         [
-            Sample(Chord.from_str_list(s.split()).to_frequencies(), square_wave, d)
-            for s, d in samples
+            Sample(
+                Chord.from_strings(sample.split()).to_frequencies(),
+                square_wave,
+                duration,
+            )
+            for sample, duration in samples
         ]
     )
 
@@ -80,8 +81,12 @@ def sound():
     ]
     play_samples(
         [
-            Sample(Chord.from_str_list(s.split()).to_frequencies(), square_wave, d)
-            for s, d in samples
+            Sample(
+                Chord.from_strings(sample.split()).to_frequencies(),
+                square_wave,
+                duration,
+            )
+            for sample, duration in samples
         ]
     )
 

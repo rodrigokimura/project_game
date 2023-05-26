@@ -7,17 +7,19 @@ from blocks import BaseCollectible, collectible_images
 from commons import Loadable
 from input.constants import Controller
 from input.controllers import (
+    BaseController,
     InventoryControllable,
     JoystickInventoryController,
     KeyboardInventoryController,
 )
-from settings import DEFAULT_FONT, SCREEN_HEIGHT, SCREEN_WIDTH
+from settings import CONSOLE_FONT, SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 class BaseInventory(Loadable, InventoryControllable):
     CLOSE = pygame.event.custom_type()
 
     collectibles: dict[type[BaseCollectible], int]
+    controller: BaseController
 
     def add(self, collectible: type[BaseCollectible]):
         if collectible in self.collectibles:
@@ -70,11 +72,21 @@ class BaseInventory(Loadable, InventoryControllable):
 class Inventory(BaseInventory, Loadable):
     """Simple limitless inventory"""
 
+    font: pygame.font.Font | None
+    image: pygame.surface.Surface | None
+
     def __init__(self) -> None:
         self.collectibles: dict[type[BaseCollectible], int] = {}
-        self.setup()
         self.grid = (20, 10)
         self.selected = (0, 0)
+        self.padding = 100
+        self.margin = 30
+        self.slot_size = 32
+        self.slot_p = 10
+        self.slot_rect = pygame.rect.Rect(0, 0, self.slot_size, self.slot_size)
+        self.image: pygame.surface.Surface | None = None
+        self._static_image: pygame.surface.Surface | None = None
+        self.setup()
 
     def is_empty(self) -> bool:
         return not self.collectibles
@@ -82,21 +94,15 @@ class Inventory(BaseInventory, Loadable):
     def get_selected(self):
         if self.is_empty():
             return None
+
         x, y = self.selected
-        collectibles = [i for i in self.collectibles.items()]
+        collectibles = list(self.collectibles.items())
         i = (x + 1) * (y + 1) - 1
         try:
             cls, count = collectibles[i]
             return cls, count
         except IndexError:
             return None
-
-    def update(self, dt: float):
-        self.update_image()
-
-        if self.joystick is None:
-            raise Loadable.UnloadedObject
-        self.controller.control(dt)
 
     def move(self, _: float, x: float, y: float):
         selected_x, selected_y = self.selected
@@ -117,80 +123,99 @@ class Inventory(BaseInventory, Loadable):
 
         self.selected = int(selected_x), int(selected_y)
 
-    def update_image(self):
-        if self.image is None or self.font is None:
-            raise Loadable.UnloadedObject
+    def setup(self):
+        self._draw_static()
+        self.font = pygame.font.Font(CONSOLE_FONT, 32)
+        self.image = self._static_image.copy()  # type: ignore
 
-        p = 100
-        m = 30
-        slot_size = 32
-        slot_p = 10
+    def _draw_static(self):
+        self._draw_background()
+        self._draw_boundary()
+        self._draw_slots()
 
-        rect = pygame.rect.Rect(p, p, SCREEN_WIDTH - 2 * p, SCREEN_HEIGHT - 2 * p)
-        pygame.draw.rect(self.image, "black", rect)
-        pygame.draw.rect(self.image, "blue", rect, 1)
-        slot_rect = pygame.rect.Rect(0, 0, slot_size, slot_size)
-        collectibles = [i for i in self.collectibles.items()]
+    def _draw_background(self):
+        self._static_image = pygame.surface.Surface(
+            (SCREEN_WIDTH, SCREEN_HEIGHT)
+        ).convert_alpha()
+        self._static_image.fill((0, 0, 0, 0))
+
+    def _draw_boundary(self):
+        if self._static_image is None:
+            raise self.UnloadedObject
+
+        bounding_box = pygame.rect.Rect(
+            self.padding,
+            self.padding,
+            SCREEN_WIDTH - 2 * self.padding,
+            SCREEN_HEIGHT - 2 * self.padding,
+        )
+        pygame.draw.rect(self._static_image, "black", bounding_box)
+        pygame.draw.rect(self._static_image, "blue", bounding_box, 1)
+
+    def _draw_slots(self):
+        if self._static_image is None:
+            raise self.UnloadedObject
 
         for x, y in product(range(self.grid[0]), range(self.grid[1])):
-            slot_rect.topleft = (
-                p + m + x * (slot_size + slot_p),
-                p + m + y * (slot_size + slot_p),
-            )
-            pygame.draw.rect(self.image, "blue", slot_rect, 1)
+            self.slot_rect.topleft = self._get_slot_rel_coords((x, y))
+            pygame.draw.rect(self._static_image, "blue", self.slot_rect, 1)
 
+    def unload(self):
+        self._static_image = None
+        self.image = None
+        self.font = None
+
+    def update(self, dt: float):
+        self._update_image()
+        self.controller.control(dt)
+
+    def _update_image(self):
+        if self._static_image is None or self.font is None:
+            raise Loadable.UnloadedObject
+
+        self.image = self._static_image.copy()
+
+        self._draw_collectibles()
+        self._highlight_selected()
+
+        pygame.display.get_surface().blit(self.image, (0, 0))
+
+    def _draw_collectibles(self):
+        if self.image is None or self.font is None:
+            raise self.UnloadedObject
+
+        collectibles = list(self.collectibles.items())
+
+        for x, y in product(range(self.grid[0]), range(self.grid[1])):
             i = y * self.grid[0] + x
+
             if i < len(collectibles):
                 cls, count = collectibles[i]
                 img = collectible_images[cls]
-                self.image.blit(
-                    img,
-                    (
-                        p + m + x * (slot_size + slot_p),
-                        p + m + y * (slot_size + slot_p),
-                    ),
-                )
+                self.image.blit(img, self._get_slot_rel_coords((x, y), (0, 0)))
                 txt = self.font.render(f"x {count}", False, "white")
-                self.image.blit(
-                    txt,
-                    (
-                        p + m + x * (slot_size + slot_p) + slot_size - 10,
-                        p + m + y * (slot_size + slot_p) + slot_size - 10,
-                    ),
-                )
+                self.image.blit(txt, self._get_slot_rel_coords((x, y), (-10, -10)))
 
-        # highlight
-        slot_rect.topleft = (
-            p + m + self.selected[0] * (slot_size + slot_p),
-            p + m + self.selected[1] * (slot_size + slot_p),
+    def _get_slot_rel_coords(
+        self, coords: tuple[int, int], offset: tuple[int, int] = (0, 0)
+    ):
+        return tuple(
+            self.padding + self.margin + coord * (self.slot_size + self.slot_p) + offset
+            for coord, offset in zip(coords, offset)
         )
-        pygame.draw.rect(self.image, "grey", slot_rect, 2)
+
+    def _highlight_selected(self):
+        if self.image is None or self.font is None:
+            raise self.UnloadedObject
+
+        collectibles = list(self.collectibles.items())
         x, y = self.selected
+        self.slot_rect.topleft = self._get_slot_rel_coords((x, y))
+        pygame.draw.rect(self.image, "grey", self.slot_rect, 2)
         i = y * self.grid[0] + x
         try:
-            cls, count = collectibles[i]
+            cls, _ = collectibles[i]
             txt = self.font.render(cls.__name__, False, "white")
-            self.image.blit(
-                txt,
-                (
-                    p + m + x * (slot_size + slot_p) + 10,
-                    p + m + y * (slot_size + slot_p) + 10,
-                ),
-            )
+            self.image.blit(txt, self._get_slot_rel_coords((x, y), (10, 10)))
         except IndexError:
             ...
-
-        display = pygame.display.get_surface()
-        display.blit(self.image, (0, 0))
-
-    def setup(self):
-        self.joystick = pygame.joystick.Joystick(0)
-        self.image = pygame.surface.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.image = self.image.convert_alpha()
-        self.image.fill((0, 0, 0, 0))
-        self.font = pygame.font.Font(DEFAULT_FONT, 20)
-
-    def unload(self):
-        self.joystick = None
-        self.image = None
-        self.font = None

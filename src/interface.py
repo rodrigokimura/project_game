@@ -63,10 +63,10 @@ class ControllerDetection:
         return False
 
     def detect_keyboard_and_mouse(self):
-        r = pygame.key.get_pressed()
+        key_states = pygame.key.get_pressed()
 
         # HACK: pygame prevents iterating directly over r
-        if any(r[i] for i in range(len(r))):
+        if any(key_states[i] for i in range(len(key_states))):
             event = pygame.event.Event(self.CONTROLLER_DETECTED)
             event.controller = Controller.KEYBOARD
             pygame.event.post(event)
@@ -130,9 +130,9 @@ class Menu(MenuControllable):
         padding = 80
         font_padding = 20
 
-        w, h = self.display.get_size()
-        w, h = w - 2 * padding, h - 2 * padding
-        menu_rect = pygame.rect.Rect(padding, padding, w, h)
+        width, height = self.display.get_size()
+        width, height = width - 2 * padding, height - 2 * padding
+        menu_rect = pygame.rect.Rect(padding, padding, width, height)
 
         pygame.draw.rect(self.static_image, "blue", menu_rect, 1)
 
@@ -217,8 +217,8 @@ class PlayerMode(BaseInterfaceElement):
 
     def draw(self):
         display_surface = pygame.display.get_surface()
-        s = self.font.render(self.player.mode.name, False, "white")
-        display_surface.blit(s, (10, 70))
+        font_surf = self.font.render(self.player.mode.name, False, "white")
+        display_surface.blit(font_surf, (10, 70))
 
 
 class TimeDisplay(BaseInterfaceElement):
@@ -229,7 +229,7 @@ class TimeDisplay(BaseInterfaceElement):
 
     def draw(self):
         display_surface = pygame.display.get_surface()
-        s = self.font.render(self.world.time.strftime("%H:%M"), False, "white")
-        display_surface.blit(s, (10, 25))
-        s = self.font.render(self.world.day_part.value, False, "white")
-        display_surface.blit(s, (10, 45))
+        surf = self.font.render(self.world.time.strftime("%H:%M"), False, "white")
+        display_surface.blit(surf, (10, 25))
+        surf = self.font.render(self.world.day_part.value, False, "white")
+        display_surface.blit(surf, (10, 45))

@@ -13,14 +13,14 @@ from blocks import (
     make_block,
 )
 from characters import BaseCharacter, Player
-from commons import Storable
+from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
 from utils.container import Container2d
 
 
-class BaseWorld(Storable, ABC):
+class BaseWorld(Storable, Loadable, ABC):
     DAY_DURATION = DAY_DURATION
 
     def __init__(
@@ -31,15 +31,11 @@ class BaseWorld(Storable, ABC):
     ) -> None:
         super().__init__()
         self.size = pygame.math.Vector2(size)
-        self.gravity: pygame.math.Vector2 = pygame.math.Vector2(0, gravity)
+        self.gravity = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
-        self.blocks = Container2d(WORLD_SIZE)
-        self.changing_blocks = pygame.sprite.Group()
-        self.collectibles = pygame.sprite.Group()
-        self.visibility_buffer = pygame.sprite.Group()
-        self.collision_buffer = pygame.sprite.Group()
-        self.populate()
+
+        self.setup()
         self.age = 0  # in seconds
         self.time_of_day = 0  # cycling counter
 
@@ -47,12 +43,29 @@ class BaseWorld(Storable, ABC):
     def populate(self):
         ...
 
+    def setup(self):
+        self.blocks = Container2d(WORLD_SIZE)
+        self.changing_blocks = pygame.sprite.Group()
+        self.collectibles = pygame.sprite.Group()
+        self.visibility_buffer = pygame.sprite.Group()
+        self.collision_buffer = pygame.sprite.Group()
+        self.characters_buffer = pygame.sprite.Group()
+
+        self.populate()
+
+    def unload(self):
+        self.blocks.empty()
+        self.changing_blocks.empty()
+        self.collectibles.empty()
+        self.visibility_buffer.empty()
+        self.collision_buffer.empty()
+        self.characters_buffer.empty()
+
     def update(
         self,
         dt: float,
         visibility_rect: pygame.rect.Rect,
         player: BaseCharacter,
-        other_characters: list[BaseCharacter],
     ):
         self.visibility_buffer.empty()
         margin = 3
@@ -69,19 +82,15 @@ class BaseWorld(Storable, ABC):
         for x, y in product(
             range(x_1 - margin, x_2 + margin), range(y_1 - margin, y_2 + margin)
         ):
-            try:
-                block = self.blocks.get_element((x, y))
-            except IndexError:
-                continue
-            if block is None:
-                continue
-            self.visibility_buffer.add(block)
+            block = self.blocks.get_element((x, y))
+            if block is not None:
+                self.visibility_buffer.add(block)
 
         self.update_time(dt)
-        player.update(dt, self.blocks, other_characters)
 
-        for character in other_characters:
-            character.update(dt, self.blocks, [player])
+        player.update(dt, self.blocks, self.characters_buffer.sprites())
+
+        self.characters_buffer.update(dt, self.blocks, [player])
 
         # update collectibles
         player.pull_collectibles(self.collectibles)
@@ -95,19 +104,20 @@ class BaseWorld(Storable, ABC):
         # perform block placement
         events = pygame.event.get(Player.PLACE_BLOCK)
         for event in events:
-            self.place_block(player, event.block, dt)
+            if isinstance(event.block, BaseBlock):
+                self.place_block(player, event.block, dt)
 
     def update_time(self, dt: float):
         self.age += dt
         self.time_of_day += dt
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
-            self.update_changing_blocks(dt)
+            self.update_changing_blocks()
             if DEBUG:
                 log("Updating ChangingBlock instances")
 
-    def update_changing_blocks(self, dt: float):
-        self.changing_blocks.update(dt, self.blocks)
+    def update_changing_blocks(self):
+        self.changing_blocks.update()
 
     @property
     def relative_time(self):
@@ -122,10 +132,7 @@ class BaseWorld(Storable, ABC):
         return get_day_part(self.time)
 
     def get_block(self, coords: tuple[int, int]):
-        try:
-            return self.blocks.get_element(coords)
-        except IndexError:
-            return None
+        return self.blocks.get_element(coords)
 
     def destroy_block(self, player: BaseCharacter, dt: float):
         coords = player.get_cursor_coords()

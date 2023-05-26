@@ -224,13 +224,9 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         for x, y in product(
             range(ref_x - margin, ref_x + margin), range(ref_y - margin, ref_y + margin)
         ):
-            try:
-                block = blocks.get_element((x, y))
-            except IndexError:
-                continue
-            if block is None:
-                continue
-            self.collidable_sprites_buffer.add(block)
+            block = blocks.get_element((x, y))
+            if block is not None:
+                self.collidable_sprites_buffer.add(block)
 
         if other_collidable_characters:
             self.collidable_sprites_buffer.add(*other_collidable_characters)
@@ -273,7 +269,7 @@ class Player(BaseCharacter):
 
         self.size = pygame.math.Vector2(2 * BLOCK_SIZE)
         self.angle = 0
-        self.rect = pygame.rect.Rect(self.position.xy, self.size.xy)
+        self.rect = pygame.rect.Rect(self.position, self.size)
 
         # for jumping mechanics
         self.max_jump_time = 0.2
@@ -281,9 +277,8 @@ class Player(BaseCharacter):
 
         self.setup()
 
-        self.max_immunity_time = 0.5
         self._is_immune = False
-        self.immunity_timer = Timer(self.max_immunity_time, self.reset_immunity)
+        self.immunity_timer = Timer(0.5, self.reset_immunity)
 
     def setup(self):
         # load unpickleble attributes
