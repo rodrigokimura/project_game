@@ -8,7 +8,7 @@ from typing import Optional
 
 import pygame
 
-from blocks import BaseBlock, BaseCollectible, BaseHazard, HasDamage, make_block
+from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
 from commons import Damageable, Loadable, Storable
 from input.constants import Controller
 from input.controllers import (
@@ -21,6 +21,7 @@ from input.controllers import (
 )
 from inventory import BaseInventory, Inventory
 from log import log
+from protocols import HasDamage
 from settings import BLOCK_SIZE, DEBUG
 from shooting import Bullet
 from sprites import GravitySprite

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import random
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Protocol
 
 import pygame
 
@@ -10,22 +9,13 @@ from materials import BaseMaterial
 from materials import Rock as RockMaterial
 from materials import Wood as WoodMaterial
 from materials import all_materials
+from protocols import HasRect
 from settings import BLOCK_SIZE
 from shooting import load_bullet_images
 from sprites import GravitySprite
 from utils.container import Container2d
 
 COLLECTIBLE_SIZE = BLOCK_SIZE // 2
-
-
-class _HasRect(Protocol):
-    rect: pygame.rect.Rect
-
-
-class HasDamage(Protocol):
-    @property
-    def damage(self) -> int:
-        ...
 
 
 class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
@@ -60,7 +50,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         self.pulling_velocity = pygame.math.Vector2()
         super().__init__(gravity or 0, terminal_velocity or 0)
 
-    def should_fall(self, blocks: Container2d[_HasRect]):
+    def should_fall(self, blocks: Container2d[HasRect]):
         coords = (
             self.rect.centerx // BLOCK_SIZE,
             int((self.rect.bottom + 1) // BLOCK_SIZE),
@@ -72,7 +62,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         self.velocity.y = min(self.velocity.y, 0)
         return False
 
-    def update(self, dt: int, blocks: Container2d[_HasRect]):
+    def update(self, dt: int, blocks: Container2d[HasRect]):
         super().fall(dt, blocks)
         self.update_position(dt)
 

@@ -1,15 +1,12 @@
-from typing import Any, Protocol
+from typing import Any
 
 import pygame
 
 from commons import Damageable
+from protocols import HasRect
 from settings import BLOCK_SIZE
 from utils.collision import custom_collision_detection
 from utils.container import Container2d
-
-
-class _HasRect(Protocol):
-    rect: pygame.rect.Rect
 
 
 class BaseBullet(pygame.sprite.Sprite):
@@ -46,8 +43,8 @@ class BaseBullet(pygame.sprite.Sprite):
 
     def check_collision(
         self,
-        blocks: Container2d[_HasRect],
-        characters: pygame.sprite.Group[Damageable],  # type: ignore
+        blocks: Container2d[HasRect],
+        characters: pygame.sprite.Group,
     ):
         for block in blocks.get_surrounding(
             (int(self.position.x // BLOCK_SIZE), int(self.position.y // BLOCK_SIZE)), 1
@@ -58,7 +55,7 @@ class BaseBullet(pygame.sprite.Sprite):
 
         collided_sprites = pygame.sprite.spritecollide(
             self,
-            characters,  # type: ignore
+            characters,
             False,
             collided=custom_collision_detection,
         )
