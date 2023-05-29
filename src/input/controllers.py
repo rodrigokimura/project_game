@@ -82,6 +82,10 @@ class PlayerControllable(BaseControllable):
     def open_inventory(self, dt: float):
         ...
 
+    @abstractmethod
+    def shoot(self, dt: float):
+        ...
+
 
 class MenuControllable(BaseControllable):
     @abstractmethod
@@ -212,6 +216,7 @@ class JoystickPlayerController(PlayerController):
             (Button.RB, OncePerPress(controllable.place_block)),
             (Button.Y, ContinuousAction(controllable.boost)),
             (Button.RT, ContinuousAction(controllable.destroy_block)),
+            (Button.RT, OncePerPress(controllable.shoot)),
             (Button.B, self._jump),
             (Button.B, ContinuousAction(controllable.glide)),
             (Button.X, OncePerPress(controllable.open_inventory)),
@@ -260,6 +265,7 @@ class KeyboardPlayerController(PlayerController):
         self.mouse_button_actions: list[tuple[MouseButton, BaseAction]] = [
             (MouseButton.MAIN, OncePerPress(controllable.place_block)),
             (MouseButton.SECONDARY, ContinuousAction(controllable.destroy_block)),
+            (MouseButton.SECONDARY, OncePerPress(controllable.shoot)),
         ]
 
     def control(self, dt: float):

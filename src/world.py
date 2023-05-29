@@ -17,6 +17,7 @@ from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
+from shooting import BaseBullet
 from utils.container import Container2d
 
 
@@ -48,7 +49,12 @@ class BaseWorld(Storable, Loadable, ABC):
         self.collectibles = pygame.sprite.Group()
         self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
-        self.characters_buffer = pygame.sprite.Group()
+        self.characters_buffer: pygame.sprite.Group[
+            BaseCharacter  # type: ignore
+        ] = pygame.sprite.Group()
+        self.bullets: pygame.sprite.Group[
+            BaseBullet  # type: ignore
+        ] = pygame.sprite.Group()
         self.populate()
 
     def unload(self):
@@ -58,6 +64,7 @@ class BaseWorld(Storable, Loadable, ABC):
         self.visibility_buffer.empty()
         self.collision_buffer.empty()
         self.characters_buffer.empty()
+        self.bullets.empty()
 
     def update(
         self,
@@ -104,6 +111,17 @@ class BaseWorld(Storable, Loadable, ABC):
         for event in events:
             if isinstance(event.block, BaseBlock):
                 self.place_block(player, event.block, dt)
+
+        # perform shooting
+        events = pygame.event.get(Player.SHOOT)
+        for event in events:
+            if isinstance(event.bullet, BaseBullet):
+                self.bullets.add(event.bullet)
+
+        for bullet in self.bullets.sprites():
+            bullet.check_collision(self.blocks, self.characters_buffer)  # type: ignore
+
+        self.bullets.update(dt)
 
     def update_time(self, dt: float):
         self.age += dt

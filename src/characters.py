@@ -4,12 +4,12 @@ import enum
 import math
 from abc import ABC, abstractmethod
 from itertools import product
-from typing import Any, Optional
+from typing import Optional
 
 import pygame
 
 from blocks import BaseBlock, BaseCollectible, BaseHazard, HasDamage, make_block
-from commons import Loadable, Storable
+from commons import Damageable, Loadable, Storable
 from input.constants import Controller
 from input.controllers import (
     AiPlayerController,
@@ -22,14 +22,12 @@ from input.controllers import (
 from inventory import BaseInventory, Inventory
 from log import log
 from settings import BLOCK_SIZE, DEBUG
+from shooting import Bullet
 from sprites import GravitySprite
+from utils.collision import custom_collision_detection
 from utils.container import Container2d
 from utils.enum import CyclingIntEnum
 from utils.timer import Timer
-
-
-def custom_collision_detection(sprite_left: Any, sprite_right: Any):
-    return pygame.sprite.collide_mask(sprite_left, sprite_right) is not None
 
 
 class Mode(CyclingIntEnum):
@@ -45,14 +43,17 @@ class StandingBase(pygame.sprite.Sprite):
         self.mask = pygame.mask.Mask(self.rect.size, True)
 
 
-class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
+class BaseCharacter(
+    Storable, Loadable, Damageable, PlayerControllable, GravitySprite, ABC
+):
     DEAD = pygame.event.custom_type()
     PAUSE = pygame.event.custom_type()
     OPEN_INVENTORY = pygame.event.custom_type()
     DESTROY_BLOCK = pygame.event.custom_type()
     PLACE_BLOCK = pygame.event.custom_type()
+    SHOOT = pygame.event.custom_type()
 
-    EVENTS = [DEAD, PAUSE, DESTROY_BLOCK, PLACE_BLOCK, OPEN_INVENTORY]
+    EVENTS = [DEAD, PAUSE, DESTROY_BLOCK, PLACE_BLOCK, OPEN_INVENTORY, SHOOT]
 
     rect: pygame.rect.Rect
     size: pygame.math.Vector2
@@ -132,6 +133,12 @@ class BaseCharacter(Storable, Loadable, PlayerControllable, GravitySprite, ABC):
         event.block = block
 
         pygame.event.post(event)
+
+    def shoot(self, _: float):
+        if self.mode not in (Mode.EXPLORATION, Mode.CONSTRUCTION):
+            event = pygame.event.Event(self.SHOOT)
+            event.bullet = Bullet(self, self.position, self.cursor_position * 1)
+            pygame.event.post(event)
 
     def pause(self, _: float):
         pygame.event.post(pygame.event.Event(self.PAUSE))
@@ -380,7 +387,7 @@ class Player(BaseCharacter):
 
         for sprite in collided_sprites:
             if isinstance(sprite, (BaseHazard, Enemy)):
-                self.take_tamage(sprite)
+                self.take_damage(sprite)
 
         first_collided_sprite: BaseBlock = collided_sprites[0]
         bounding_rect = first_collided_sprite.rect
@@ -450,14 +457,14 @@ class Player(BaseCharacter):
             return True
         ground = ground[0]
         if isinstance(ground, (BaseHazard, Enemy)):
-            self.take_tamage(ground)
+            self.take_damage(ground)
 
         ground_rect: pygame.rect.Rect = ground.rect
         self.position.y = ground_rect.top - self.size.y // 2
         self.reset_jump()
         return False
 
-    def take_tamage(self, hazard: HasDamage):
+    def take_damage(self, hazard: HasDamage):
         # TODO: knockback
         self.immunity_timer.start()
         if not self._is_immune:
@@ -465,7 +472,9 @@ class Player(BaseCharacter):
             self.health_points -= hazard.damage
             self.health_points = max(self.health_points, 0)
             if self.health_points == 0:
-                pygame.event.post(pygame.event.Event(self.DEAD))
+                event = pygame.event.Event(self.DEAD)
+                event.character = self
+                pygame.event.post(event)
 
     def reset_immunity(self):
         self._is_immune = False

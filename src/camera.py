@@ -23,7 +23,9 @@ class Camera:
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
-        self.characters = characters or []
+        self.characters = pygame.sprite.Group()
+        if characters:
+            self.characters.add(*characters)
         self.delta_x, self.delta_y = (0, 0)
         self.delta = pygame.math.Vector2()
         self._setup()
@@ -49,6 +51,7 @@ class Camera:
         self.draw_collectibles()
         self.draw_player()
         self.draw_characters()
+        self.draw_bullets()
 
         for element in self.interface_elements:
             element.draw()
@@ -124,7 +127,7 @@ class Camera:
 
     def draw_characters(self):
         width, height = 50, 5
-        for character in self.characters:
+        for character in self.characters.sprites():
             if character.image is None:
                 continue
             character_rect = character.rect.move(self.delta_x, self.delta_y)
@@ -135,3 +138,11 @@ class Camera:
             hp_bar.width = int(hp_bar.width * character.hp_percentage)
             pygame.draw.rect(self.display_surface, "red", hp_bar)
             pygame.draw.rect(self.display_surface, "white", hp_bar_border, 1)
+
+    def draw_bullets(self):
+        self.display_surface.blits(
+            tuple(
+                (spr.image, spr.rect.move(self.delta_x, self.delta_y))
+                for spr in self.world.bullets.sprites()
+            )
+        )

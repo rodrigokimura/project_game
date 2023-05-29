@@ -120,8 +120,11 @@ class Level:
         PlayerStorage().store(self.player)
 
     def check_player_dead(self):
-        if pygame.event.get(Player.DEAD):
-            pygame.event.post(pygame.event.Event(self.FINISHED))
+        for event in pygame.event.get(Player.DEAD):
+            if not isinstance(event.character, Enemy):
+                pygame.event.post(pygame.event.Event(self.FINISHED))
+            else:
+                event.character.kill()
 
     def check_status(self):
         if self.status == Level.Status.PAUSED:

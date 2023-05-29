@@ -11,6 +11,7 @@ from materials import Rock as RockMaterial
 from materials import Wood as WoodMaterial
 from materials import all_materials
 from settings import BLOCK_SIZE
+from shooting import load_bullet_images
 from sprites import GravitySprite
 from utils.container import Container2d
 
@@ -351,6 +352,7 @@ def draw_cached_images():
 
     load_tree_images()
     load_collectible_images()
+    load_bullet_images()
 
 
 def make_block(

@@ -1,3 +1,4 @@
+from itertools import product
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
@@ -24,3 +25,10 @@ class Container2d(Generic[T]):
         self._container = [
             [None for _ in range(self._size[1])] for _ in range(self._size[0])
         ]
+
+    def get_surrounding(self, coords: tuple[int, int], padding: int):
+        x, y = coords
+        for _coords in product(
+            range(x - padding, x + padding), range(y - padding, y + padding)
+        ):
+            yield self.get_element(_coords)

@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from blocks import HasDamage
+
 
 class Storable(ABC):
     _id: UUID
@@ -30,4 +32,13 @@ class Loadable(ABC):
 
     @abstractmethod
     def unload(self):
+        ...
+
+
+class Damageable(ABC):
+    max_health_points: int
+    health_points: int
+
+    @abstractmethod
+    def take_damage(self, hazard: HasDamage):
         ...
