@@ -24,6 +24,9 @@ class MockedPlayer(BaseCharacter):
     def set_controller(self):
         ...
 
+    def take_damage(self):
+        ...
+
     def should_fall(self) -> bool:
         return True
 
