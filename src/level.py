@@ -95,9 +95,8 @@ class Level:
         )
 
     def run(self, dt: float):
-        self.camera.update_rect()
         if self.status == Level.Status.RUNNING:
-            self.world.update(dt, self.camera.rect, self.player)
+            self.world.update(dt, self.player)
             self.camera.update()
             self.check_player_dead()
         elif self.status == Level.Status.PAUSED:

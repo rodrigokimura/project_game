@@ -18,7 +18,7 @@ class Container2d(Generic[T]):
         except IndexError:
             return None
 
-    def set_element(self, coords: tuple[int, int], element: T):
+    def set_element(self, coords: tuple[int, int], element: T | None):
         self._container[coords[0]][coords[1]] = element  # type: ignore
 
     def empty(self):

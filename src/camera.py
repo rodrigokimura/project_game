@@ -1,3 +1,4 @@
+from itertools import product
 from typing import Iterable
 
 import pygame
@@ -26,8 +27,7 @@ class Camera:
         self.characters = pygame.sprite.Group()
         if characters:
             self.characters.add(*characters)
-        self.delta_x, self.delta_y = (0, 0)
-        self.delta = pygame.math.Vector2()
+        self.delta = (0, 0)
         self._setup()
 
     def _setup(self):
@@ -42,12 +42,12 @@ class Camera:
         self.update_rect()
 
         rect = self.display_surface.get_rect()
-        self.delta_x = rect.x - self.rect.x
-        self.delta_y = rect.y - self.rect.y
+
+        self.delta = rect.x - self.rect.x, rect.y - self.rect.y
 
         self.display_surface.fill("black")
 
-        self.draw_visibility_buffer()
+        self.draw_visible_area()
         self.draw_collectibles()
         self.draw_player()
         self.draw_characters()
@@ -73,18 +73,27 @@ class Camera:
         if right >= self.world.rect.width:
             self.rect.right = self.world.rect.width
 
-    def draw_visibility_buffer(self):
-        self.display_surface.blits(
-            tuple(
-                (spr.image, spr.rect.move(self.delta_x, self.delta_y))
-                for spr in self.world.visibility_buffer.sprites()
-            )
-        )
+    def draw_visible_area(self):
+        margin = 3
+
+        for coords in product(
+            range(
+                self.rect.left // BLOCK_SIZE - margin,
+                self.rect.right // BLOCK_SIZE + margin,
+            ),
+            range(
+                self.rect.top // BLOCK_SIZE - margin,
+                self.rect.bottom // BLOCK_SIZE + margin,
+            ),
+        ):
+            block = self.world.get_block(coords)
+            if block is not None:
+                self.display_surface.blit(block.image, block.rect.move(self.delta))
 
     def draw_collectibles(self):
         self.display_surface.blits(
             tuple(
-                (spr.collectible_image, spr.rect.move(self.delta_x, self.delta_y))
+                (spr.collectible_image, spr.rect.move(self.delta))
                 for spr in self.world.collectibles.sprites()
             )
         )
@@ -92,9 +101,7 @@ class Camera:
     def draw_player(self):
         if self.player.image is None or self.player.cursor_image is None:
             raise self.player.UnloadedObject
-        self.display_surface.blit(
-            self.player.image, self.player.rect.move(self.delta_x, self.delta_y)
-        )
+        self.display_surface.blit(self.player.image, self.player.rect.move(self.delta))
         cursor_position = self.player.rect.move(
             self.player.cursor_position.x, self.player.cursor_position.y
         )
@@ -104,15 +111,15 @@ class Camera:
                 cursor_position.move(
                     self.player.cursor_image.get_size()[0] / 2,
                     self.player.cursor_image.get_size()[1] / 2,
-                ).move(self.delta_x, self.delta_y),
+                ).move(self.delta),
             )
         if self.player.mode == Mode.CONSTRUCTION:
             coords = self.player.get_cursor_coords()
             self.display_surface.blit(
                 self.highlight,
                 (
-                    coords[0] * BLOCK_SIZE + self.delta_x,
-                    coords[1] * BLOCK_SIZE + self.delta_y,
+                    coords[0] * BLOCK_SIZE + self.delta[0],
+                    coords[1] * BLOCK_SIZE + self.delta[1],
                 ),
             )
             if DEBUG:
@@ -121,8 +128,8 @@ class Camera:
             pygame.draw.line(
                 self.display_surface,
                 "red",
-                self.player.rect.move(self.delta_x, self.delta_y).center,
-                cursor_position.move(self.delta_x, self.delta_y).center,
+                self.player.rect.move(self.delta).center,
+                cursor_position.move(self.delta).center,
             )
 
     def draw_characters(self):
@@ -130,7 +137,7 @@ class Camera:
         for character in self.characters.sprites():
             if character.image is None:
                 continue
-            character_rect = character.rect.move(self.delta_x, self.delta_y)
+            character_rect = character.rect.move(self.delta)
             self.display_surface.blit(character.image, character_rect)
             hp_bar = character_rect.move(-(width - character.size.x) / 2, -10)
             hp_bar.size = width, height
@@ -142,7 +149,7 @@ class Camera:
     def draw_bullets(self):
         self.display_surface.blits(
             tuple(
-                (spr.image, spr.rect.move(self.delta_x, self.delta_y))
+                (spr.image, spr.rect.move(self.delta))
                 for spr in self.world.bullets.sprites()
             )
         )

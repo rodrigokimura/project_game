@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from itertools import product
 
 import pygame
 
@@ -44,10 +43,9 @@ class BaseWorld(Storable, Loadable, ABC):
         ...
 
     def setup(self):
-        self.blocks = Container2d(WORLD_SIZE)
+        self.blocks: Container2d[BaseBlock] = Container2d(WORLD_SIZE)
         self.changing_blocks = pygame.sprite.Group()
         self.collectibles = pygame.sprite.Group()
-        self.visibility_buffer = pygame.sprite.Group()
         self.collision_buffer = pygame.sprite.Group()
         self.characters_buffer: pygame.sprite.Group[
             BaseCharacter  # type: ignore
@@ -61,36 +59,11 @@ class BaseWorld(Storable, Loadable, ABC):
         self.blocks.empty()
         self.changing_blocks.empty()
         self.collectibles.empty()
-        self.visibility_buffer.empty()
         self.collision_buffer.empty()
         self.characters_buffer.empty()
         self.bullets.empty()
 
-    def update(
-        self,
-        dt: float,
-        visibility_rect: pygame.rect.Rect,
-        player: BaseCharacter,
-    ):
-        self.visibility_buffer.empty()
-        margin = 3
-
-        x_1, y_1 = visibility_rect.topleft
-        x_2, y_2 = visibility_rect.bottomright
-        x_1, y_1, x_2, y_2 = (
-            x_1 // BLOCK_SIZE,
-            y_1 // BLOCK_SIZE,
-            x_2 // BLOCK_SIZE,
-            y_2 // BLOCK_SIZE,
-        )
-
-        for x, y in product(
-            range(x_1 - margin, x_2 + margin), range(y_1 - margin, y_2 + margin)
-        ):
-            block = self.blocks.get_element((x, y))
-            if block is not None:
-                self.visibility_buffer.add(block)
-
+    def update(self, dt: float, player: BaseCharacter):
         self.update_time(dt)
 
         player.update(dt, self.blocks, self.characters_buffer.sprites())
