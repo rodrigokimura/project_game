@@ -4,7 +4,9 @@ import pygame
 
 
 class HasRect(Protocol):
-    rect: pygame.rect.Rect
+    @property
+    def rect(self) -> pygame.rect.Rect:
+        ...
 
 
 class HasDamage(Protocol):

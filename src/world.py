@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 import pygame
 
@@ -16,7 +17,7 @@ from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
-from shooting import BaseBullet
+from shooting import BaseBullet, Bullet
 from utils.container import Container2d
 
 
@@ -36,11 +37,20 @@ class BaseWorld(Storable, Loadable, ABC):
         self.rect = pygame.rect.Rect(0, 0, *(self.size * BLOCK_SIZE))
         self.age = 0  # in seconds
         self.time_of_day = 0  # cycling counter
+        self.player: Player | None = None
+        self.event_handlers: dict[int, Callable[[pygame.event.Event, float], None]] = {
+            Player.DESTROY_BLOCK: self._handle_block_destruction,
+            Player.PLACE_BLOCK: self._handle_block_placement,
+            Player.SHOOT: self._handle_shooting,
+        }
         self.setup()
 
     @abstractmethod
     def populate(self):
         ...
+
+    def set_player(self, player: Player):
+        self.player = player
 
     def setup(self):
         self.blocks: Container2d[BaseBlock] = Container2d(WORLD_SIZE)
@@ -62,51 +72,39 @@ class BaseWorld(Storable, Loadable, ABC):
         self.collision_buffer.empty()
         self.characters_buffer.empty()
         self.bullets.empty()
+        self.player = None
 
-    def update(self, dt: float, player: BaseCharacter):
-        self.update_time(dt)
+    def update(self, dt: float):
+        self._update_time(dt)
+        self._update_sprites(dt)
+        self._handle_events(dt)
 
-        player.update(dt, self.blocks, self.characters_buffer.sprites())
-
-        self.characters_buffer.update(dt, self.blocks, [player])
-
-        # update collectibles
-        player.pull_collectibles(self.collectibles)
-        self.collectibles.update(dt, self.blocks)
-
-        # perform block destruction
-        events = pygame.event.get(Player.DESTROY_BLOCK)
-        for _ in events:
-            self.destroy_block(player, dt)
-
-        # perform block placement
-        events = pygame.event.get(Player.PLACE_BLOCK)
-        for event in events:
-            if isinstance(event.block, BaseBlock):
-                self.place_block(player, event.block, dt)
-
-        # perform shooting
-        events = pygame.event.get(Player.SHOOT)
-        for event in events:
-            if isinstance(event.bullet, BaseBullet):
-                self.bullets.add(event.bullet)
-
-        for bullet in self.bullets.sprites():
-            bullet.check_collision(self.blocks, self.characters_buffer)  # type: ignore
-
-        self.bullets.update(dt)
-
-    def update_time(self, dt: float):
+    def _update_time(self, dt: float):
         self.age += dt
         self.time_of_day += dt
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
-            self.update_changing_blocks()
+            self.changing_blocks.update()
             if DEBUG:
                 log("Updating ChangingBlock instances")
 
-    def update_changing_blocks(self):
-        self.changing_blocks.update()
+    def _update_sprites(self, dt: float):
+        if self.player is None:
+            raise self.UnloadedObject
+
+        self.player.update(dt, self.blocks, self.characters_buffer.sprites())
+        self.characters_buffer.update(dt, self.blocks, [self.player])
+
+        self.player.pull_collectibles(self.collectibles)
+        self.collectibles.update(dt, self.blocks)
+        self.bullets.update(dt)
+
+    def _handle_events(self, dt: float):
+        for event in pygame.event.get(list(self.event_handlers.keys())):
+            try:
+                self.event_handlers[event.type](event, dt)
+            except KeyError as err:
+                raise NotImplementedError("Missing event handler") from err
 
     @property
     def relative_time(self):
@@ -123,28 +121,44 @@ class BaseWorld(Storable, Loadable, ABC):
     def get_block(self, coords: tuple[int, int]):
         return self.blocks.get_element(coords)
 
-    def destroy_block(self, player: BaseCharacter, dt: float):
-        coords = player.get_cursor_coords()
+    def _handle_block_destruction(self, event: pygame.event.Event, dt: float):
+        if self.player is None:
+            raise self.UnloadedObject
+
+        coords = event.coords
         block = self.get_block(coords)
         if block is None:
             return
-        destroyed = player.perform_block_destruction(block, dt)
-        if not destroyed:
-            return
-        self.blocks.set_element(coords, None)
-        for collectible_class, count in block.collectibles.items():
-            collectible_class: type[BaseCollectible]
-            for _ in range(count):
-                collectible = collectible_class(
-                    coords,
-                    gravity=int(self.gravity.y),
-                    terminal_velocity=self.terminal_velocity,
-                )
-                self.collectibles.add(collectible)
+        block.integrity -= event.power * dt
+        if block.integrity <= 0:
+            self.blocks.set_element(coords, None)
+            for collectible_class, count in block.collectibles.items():
+                collectible_class: type[BaseCollectible]
+                for _ in range(count):
+                    collectible = collectible_class(
+                        coords,
+                        gravity=int(self.gravity.y),
+                        terminal_velocity=self.terminal_velocity,
+                    )
+                    self.collectibles.add(collectible)
 
-    def place_block(self, player: BaseCharacter, block: BaseBlock, _: float):
-        coords = player.get_cursor_coords()
-        self.blocks.set_element(coords, block)
+    def _handle_block_placement(self, event: pygame.event.Event, _: float):
+        if self.player is None:
+            raise self.UnloadedObject
+        if not isinstance(event.block, BaseBlock):
+            return
+        coords = self.player.get_cursor_coords()
+        self.blocks.set_element(coords, event.block)
+
+    def _handle_shooting(self, event: pygame.event.Event, _: float):
+        bullet = Bullet(
+            event.source,
+            event.position,
+            event.velocity,
+            self.blocks,  # type: ignore
+            self.characters_buffer,
+        )
+        self.bullets.add(bullet)
 
 
 class World(BaseWorld):

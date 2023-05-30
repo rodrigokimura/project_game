@@ -2,7 +2,7 @@ import shelve
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from characters import BaseCharacter
+from characters import Player
 from commons import Storable
 from log import log
 from world import BaseWorld
@@ -106,29 +106,29 @@ class PlayerStorage(ShelveStorage):
     def __init__(self) -> None:
         super().__init__("player_db")
 
-    def store(self, player: BaseCharacter) -> bool:
-        if not isinstance(player, BaseCharacter):
+    def store(self, player: Player) -> bool:
+        if not isinstance(player, Player):
             raise ValueError("Cannot store non-players in PlayerStorage")
         player.unload()
         return super().store(player)
 
-    def get(self, _id: UUID) -> BaseCharacter:
+    def get(self, _id: UUID) -> Player:
         player = super().get(_id)
-        if not isinstance(player, BaseCharacter):
+        if not isinstance(player, Player):
             raise ValueError("Cannot store non-players in PlayerStorage")
         player.setup()
         return player
 
-    def get_oldest(self) -> BaseCharacter:
+    def get_oldest(self) -> Player:
         player = super().get_oldest()
-        if not isinstance(player, BaseCharacter):
+        if not isinstance(player, Player):
             raise ValueError("Cannot store non-players in PlayerStorage")
         player.setup()
         return player
 
-    def get_newest(self) -> BaseCharacter:
+    def get_newest(self) -> Player:
         player = super().get_newest()
-        if not isinstance(player, BaseCharacter):
+        if not isinstance(player, Player):
             raise ValueError("Cannot store non-players in PlayerStorage")
         player.setup()
         return player

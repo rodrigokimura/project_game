@@ -98,6 +98,7 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
         *groups: pygame.sprite.Group,
     ) -> None:
         super().__init__(coords, gravity, terminal_velocity, *groups)
+        self.rect: pygame.rect.Rect
         self.coords = coords
         self.rect.x, self.rect.y = (coords[0] * BLOCK_SIZE, coords[1] * BLOCK_SIZE)
         self.integrity: float = self.material.resistance

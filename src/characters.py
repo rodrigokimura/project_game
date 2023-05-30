@@ -23,7 +23,6 @@ from inventory import BaseInventory, Inventory
 from log import log
 from protocols import HasDamage
 from settings import BLOCK_SIZE, DEBUG
-from shooting import Bullet
 from sprites import GravitySprite
 from utils.collision import custom_collision_detection
 from utils.container import Container2d
@@ -119,26 +118,23 @@ class BaseCharacter(
 
     def destroy_block(self, _: float):
         if self.mode in (Mode.EXPLORATION, Mode.CONSTRUCTION):
-            pygame.event.post(pygame.event.Event(self.DESTROY_BLOCK))
+            event = pygame.event.Event(self.DESTROY_BLOCK)
+            event.power = self.destruction_power
+            event.coords = self.get_cursor_coords()
+            pygame.event.post(event)
 
     def place_block(self, _: float):
-        if self.mode != Mode.CONSTRUCTION:
-            return
-        cls = self.inventory.pop()
-        if cls is None:
-            return
-        coords = self.get_cursor_coords()
-        event = pygame.event.Event(self.PLACE_BLOCK)
-
-        block = make_block(cls, coords)  # type: ignore
-        event.block = block
-
-        pygame.event.post(event)
+        if self.mode == Mode.CONSTRUCTION and (cls := self.inventory.pop()):
+            event = pygame.event.Event(self.PLACE_BLOCK)
+            event.block = make_block(cls, self.get_cursor_coords())  # type: ignore
+            pygame.event.post(event)
 
     def shoot(self, _: float):
-        if self.mode not in (Mode.EXPLORATION, Mode.CONSTRUCTION):
+        if self.mode == Mode.COMBAT:
             event = pygame.event.Event(self.SHOOT)
-            event.bullet = Bullet(self, self.position, self.cursor_position * 1)
+            event.source = self
+            event.position = self.position
+            event.velocity = self.cursor_position * 1
             pygame.event.post(event)
 
     def pause(self, _: float):
@@ -176,10 +172,6 @@ class BaseCharacter(
             cursor_position.x // BLOCK_SIZE + 1,
             cursor_position.y // BLOCK_SIZE + 1,
         )
-
-    def perform_block_destruction(self, block: BaseBlock, dt: float):
-        block.integrity -= self.destruction_power * dt
-        return block.integrity <= 0
 
     def pull_collectibles(self, collectibles_group: pygame.sprite.Group):
         # TODO: avoid passing all collectibles

@@ -5,7 +5,7 @@ import pygame
 
 from blocks import draw_cached_images
 from camera import Camera
-from characters import BaseCharacter, Enemy, Player
+from characters import Enemy, Player
 from input.constants import Controller
 from interface import Menu, PlayerMode, PlayerStats, TimeDisplay
 from inventory import Inventory
@@ -43,7 +43,7 @@ class Level:
         self,
         controller: Controller,
         world: Optional[BaseWorld] = None,
-        player: Optional[BaseCharacter] = None,
+        player: Optional[Player] = None,
     ) -> None:
         draw_cached_images()
         self.status = Level.Status.RUNNING
@@ -62,15 +62,16 @@ class Level:
         self,
         controller: Controller,
         world: Optional[BaseWorld],
-        player: Optional[BaseCharacter],
+        player: Optional[Player],
     ):
         self.player = player or Player(
             GRAVITY,
             TERMINAL_VELOCITY,
-            (WORLD_SIZE[0] * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
+            ((WORLD_SIZE[0] - 20) * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
         )
         self.player.set_controller(controller)
         self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
+        self.world.set_player(self.player)
         if world:
             self.world.populate()
 
@@ -96,7 +97,7 @@ class Level:
 
     def run(self, dt: float):
         if self.status == Level.Status.RUNNING:
-            self.world.update(dt, self.player)
+            self.world.update(dt)
             self.camera.update()
             self.check_player_dead()
         elif self.status == Level.Status.PAUSED:
