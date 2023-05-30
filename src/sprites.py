@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
 import pygame
 
@@ -16,11 +15,11 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
         self.acceleration = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity
 
-    def update(self, dt: float, *args: Any, **kwargs: Any) -> None:
-        self.fall(dt, *args, **kwargs)
+    def update(self, dt: float) -> None:
+        self.fall(dt)
 
-    def fall(self, dt: float, *args, **kwargs):
-        if self.should_fall(*args, **kwargs):
+    def fall(self, dt: float):
+        if self.should_fall():
             self.velocity.y += self.acceleration.y * dt
             if abs(self.velocity.y) > self.terminal_velocity:
                 self.velocity.y = self.terminal_velocity * (

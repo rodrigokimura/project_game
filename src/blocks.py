@@ -9,7 +9,6 @@ from materials import BaseMaterial
 from materials import Rock as RockMaterial
 from materials import Wood as WoodMaterial
 from materials import all_materials
-from protocols import HasRect
 from settings import BLOCK_SIZE
 from shooting import load_bullet_images
 from sprites import GravitySprite
@@ -35,6 +34,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         coords: tuple[int, int],
         gravity: int | None = None,
         terminal_velocity: int | None = None,
+        blocks: Container2d[BaseBlock] | None = None,
     ) -> None:
         self.coords = coords
         self.rect = self.collectible_image.get_rect().copy()
@@ -48,22 +48,25 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
             (self.coords[1] + 1) * BLOCK_SIZE - COLLECTIBLE_SIZE // 2 - padding,
         )
         self.pulling_velocity = pygame.math.Vector2()
+        self.blocks = blocks
         super().__init__(gravity or 0, terminal_velocity or 0)
 
-    def should_fall(self, blocks: Container2d[HasRect]):
+    def should_fall(self):
+        if self.blocks is None:
+            return False
         coords = (
             self.rect.centerx // BLOCK_SIZE,
             int((self.rect.bottom + 1) // BLOCK_SIZE),
         )
-        block_below = blocks.get_element(coords)
+        block_below = self.blocks.get_element(coords)
         if block_below is None:
             return True
         self.rect.bottom = block_below.rect.top - 1
         self.velocity.y = min(self.velocity.y, 0)
         return False
 
-    def update(self, dt: int, blocks: Container2d[HasRect]):
-        super().fall(dt, blocks)
+    def update(self, dt: float):
+        super().update(dt)
         self.update_position(dt)
 
     def update_position(self, dt: float):
@@ -95,9 +98,9 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
         coords: tuple[int, int],
         gravity: int | None = None,
         terminal_velocity: int | None = None,
-        *groups: pygame.sprite.Group,
+        blocks: Container2d[BaseBlock] | None = None,
     ) -> None:
-        super().__init__(coords, gravity, terminal_velocity, *groups)
+        super().__init__(coords, gravity, terminal_velocity, blocks)
         self.rect: pygame.rect.Rect
         self.coords = coords
         self.rect.x, self.rect.y = (coords[0] * BLOCK_SIZE, coords[1] * BLOCK_SIZE)
@@ -178,7 +181,7 @@ class ChangingBlock(BaseBlock, metaclass=ABCMeta):
     def max_state(self) -> int:
         ...
 
-    def update(self):
+    def update(self, _: float):
         if self.state <= self.max_state:
             self.counter += 1
             if self.counter >= self.interval and self.state < self.max_state:
@@ -241,7 +244,7 @@ class Tree(ChangingBlock):
 
     @rect.setter
     def rect(self, _):
-        pass
+        ...
 
 
 cached_images: dict[type[BaseBlock], pygame.surface.Surface] = {

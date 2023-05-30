@@ -64,13 +64,16 @@ class Level:
         world: Optional[BaseWorld],
         player: Optional[Player],
     ):
+        self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
         self.player = player or Player(
             GRAVITY,
             TERMINAL_VELOCITY,
             ((WORLD_SIZE[0] - 20) * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
+            self.world.blocks,
         )
         self.player.set_controller(controller)
-        self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
+        if player:
+            self.player.blocks = self.world.blocks
         self.world.set_player(self.player)
         if world:
             self.world.populate()
@@ -79,6 +82,7 @@ class Level:
             GRAVITY,
             TERMINAL_VELOCITY,
             ((WORLD_SIZE[0] - 100) * BLOCK_SIZE // 2, WORLD_SIZE[1] * BLOCK_SIZE // 2),
+            self.world.blocks,
         )
         enemy.set_controller(Controller.AI)
         self.world.characters_buffer.add(enemy)

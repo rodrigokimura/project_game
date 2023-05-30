@@ -39,10 +39,7 @@ class BaseBullet(pygame.sprite.Sprite):
     def image(self):
         return bullet_images[self.__class__]
 
-    def update(
-        self,
-        dt: float,
-    ):
+    def update(self, dt: float):
         self.position += self.velocity * dt
         self.rect.center = (int(self.position.x), int(self.position.y))
         if (self.position - self.initial_position).length() > self.max_range:

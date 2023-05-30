@@ -51,6 +51,7 @@ class BaseWorld(Storable, Loadable, ABC):
 
     def set_player(self, player: Player):
         self.player = player
+        self.players.add(player)
 
     def setup(self):
         self.blocks: Container2d[BaseBlock] = Container2d(WORLD_SIZE)
@@ -63,6 +64,7 @@ class BaseWorld(Storable, Loadable, ABC):
         self.bullets: pygame.sprite.Group[
             BaseBullet  # type: ignore
         ] = pygame.sprite.Group()
+        self.players = pygame.sprite.Group()
         self.populate()
 
     def unload(self):
@@ -71,6 +73,7 @@ class BaseWorld(Storable, Loadable, ABC):
         self.collectibles.empty()
         self.collision_buffer.empty()
         self.characters_buffer.empty()
+        self.players.empty()
         self.bullets.empty()
         self.player = None
 
@@ -84,7 +87,7 @@ class BaseWorld(Storable, Loadable, ABC):
         self.time_of_day += dt
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
-            self.changing_blocks.update()
+            self.changing_blocks.update(dt)
             if DEBUG:
                 log("Updating ChangingBlock instances")
 
@@ -92,11 +95,11 @@ class BaseWorld(Storable, Loadable, ABC):
         if self.player is None:
             raise self.UnloadedObject
 
-        self.player.update(dt, self.blocks, self.characters_buffer.sprites())
-        self.characters_buffer.update(dt, self.blocks, [self.player])
+        self.player.update(dt, self.characters_buffer)
+        self.characters_buffer.update(dt, self.players)
 
         self.player.pull_collectibles(self.collectibles)
-        self.collectibles.update(dt, self.blocks)
+        self.collectibles.update(dt)
         self.bullets.update(dt)
 
     def _handle_events(self, dt: float):
@@ -139,6 +142,7 @@ class BaseWorld(Storable, Loadable, ABC):
                         coords,
                         gravity=int(self.gravity.y),
                         terminal_velocity=self.terminal_velocity,
+                        blocks=self.blocks,
                     )
                     self.collectibles.add(collectible)
 

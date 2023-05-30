@@ -94,8 +94,10 @@ class BaseCharacter(
         gravity: int,
         terminal_velocity: int,
         position: tuple[int, int] | None,
+        blocks: Container2d[BaseBlock],
     ) -> None:
         super().__init__(gravity, terminal_velocity)
+        self.blocks = blocks
         position = position or pygame.display.get_surface().get_rect().center
         self.position = pygame.math.Vector2(*position)
         self.collision_buffer = pygame.sprite.Group()
@@ -213,8 +215,7 @@ class BaseCharacter(
 
     def update_collision_buffer(
         self,
-        blocks: Container2d[BaseBlock],
-        other_collidable_characters: list[BaseCharacter] | None = None,
+        other_collidable_characters: pygame.sprite.Group | None = None,
     ):
         margin = 3
         ref_x, ref_y = self.rect.center
@@ -223,23 +224,22 @@ class BaseCharacter(
         for x, y in product(
             range(ref_x - margin, ref_x + margin), range(ref_y - margin, ref_y + margin)
         ):
-            block = blocks.get_element((x, y))
+            block = self.blocks.get_element((x, y))
             if block is not None:
                 self.collision_buffer.add(block)
 
         if other_collidable_characters:
-            self.collision_buffer.add(*other_collidable_characters)
+            self.collision_buffer.add(other_collidable_characters.sprites())
 
     def update(
         self,
         dt: float,
-        blocks: Container2d[BaseBlock],
-        other_collidable_characters: list[BaseCharacter],
+        other_collidable_characters: pygame.sprite.Group,
         *args,
         **kwargs,
     ):
         super().fall(dt, *args, **kwargs)
-        self.update_collision_buffer(blocks, other_collidable_characters)
+        self.update_collision_buffer(other_collidable_characters)
         self.process_control_requests(dt)
         self.handle_collision()
 
@@ -260,8 +260,9 @@ class Player(BaseCharacter):
         gravity: int,
         terminal_velocity: int,
         position: Optional[tuple[int, int]],
+        blocks: Container2d[BaseBlock],
     ) -> None:
-        super().__init__(gravity, terminal_velocity, position)
+        super().__init__(gravity, terminal_velocity, position, blocks)
         self.inventory = Inventory()
         self.max_health_points = 100
         self.health_points = self.max_health_points
@@ -351,12 +352,11 @@ class Player(BaseCharacter):
     def update(
         self,
         dt: float,
-        blocks: Container2d[BaseBlock],
-        other_collidable_characters: list[BaseCharacter],
+        other_collidable_characters: pygame.sprite.Group,
         *args,
         **kwargs,
     ) -> None:
-        super().update(dt, blocks, other_collidable_characters, *args, **kwargs)
+        super().update(dt, other_collidable_characters, *args, **kwargs)
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
