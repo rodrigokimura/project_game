@@ -119,12 +119,6 @@ class Menu(MenuControllable):
         self.static_image = pygame.surface.Surface(self.display.get_size())
         self.highlighted_item = 0
         self.draw_static()
-        pygame.joystick.init()
-        joysticks = [
-            pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())
-        ]
-        self.joystick = joysticks[0] if joysticks else None
-        self.controller = JoystickMenuController(self)
 
     def draw_static(self):
         padding = 80
