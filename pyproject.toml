@@ -1,5 +1,6 @@
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+filterwarnings = "ignore:pkg_resources is deprecated as an API:DeprecationWarning"
 
 [tool.isort]
 profile = "black"
