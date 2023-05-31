@@ -5,7 +5,7 @@ from uuid import UUID
 from characters import Player
 from commons import Storable
 from log import log
-from world import BaseWorld
+from world import World
 
 
 class BaseStorage(ABC):
@@ -77,27 +77,27 @@ class WorldStorage(ShelveStorage):
     def __init__(self) -> None:
         super().__init__("world_db")
 
-    def store(self, world: BaseWorld) -> bool:
-        if not isinstance(world, BaseWorld):
+    def store(self, world: World) -> bool:
+        if not isinstance(world, World):
             raise ValueError("Cannot store non-worlds in WorldStorage")
         world.unload()
         return super().store(world)
 
-    def get(self, _id: UUID) -> BaseWorld:
+    def get(self, _id: UUID) -> World:
         world = super().get(_id)
-        if not isinstance(world, BaseWorld):
+        if not isinstance(world, World):
             raise ValueError("Cannot store non-worlds in WorldStorage")
         return world
 
-    def get_oldest(self) -> BaseWorld:
+    def get_oldest(self) -> World:
         world = super().get_oldest()
-        if not isinstance(world, BaseWorld):
+        if not isinstance(world, World):
             raise ValueError("Cannot store non-worlds in WorldStorage")
         return world
 
-    def get_newest(self) -> BaseWorld:
+    def get_newest(self) -> World:
         world = super().get_newest()
-        if not isinstance(world, BaseWorld):
+        if not isinstance(world, World):
             raise ValueError("Cannot store non-worlds in WorldStorage")
         return world
 

@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from collections.abc import Callable
 
 import pygame
@@ -21,7 +20,7 @@ from shooting import BaseBullet, Bullet
 from utils.container import Container2d
 
 
-class BaseWorld(Storable, Loadable, ABC):
+class World(Storable, Loadable):
     DAY_DURATION = DAY_DURATION
 
     def __init__(
@@ -45,10 +44,6 @@ class BaseWorld(Storable, Loadable, ABC):
         }
         self.setup()
 
-    @abstractmethod
-    def populate(self):
-        ...
-
     def set_player(self, player: Player):
         self.player = player
         self.players.add(player)
@@ -65,7 +60,7 @@ class BaseWorld(Storable, Loadable, ABC):
             BaseBullet  # type: ignore
         ] = pygame.sprite.Group()
         self.players = pygame.sprite.Group()
-        self.populate()
+        populate_world(self)
         draw_cached_images()
 
     def unload(self):
@@ -166,50 +161,49 @@ class BaseWorld(Storable, Loadable, ABC):
         self.bullets.add(bullet)
 
 
-class World(BaseWorld):
-    def populate(self):
-        for y in range(int(self.size.y)):
-            for x in range(int(self.size.x)):
-                if y > (self.size.y / 2):
-                    block = make_block(Rock, (x, y))
-                    self.blocks.set_element((x, y), block)
-        x, y = WORLD_SIZE
-        x, y = x // 2, y // 2
+def populate_world(world: World):
+    for y in range(int(world.size.y)):
+        for x in range(int(world.size.x)):
+            if y > (world.size.y / 2):
+                block = make_block(Rock, (x, y))
+                world.blocks.set_element((x, y), block)
+    x, y = WORLD_SIZE
+    x, y = x // 2, y // 2
 
-        # trees
-        _y = y
-        _x = x - 5
-        block = make_block(Tree, (_x, _y))
-        self.blocks.set_element((_x, _y), block)
-        self.changing_blocks.add(block)
+    # trees
+    _y = y
+    _x = x - 5
+    block = make_block(Tree, (_x, _y))
+    world.blocks.set_element((_x, _y), block)
+    world.changing_blocks.add(block)
 
-        # spikes
-        _y = y + 1
-        _x = x + 5
-        for i in range(1, 5):
-            _x = x + i
-            block = make_block(Spike, (_x, _y))
-            self.blocks.set_element((_x, _y), block)
+    # spikes
+    _y = y + 1
+    _x = x + 5
+    for i in range(1, 5):
+        _x = x + i
+        block = make_block(Spike, (_x, _y))
+        world.blocks.set_element((_x, _y), block)
 
-        # second level
-        _y = y - 2
-        for i in range(10):
-            _x = x + 10 + i
-            block = make_block(Rock, (_x, _y))
-            self.blocks.set_element((_x, _y), block)
+    # second level
+    _y = y - 2
+    for i in range(10):
+        _x = x + 10 + i
+        block = make_block(Rock, (_x, _y))
+        world.blocks.set_element((_x, _y), block)
 
-        # third level
-        _y = y - 6
-        for i in range(10):
-            _x = x + 15 + i
-            block = make_block(Rock, (_x, _y))
-            self.blocks.set_element((_x, _y), block)
+    # third level
+    _y = y - 6
+    for i in range(10):
+        _x = x + 15 + i
+        block = make_block(Rock, (_x, _y))
+        world.blocks.set_element((_x, _y), block)
 
-        # slope
-        _y = y + 1
-        _x = x + 30
-        for i in range(10):
-            _x += 1
-            _y -= 1
-            block = make_block(Rock, (_x, _y))
-            self.blocks.set_element((_x, _y), block)
+    # slope
+    _y = y + 1
+    _x = x + 30
+    for i in range(10):
+        _x += 1
+        _y -= 1
+        block = make_block(Rock, (_x, _y))
+        world.blocks.set_element((_x, _y), block)

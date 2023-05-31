@@ -2,3 +2,4 @@ db
 *_db
 *_db.*
 .coverage
+htmlcov

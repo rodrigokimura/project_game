@@ -1,5 +1,4 @@
 import enum
-from typing import Optional
 
 import pygame
 
@@ -18,7 +17,7 @@ from settings import (
     WORLD_SIZE,
 )
 from storage import PlayerStorage, WorldStorage
-from world import BaseWorld, World
+from world import World
 
 
 class Level:
@@ -42,8 +41,8 @@ class Level:
     def __init__(
         self,
         controller: Controller,
-        world: Optional[BaseWorld] = None,
-        player: Optional[Player] = None,
+        world: World | None = None,
+        player: Player | None = None,
     ) -> None:
         draw_cached_images()
         self.status = Level.Status.RUNNING
@@ -61,10 +60,12 @@ class Level:
     def setup(
         self,
         controller: Controller,
-        world: Optional[BaseWorld],
-        player: Optional[Player],
+        world: World | None,
+        player: Player | None,
     ):
         self.world = world or World(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
+        if world:
+            self.world.setup()
         self.player = player or Player(
             GRAVITY,
             TERMINAL_VELOCITY,
@@ -76,8 +77,6 @@ class Level:
             self.player.blocks = self.world.blocks
         self.player.enemies_buffer = self.world.characters_buffer
         self.world.set_player(self.player)
-        if world:
-            self.world.populate()
 
         enemy = Enemy(
             GRAVITY,

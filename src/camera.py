@@ -7,7 +7,7 @@ from characters import BaseCharacter, Mode
 from interface import BaseInterfaceElement
 from log import log
 from settings import BLOCK_SIZE, DEBUG
-from world import BaseWorld
+from world import World
 
 
 class Camera:
@@ -15,7 +15,7 @@ class Camera:
         self,
         size: tuple[int, int],
         player: BaseCharacter,
-        world: BaseWorld,
+        world: World,
         interface_elements: Iterable[BaseInterfaceElement] | None = None,
         characters: list[BaseCharacter] | None = None,
     ) -> None:

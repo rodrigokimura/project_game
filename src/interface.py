@@ -12,7 +12,7 @@ from input.controllers import (
     MenuControllable,
 )
 from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
-from world import BaseWorld
+from world import World
 
 
 class ControllerDetection:
@@ -216,7 +216,7 @@ class PlayerMode(BaseInterfaceElement):
 
 
 class TimeDisplay(BaseInterfaceElement):
-    def __init__(self, world: BaseWorld) -> None:
+    def __init__(self, world: World) -> None:
         super().__init__()
         self.world = world
         self.font = pygame.font.Font(DEFAULT_FONT, 20)
