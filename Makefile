@@ -15,7 +15,10 @@ lint:
 	@pipenv run pylint src --output-format=colorized
 
 test:
-	@pipenv run pytest --cov -s
+	@pipenv run pytest --cov -s --cov-report html --cov-report term
+
+cov:
+	@xdg-open htmlcov/index.html
 
 clear:
 	@pipenv run python src/main.py --action clear_db
