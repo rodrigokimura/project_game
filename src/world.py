@@ -66,6 +66,7 @@ class BaseWorld(Storable, Loadable, ABC):
         ] = pygame.sprite.Group()
         self.players = pygame.sprite.Group()
         self.populate()
+        draw_cached_images()
 
     def unload(self):
         self.blocks.empty()
@@ -95,8 +96,8 @@ class BaseWorld(Storable, Loadable, ABC):
         if self.player is None:
             raise self.UnloadedObject
 
-        self.player.update(dt, self.characters_buffer)
-        self.characters_buffer.update(dt, self.players)
+        self.players.update(dt)
+        self.characters_buffer.update(dt)
 
         self.player.pull_collectibles(self.collectibles)
         self.collectibles.update(dt)
@@ -167,32 +168,11 @@ class BaseWorld(Storable, Loadable, ABC):
 
 class World(BaseWorld):
     def populate(self):
-        ...
-
-
-class SimpleWorld(BaseWorld):
-    def __init__(
-        self,
-        size: tuple[int, int],
-        gravity: int,
-        terminal_velocity: int,
-    ) -> None:
-        super().__init__(size, gravity, terminal_velocity)
-        self.visibility_buffer = pygame.sprite.Group()
-        self.collision_buffer = pygame.sprite.Group()
-        draw_cached_images()
-
-    def populate(self):
         for y in range(int(self.size.y)):
             for x in range(int(self.size.x)):
                 if y > (self.size.y / 2):
                     block = make_block(Rock, (x, y))
                     self.blocks.set_element((x, y), block)
-
-
-class SampleWorld(SimpleWorld):
-    def populate(self):
-        super().populate()
         x, y = WORLD_SIZE
         x, y = x // 2, y // 2
 

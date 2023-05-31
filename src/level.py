@@ -18,7 +18,7 @@ from settings import (
     WORLD_SIZE,
 )
 from storage import PlayerStorage, WorldStorage
-from world import BaseWorld, SampleWorld
+from world import BaseWorld, World
 
 
 class Level:
@@ -64,7 +64,7 @@ class Level:
         world: Optional[BaseWorld],
         player: Optional[Player],
     ):
-        self.world = world or SampleWorld(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
+        self.world = world or World(WORLD_SIZE, GRAVITY, TERMINAL_VELOCITY)
         self.player = player or Player(
             GRAVITY,
             TERMINAL_VELOCITY,
@@ -74,6 +74,7 @@ class Level:
         self.player.set_controller(controller)
         if player:
             self.player.blocks = self.world.blocks
+        self.player.enemies_buffer = self.world.characters_buffer
         self.world.set_player(self.player)
         if world:
             self.world.populate()
@@ -85,6 +86,7 @@ class Level:
             self.world.blocks,
         )
         enemy.set_controller(Controller.AI)
+        enemy.enemies_buffer.add(self.player)
         self.world.characters_buffer.add(enemy)
 
         self.camera = Camera(

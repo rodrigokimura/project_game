@@ -101,6 +101,7 @@ class BaseCharacter(
         position = position or pygame.display.get_surface().get_rect().center
         self.position = pygame.math.Vector2(*position)
         self.collision_buffer = pygame.sprite.Group()
+        self.enemies_buffer = pygame.sprite.Group()
 
     @property
     def hp_percentage(self):
@@ -213,10 +214,7 @@ class BaseCharacter(
             int(self.position.y + self.size.y / 2),
         )
 
-    def update_collision_buffer(
-        self,
-        other_collidable_characters: pygame.sprite.Group | None = None,
-    ):
+    def update_collision_buffer(self):
         margin = 3
         ref_x, ref_y = self.rect.center
         ref_x, ref_y = ref_x // BLOCK_SIZE, ref_y // BLOCK_SIZE
@@ -228,18 +226,12 @@ class BaseCharacter(
             if block is not None:
                 self.collision_buffer.add(block)
 
-        if other_collidable_characters:
-            self.collision_buffer.add(other_collidable_characters.sprites())
+        if self.enemies_buffer:
+            self.collision_buffer.add(self.enemies_buffer.sprites())
 
-    def update(
-        self,
-        dt: float,
-        other_collidable_characters: pygame.sprite.Group,
-        *args,
-        **kwargs,
-    ):
-        super().fall(dt, *args, **kwargs)
-        self.update_collision_buffer(other_collidable_characters)
+    def update(self, dt: float):
+        super().update(dt)
+        self.update_collision_buffer()
         self.process_control_requests(dt)
         self.handle_collision()
 
@@ -310,6 +302,7 @@ class Player(BaseCharacter):
         self.mask = None
         self.controller = None
         self.collision_buffer.empty()
+        self.enemies_buffer.empty()
         self.inventory.unload()
 
     def _draw(self):
@@ -349,14 +342,8 @@ class Player(BaseCharacter):
         )
         self.mask = pygame.mask.from_surface(shell)
 
-    def update(
-        self,
-        dt: float,
-        other_collidable_characters: pygame.sprite.Group,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().update(dt, other_collidable_characters, *args, **kwargs)
+    def update(self, dt: float) -> None:
+        super().update(dt)
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
