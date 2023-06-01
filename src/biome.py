@@ -1,0 +1,6 @@
+class Biome:
+    ...
+
+
+def get_biome():
+    ...

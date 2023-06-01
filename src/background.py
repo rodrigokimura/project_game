@@ -1,13 +1,21 @@
 import pygame
+from biome import Biome
 
 from settings import SCREEN_HEIGHT, SCREEN_WIDTH
 
-color_key = (127, 127, 0)
+COLOR_KEY = pygame.color.Color(127, 127, 0)
 
 
 def blank_background():
-    return pygame.surface.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    return pygame.surface.Surface((SCREEN_WIDTH * 2, SCREEN_HEIGHT))
 
+
+class BackgroundResolver:
+    def __init__(self) -> None:
+        self.mountains = Mountains()
+
+    def resolve(self, _: Biome, player_position: pygame.math.Vector2):
+        return self.mountains.get_image(player_position)
 
 class Background:
     distances = {
@@ -18,7 +26,6 @@ class Background:
 
     def get_image(self, position: pygame.math.Vector2):
         delta_x = position.x % SCREEN_WIDTH
-        print(delta_x)
         layers = background_images[self.__class__]
         img = blank_background()
         img.fill((0, 0, 0))
@@ -43,8 +50,8 @@ background_images: dict[type[Background], dict[int, pygame.surface.Surface]] = {
 
 def load_background_images():
     img = background_images[Mountains][1]
-    img.fill(color_key)
-    img.set_colorkey(color_key)
+    img.fill(COLOR_KEY)
+    img.set_colorkey(COLOR_KEY)
     pygame.draw.polygon(
         img,
         pygame.color.Color(50, 50, 50),
@@ -56,8 +63,8 @@ def load_background_images():
     )
 
     img = background_images[Mountains][2]
-    img.fill(color_key)
-    img.set_colorkey(color_key)
+    img.fill(COLOR_KEY)
+    img.set_colorkey(COLOR_KEY)
     pygame.draw.polygon(
         img,
         pygame.color.Color(100, 100, 100),
@@ -69,8 +76,8 @@ def load_background_images():
     )
 
     img = background_images[Mountains][3]
-    img.fill(color_key)
-    img.set_colorkey(color_key)
+    img.fill(COLOR_KEY)
+    img.set_colorkey(COLOR_KEY)
     pygame.draw.polygon(
         img,
         pygame.color.Color(150, 150, 150),

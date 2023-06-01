@@ -66,7 +66,7 @@ class Game:
 
         pygame.display.set_caption(settings.TITLE)
         size = [settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT]
-        flags = pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF
+        flags = pygame.FULLSCREEN | pygame.DOUBLEBUF
         if settings.DEBUG:
             pygame.display.set_mode(size)  # no fullscreen
         else:

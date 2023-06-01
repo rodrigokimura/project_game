@@ -2,6 +2,8 @@ from itertools import product
 from typing import Iterable
 
 import pygame
+from background import BackgroundResolver
+from biome import Biome
 
 from characters import BaseCharacter, Mode
 from interface import BaseInterfaceElement
@@ -28,6 +30,7 @@ class Camera:
         if characters:
             self.characters.add(*characters)
         self.delta = (0, 0)
+        self.background_resolver = BackgroundResolver()
         self._setup()
 
     def _setup(self):
@@ -73,8 +76,7 @@ class Camera:
             self.rect.right = self.world.rect.width
 
     def draw_background(self, position: pygame.math.Vector2):
-        self.display_surface.fill("black")
-        background = self.world.background.get_image(position)
+        background = self.background_resolver.resolve(Biome(), position)
         self.display_surface.blit(background, (0, 0))
 
     def draw_visible_area(self):
