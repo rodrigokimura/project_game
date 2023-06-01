@@ -2,9 +2,9 @@ from itertools import product
 from typing import Iterable
 
 import pygame
+
 from background import BackgroundResolver
 from biome import Biome
-
 from characters import BaseCharacter, Mode
 from interface import BaseInterfaceElement
 from log import log
