@@ -45,8 +45,7 @@ class Camera:
 
         self.delta = rect.x - self.rect.x, rect.y - self.rect.y
 
-        self.display_surface.fill("black")
-
+        self.draw_background(self.player.position)
         self.draw_visible_area()
         self.draw_collectibles()
         self.draw_player()
@@ -72,6 +71,11 @@ class Camera:
         right = self.player.rect.centerx + self.width / 2
         if right >= self.world.rect.width:
             self.rect.right = self.world.rect.width
+
+    def draw_background(self, position: pygame.math.Vector2):
+        self.display_surface.fill("black")
+        background = self.world.background.get_image(position)
+        self.display_surface.blit(background, (0, 0))
 
     def draw_visible_area(self):
         margin = 3

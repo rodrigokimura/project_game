@@ -5,6 +5,7 @@ from abc import ABC, ABCMeta, abstractmethod
 
 import pygame
 
+from background import load_background_images
 from materials import BaseMaterial
 from materials import Rock as RockMaterial
 from materials import Wood as WoodMaterial
@@ -347,6 +348,7 @@ def draw_cached_images():
     load_tree_images()
     load_collectible_images()
     load_bullet_images()
+    load_background_images()
 
 
 def make_block(

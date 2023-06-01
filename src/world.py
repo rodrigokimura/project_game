@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 import pygame
 
+from background import Background, Mountains
 from blocks import (
     BaseBlock,
     BaseCollectible,
@@ -42,6 +43,7 @@ class World(Storable, Loadable):
             Player.PLACE_BLOCK: self._handle_block_placement,
             Player.SHOOT: self._handle_shooting,
         }
+        self._background: Background | None = None
         self.setup()
 
     def set_player(self, player: Player):
@@ -60,6 +62,7 @@ class World(Storable, Loadable):
             BaseBullet  # type: ignore
         ] = pygame.sprite.Group()
         self.players = pygame.sprite.Group()
+        self._background = Mountains()
         populate_world(self)
         draw_cached_images()
 
@@ -116,6 +119,12 @@ class World(Storable, Loadable):
     @property
     def day_part(self):
         return get_day_part(self.time)
+
+    @property
+    def background(self):
+        if self._background is None:
+            raise self.UnloadedObject
+        return self._background
 
     def get_block(self, coords: tuple[int, int]):
         return self.blocks.get_element(coords)

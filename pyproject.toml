@@ -10,6 +10,7 @@ extension-pkg-allow-list = [
   "pygame.math",
   "pygame.rect",
   "pygame.surface",
+  "pygame.color",
 ]
 extension-pkg-whitelist = []
 fail-on = []
