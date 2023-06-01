@@ -24,16 +24,22 @@ class Background:
         2: 0.7,
         3: 0.5,
     }
-    canvas = blank_background(2)
+    canvas = blank_background()
+
+    def __init__(self) -> None:
+        self.color = pygame.color.Color(200, 200, 255)
 
     def get_image(self, position: pygame.math.Vector2):
         delta_x = position.x % SCREEN_WIDTH
         layers = background_images[self.__class__]
         img = self.canvas
-        img.fill((0, 0, 0))
-        img.blit(layers[1], (-self.displacements[1] * delta_x, 0))
-        img.blit(layers[2], (-self.displacements[2] * delta_x, 0))
-        img.blit(layers[3], (-self.displacements[3] * delta_x, 0))
+        img.fill(self.color)
+        img.blits(
+            tuple(
+                (layers[index], (-disp * delta_x, 0))
+                for index, disp in self.displacements.items()
+            )
+        )
         return img
 
 
@@ -51,7 +57,7 @@ background_images: dict[type[Background], dict[int, pygame.surface.Surface]] = {
 
 
 def load_background_images():
-    for index in Background.displacements.keys():
+    for index in Background.displacements:
         background_images[Mountains][index] = make_mountain_background(index)
 
 
@@ -80,7 +86,5 @@ def make_mountain_background(layer: int):
     img2 = blank_background(2)
     img2.fill(COLOR_KEY)
     img2.set_colorkey(COLOR_KEY)
-    for i in range(4):
-        w = i * img.get_width()
-        img2.blit(img, (w, 0))
+    img2.blits(tuple((img, (i * img.get_width(), 0)) for i in range(4)))
     return img2
