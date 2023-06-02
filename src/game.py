@@ -65,12 +65,13 @@ class Game:
         pygame.joystick.init()
 
         pygame.display.set_caption(settings.TITLE)
-        size = [settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT]
-        flags = pygame.FULLSCREEN | pygame.DOUBLEBUF
+        size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
         if settings.DEBUG:
-            pygame.display.set_mode(size)  # no fullscreen
+            flags = pygame.SCALED | pygame.DOUBLEBUF
+            pygame.display.set_mode(size, vsync=1)  # no fullscreen
         else:
-            pygame.display.set_mode(size, flags)
+            flags = pygame.SCALED | pygame.FULLSCREEN | pygame.DOUBLEBUF
+            pygame.display.set_mode(size, flags, vsync=1)
 
         self.clock = pygame.time.Clock()
         self.internal_events = []
