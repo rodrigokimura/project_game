@@ -113,13 +113,13 @@ class Camera:
         if self.player.image is None or self.player.cursor_image is None:
             raise self.player.UnloadedObject
         self.display_surface.blit(self.player.image, self.player.rect.move(self.delta))
-        cursor_position = self.player.rect.move(
+        cursor_rect = self.player.rect.move(
             self.player.cursor_position.x, self.player.cursor_position.y
         )
         if DEBUG:
             self.display_surface.blit(
                 self.player.cursor_image,
-                cursor_position.move(
+                cursor_rect.move(
                     self.player.cursor_image.get_size()[0] / 2,
                     self.player.cursor_image.get_size()[1] / 2,
                 ).move(self.delta),
@@ -140,8 +140,42 @@ class Camera:
                 self.display_surface,
                 InterfaceColor.AIM_ASSIST_LINE,
                 self.player.rect.move(self.delta).center,
-                cursor_position.move(self.delta).center,
+                cursor_rect.move(self.delta).center,
             )
+            angle_deviation = (1 - self.player.shooting_accuracy) * 90
+            _, cursor_angle = self.player.cursor_position.as_polar()
+            aim_max = pygame.math.Vector2.from_polar(
+                (self.player.shooting_range, cursor_angle + angle_deviation)
+            )
+            aim_min = pygame.math.Vector2.from_polar(
+                (self.player.shooting_range, cursor_angle - angle_deviation)
+            )
+            if aim_min and aim_max and self.player.cursor_position:
+                pygame.draw.line(
+                    self.display_surface,
+                    InterfaceColor.AIM_ASSIST_LINE,
+                    self.player.rect.move(self.delta).center,
+                    (
+                        aim_max.x + (self.delta[0] + self.rect.centerx),
+                        aim_max.y + (self.delta[1] + self.rect.centery),
+                    ),
+                )
+                pygame.draw.line(
+                    self.display_surface,
+                    InterfaceColor.AIM_ASSIST_LINE,
+                    self.player.rect.move(self.delta).center,
+                    (
+                        aim_min.x + (self.delta[0] + self.rect.centerx),
+                        aim_min.y + (self.delta[1] + self.rect.centery),
+                    ),
+                )
+                pygame.draw.circle(
+                    self.display_surface,
+                    InterfaceColor.AIM_ASSIST_LINE,
+                    self.player.rect.move(self.delta).center,
+                    self.player.shooting_range,
+                    1,
+                )
 
     def _draw_characters(self):
         width, height = 50, 5

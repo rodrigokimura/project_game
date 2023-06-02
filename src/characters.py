@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 import math
+import random
 from abc import ABC, abstractmethod
 from itertools import product
 from typing import Optional
@@ -24,6 +25,7 @@ from inventory import BaseInventory, Inventory
 from log import log
 from protocols import HasDamage
 from settings import BLOCK_SIZE, DEBUG
+from shooting import Bullet
 from sprites import GravitySprite
 from utils.collision import custom_collision_detection
 from utils.container import Container2d
@@ -62,6 +64,11 @@ class BaseCharacter(
 
     max_health_points: int
     health_points: int
+
+    shooting_damage: int = 10
+    shooting_speed: int = 100
+    shooting_accuracy: float = 0.9
+    shooting_range: int = 500
 
     # unpickleble attrs
     # must be set to None before pickling
@@ -134,12 +141,28 @@ class BaseCharacter(
             pygame.event.post(event)
 
     def shoot(self, _: float):
-        if self.mode == Mode.COMBAT:
-            event = pygame.event.Event(self.SHOOT)
-            event.source = self
-            event.position = self.position
-            event.velocity = self.cursor_position * 1
-            pygame.event.post(event)
+        if self.mode != Mode.COMBAT:
+            return
+        if not self.cursor_position:
+            return
+        _, shooting_angle = self.cursor_position.as_polar()
+        angle_deviation = (1 - self.shooting_accuracy) * 90
+        shooting_angle += (random.random() * 2 - 1) * angle_deviation
+        shooting_velocity = pygame.math.Vector2.from_polar(
+            (self.shooting_speed, shooting_angle)
+        )
+        if shooting_velocity is None:
+            return
+
+        event = pygame.event.Event(self.SHOOT)
+        event.bullet = Bullet(
+            source=self,
+            position=self.position,
+            velocity=shooting_velocity,
+            damage=self.shooting_damage,
+            max_range=self.shooting_range,
+        )
+        pygame.event.post(event)
 
     def pause(self, _: float):
         pygame.event.post(pygame.event.Event(self.PAUSE))

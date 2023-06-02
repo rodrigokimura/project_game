@@ -16,8 +16,8 @@ class BaseBullet(pygame.sprite.Sprite):
         source: Any,
         position: pygame.math.Vector2,
         velocity: pygame.math.Vector2,
-        blocks: Container2d[HasRect],
-        characters: pygame.sprite.Group,
+        damage: int,
+        max_range: int,
     ) -> None:
         self.size = (3, 3)
         self.source = source
@@ -25,11 +25,11 @@ class BaseBullet(pygame.sprite.Sprite):
         self.position = self.initial_position.copy()
         self.rect = pygame.rect.Rect(0, 0, *self.size)
         self.velocity = velocity
-        self.max_range = 500
-        self.damage = 10
+        self.max_range = max_range
+        self.damage = damage
         self.shatter_on_collision = True
-        self.blocks = blocks
-        self.characters = characters
+        self.blocks: Container2d[HasRect] | None = None
+        self.characters = pygame.sprite.Group()
         self.setup()
         super().__init__()
 
@@ -41,6 +41,8 @@ class BaseBullet(pygame.sprite.Sprite):
         return bullet_images[self.__class__]
 
     def update(self, dt: float):
+        if self.blocks is None:
+            return
         self.position += self.velocity * dt
         self.rect.center = (int(self.position.x), int(self.position.y))
         if (self.position - self.initial_position).length() > self.max_range:
@@ -70,6 +72,12 @@ class BaseBullet(pygame.sprite.Sprite):
             character.take_damage(self)
             if self.shatter_on_collision:
                 self.kill()
+
+    def add_world_context(
+        self, blocks: Container2d[HasRect], characters: pygame.sprite.Group
+    ):
+        self.blocks = blocks
+        self.characters = characters
 
 
 class Bullet(BaseBullet):

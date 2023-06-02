@@ -17,7 +17,7 @@ from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
-from shooting import BaseBullet, Bullet
+from shooting import BaseBullet
 from utils.container import Container2d
 
 
@@ -160,13 +160,8 @@ class World(Storable, Loadable):
         self.blocks.set_element(coords, event.block)
 
     def _handle_shooting(self, event: pygame.event.Event, _: float):
-        bullet = Bullet(
-            event.source,
-            event.position,
-            event.velocity,
-            self.blocks,  # type: ignore
-            self.characters_buffer,
-        )
+        bullet = event.bullet
+        bullet.add_world_context(self.blocks, self.characters_buffer)
         self.bullets.add(bullet)
 
 
