@@ -80,7 +80,7 @@ class BaseCharacter(
     inventory: BaseInventory
 
     linear_velocity = 16
-    jump_scalar_velocity = 15
+    jump_scalar_velocity = 20
     dash_scalar_velocity = 60
 
     cursor_position = pygame.math.Vector2(0, 0)

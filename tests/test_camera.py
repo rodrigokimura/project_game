@@ -52,7 +52,7 @@ class TestCamera:
         player.rect.center = (50, 50)
         camera = Camera((20, 20), player, world)
 
-        camera.update_rect()
+        camera._update_rect()
 
         mocked_setup.assert_called()
         assert camera.rect.center == (50, 50)
@@ -63,7 +63,7 @@ class TestCamera:
         player.rect.center = (5, 5)
         camera = Camera((20, 20), player, world)
 
-        camera.update_rect()
+        camera._update_rect()
 
         mocked_setup.assert_called()
         assert camera.rect.topleft == (0, 0)
@@ -74,7 +74,7 @@ class TestCamera:
         player.rect.center = (90, 5)
         camera = Camera((20, 20), player, world)
 
-        camera.update_rect()
+        camera._update_rect()
 
         mocked_setup.assert_called()
         assert camera.rect.top == 0
@@ -86,7 +86,7 @@ class TestCamera:
         player.rect.center = (5, 90)
         camera = Camera((20, 20), player, world)
 
-        camera.update_rect()
+        camera._update_rect()
 
         mocked_setup.assert_called()
         assert camera.rect.bottom == 100
@@ -98,7 +98,7 @@ class TestCamera:
         player.rect.center = (90, 90)
         camera = Camera((20, 20), player, world)
 
-        camera.update_rect()
+        camera._update_rect()
 
         mocked_setup.assert_called()
         assert camera.rect.bottom == 100

@@ -42,23 +42,21 @@ class Camera:
         self.display_surface = pygame.display.get_surface()
 
     def update(self):
-        self.update_rect()
+        self._update_rect()
 
         rect = self.display_surface.get_rect()
 
         self.delta = rect.x - self.rect.x, rect.y - self.rect.y
 
-        self.draw_background(self.player.position)
-        self.draw_visible_area()
-        self.draw_collectibles()
-        self.draw_player()
-        self.draw_characters()
-        self.draw_bullets()
+        self._draw_background(self.player.position)
+        self._draw_visible_area()
+        self._draw_collectibles()
+        self._draw_player()
+        self._draw_characters()
+        self._draw_bullets()
+        self._draw_interface_elements()
 
-        for element in self.interface_elements:
-            element.draw()
-
-    def update_rect(self):
+    def _update_rect(self):
         self.rect.center = self.player.rect.center
 
         top = self.player.rect.centery - self.height / 2
@@ -75,11 +73,11 @@ class Camera:
         if right >= self.world.rect.width:
             self.rect.right = self.world.rect.width
 
-    def draw_background(self, position: pygame.math.Vector2):
+    def _draw_background(self, position: pygame.math.Vector2):
         background = self.background_resolver.resolve(Biome(), position)
         self.display_surface.blit(background, (0, 0))
 
-    def draw_visible_area(self):
+    def _draw_visible_area(self):
         margin = 3
 
         for coords in product(
@@ -96,7 +94,7 @@ class Camera:
             if block is not None:
                 self.display_surface.blit(block.image, block.rect.move(self.delta))
 
-    def draw_collectibles(self):
+    def _draw_collectibles(self):
         self.display_surface.blits(
             tuple(
                 (spr.collectible_image, spr.rect.move(self.delta))
@@ -104,7 +102,7 @@ class Camera:
             )
         )
 
-    def draw_player(self):
+    def _draw_player(self):
         if self.player.image is None or self.player.cursor_image is None:
             raise self.player.UnloadedObject
         self.display_surface.blit(self.player.image, self.player.rect.move(self.delta))
@@ -138,7 +136,7 @@ class Camera:
                 cursor_position.move(self.delta).center,
             )
 
-    def draw_characters(self):
+    def _draw_characters(self):
         width, height = 50, 5
         for character in self.characters.sprites():
             if character.image is None:
@@ -152,10 +150,14 @@ class Camera:
             pygame.draw.rect(self.display_surface, "red", hp_bar)
             pygame.draw.rect(self.display_surface, "white", hp_bar_border, 1)
 
-    def draw_bullets(self):
+    def _draw_bullets(self):
         self.display_surface.blits(
             tuple(
                 (spr.image, spr.rect.move(self.delta))
                 for spr in self.world.bullets.sprites()
             )
         )
+
+    def _draw_interface_elements(self):
+        for element in self.interface_elements:
+            element.draw()
