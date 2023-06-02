@@ -4,6 +4,8 @@ from typing import Any
 import pygame
 
 from characters import BaseCharacter
+from colors import Color, InterfaceColor
+from draw import FillBorderColors, draw_bordered_rect
 from input.constants import Controller
 from input.controllers import (
     BaseController,
@@ -32,10 +34,12 @@ class ControllerDetection:
         self.detect_controller()
 
     def draw_static(self):
-        self.surface.fill("black")
+        self.surface.fill(InterfaceColor.MENU_BACKGROUND)
 
     def draw(self, _: float):
-        text = self.font.render("Press any key/button", False, "white")
+        text = self.font.render(
+            "Press any key/button", False, InterfaceColor.PRIMARY_FONT
+        )
         self.surface.blit(text, (0, 0))
         self.display.blit(self.surface, self.display.get_rect())
 
@@ -85,19 +89,22 @@ class Menu(MenuControllable):
 
             font = pygame.font.Font(MENU_FONT, 100)
             font_padding = 20
-            text_surf = font.render(text, False, "blue")
+            text_surf = font.render(text, False, InterfaceColor.PRIMARY_FONT)
             x, y = text_surf.get_size()
             padded_text_surf = pygame.surface.Surface(
                 (x + 2 * font_padding, y + 2 * font_padding)
             ).convert_alpha()
-            padded_text_surf.fill((0, 0, 0, 0))
+            padded_text_surf.fill(Color.TRANSPARENT)
             padded_text_surf.blit(text_surf, (font_padding, font_padding))
 
             self.original_image = padded_text_surf
             self.image = self.original_image.copy()
             self.highlighted_image = self.original_image.copy()
             pygame.draw.rect(
-                self.highlighted_image, "blue", self.highlighted_image.get_rect(), 1
+                self.highlighted_image,
+                InterfaceColor.MENU_HIGHLIGHT,
+                self.highlighted_image.get_rect(),
+                1,
             )
             self.rect = self.image.get_rect()
             self.enabled = True
@@ -128,7 +135,13 @@ class Menu(MenuControllable):
         width, height = width - 2 * padding, height - 2 * padding
         menu_rect = pygame.rect.Rect(padding, padding, width, height)
 
-        pygame.draw.rect(self.static_image, "blue", menu_rect, 1)
+        draw_bordered_rect(
+            self.static_image,
+            menu_rect,
+            FillBorderColors(
+                InterfaceColor.MENU_BACKGROUND, InterfaceColor.MENU_BORDER
+            ),
+        )
 
         for i, item in enumerate(self.all_items):
             if i == self.highlighted_item:
@@ -179,6 +192,7 @@ class Menu(MenuControllable):
 
 class BaseInterfaceElement(ABC):
     line_positions: tuple[int, int]
+    font_color: InterfaceColor = InterfaceColor.PRIMARY_FONT
 
     @abstractmethod
     def draw(self):
@@ -191,8 +205,8 @@ class PlayerStats(BaseInterfaceElement):
         self.player = player
         self.line_positions = (10, 10)
         self.width, self.height = 100, 10
-        self.fill_color = "red"
-        self.border_color = "white"
+        self.fill_color = InterfaceColor.HEALTH_POINTS
+        self.border_color = InterfaceColor.BORDER
         self.hp_bar = pygame.rect.Rect(*self.line_positions, self.width, self.height)
         self.hp_bar_fill = self.hp_bar.copy()
 
@@ -211,7 +225,7 @@ class PlayerMode(BaseInterfaceElement):
 
     def draw(self):
         display_surface = pygame.display.get_surface()
-        font_surf = self.font.render(self.player.mode.name, False, "white")
+        font_surf = self.font.render(self.player.mode.name, False, self.font_color)
         display_surface.blit(font_surf, (10, 70))
 
 
@@ -223,7 +237,9 @@ class TimeDisplay(BaseInterfaceElement):
 
     def draw(self):
         display_surface = pygame.display.get_surface()
-        surf = self.font.render(self.world.time.strftime("%H:%M"), False, "white")
+        surf = self.font.render(
+            self.world.time.strftime("%H:%M"), False, self.font_color
+        )
         display_surface.blit(surf, (10, 25))
-        surf = self.font.render(self.world.day_part.value, False, "white")
+        surf = self.font.render(self.world.day_part.value, False, self.font_color)
         display_surface.blit(surf, (10, 45))

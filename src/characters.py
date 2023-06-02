@@ -9,6 +9,7 @@ from typing import Optional
 import pygame
 
 from blocks import BaseBlock, BaseCollectible, BaseHazard, make_block
+from colors import Color
 from commons import Damageable, Loadable, Storable
 from input.constants import Controller
 from input.controllers import (
@@ -309,12 +310,14 @@ class Player(BaseCharacter):
         size = self.size.x
         sq_size = size // 2
         self.image = pygame.surface.Surface((size, size)).convert_alpha()
-        self.image.fill(pygame.Color(0, 0, 0, 0))
-        pygame.draw.circle(self.image, "green", self.image.get_rect().center, size // 2)
+        self.image.fill(Color.TRANSPARENT)
+        pygame.draw.circle(
+            self.image, Color.PLAYER_PRIMARY, self.image.get_rect().center, size // 2
+        )
         rect = pygame.Rect(
             (size - sq_size) // 2, (size - sq_size) // 2, sq_size, sq_size
         )
-        pygame.draw.rect(self.image, "red", rect, 0)
+        pygame.draw.rect(self.image, Color.PLAYER_SECONDARY, rect, 0)
         self.original_image = self.image.copy()
 
         # draw cursor image
@@ -323,10 +326,10 @@ class Player(BaseCharacter):
         ).convert_alpha()
         rect = self.cursor_image.get_rect()
         rect.center = self.image.get_rect().center
-        self.cursor_image.fill(pygame.Color(0, 0, 0, 0))
+        self.cursor_image.fill(Color.TRANSPARENT)
         pygame.draw.circle(
             self.cursor_image,
-            "orange",
+            Color.CURSOR,
             self.cursor_image.get_rect().center,
             BLOCK_SIZE // 4,
             1,
@@ -334,11 +337,11 @@ class Player(BaseCharacter):
 
     def _create_collision_mask(self):
         shell = pygame.surface.Surface(self.size).convert_alpha()
-        shell.fill(pygame.Color(0, 0, 0, 0))
+        shell.fill(Color.TRANSPARENT)
         if self.image is None:
             raise Loadable.UnloadedObject
         pygame.draw.circle(
-            shell, "green", self.image.get_rect().center, self.size.x // 2, width=2
+            shell, Color.PURE_WHITE, self.image.get_rect().center, self.size.x // 2
         )
         self.mask = pygame.mask.from_surface(shell)
 
@@ -485,16 +488,16 @@ class Enemy(Player):
         self.image = pygame.surface.Surface((size, size)).convert_alpha()
         self.image.fill(pygame.Color(0, 0, 0, 0))
         pygame.draw.circle(
-            self.image, "purple", self.image.get_rect().center, size // 2
+            self.image, Color.ENEMY_PRIMARY, self.image.get_rect().center, size // 2
         )
         rect = pygame.Rect(
             (size - sq_size) // 2, (size - sq_size) // 2, sq_size, sq_size
         )
-        pygame.draw.rect(self.image, "red", rect, 0)
+        pygame.draw.rect(self.image, Color.ENEMY_SECONDARY, rect, 0)
         self.original_image = self.image.copy()
 
         # draw cursor image
         self.cursor_image = pygame.surface.Surface(
             (BLOCK_SIZE, BLOCK_SIZE)
         ).convert_alpha()
-        self.cursor_image.fill(pygame.Color(0, 0, 0, 0))
+        self.cursor_image.fill(Color.TRANSPARENT)

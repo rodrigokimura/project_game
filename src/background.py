@@ -1,6 +1,7 @@
 import pygame
 
 from biome import Biome
+from colors import Color
 from settings import SCREEN_HEIGHT, SCREEN_WIDTH
 
 COLOR_KEY = pygame.color.Color(127, 127, 0)
@@ -19,15 +20,13 @@ class BackgroundResolver:
 
 
 class Background:
+    color: Color
     displacements = {
         1: 0.8,
         2: 0.7,
         3: 0.5,
     }
     canvas = blank_background()
-
-    def __init__(self) -> None:
-        self.color = pygame.color.Color(200, 200, 255)
 
     def get_image(self, position: pygame.math.Vector2):
         delta_x = position.x % SCREEN_WIDTH
@@ -44,7 +43,8 @@ class Background:
 
 
 class Mountains(Background):
-    ...
+    def __init__(self) -> None:
+        self.color = Color.SKY
 
 
 background_images: dict[type[Background], dict[int, pygame.surface.Surface]] = {
@@ -63,9 +63,9 @@ def load_background_images():
 
 def make_mountain_background(layer: int):
     colors = {
-        1: pygame.color.Color(50, 50, 50),
-        2: pygame.color.Color(100, 100, 100),
-        3: pygame.color.Color(150, 150, 150),
+        1: Color.MOUNTAIN_1,
+        2: Color.MOUNTAIN_2,
+        3: Color.MOUNTAIN_3,
     }
     img = blank_background()
     width, height = img.get_size()

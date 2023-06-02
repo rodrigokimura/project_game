@@ -6,6 +6,7 @@ import pygame
 from background import BackgroundResolver
 from biome import Biome
 from characters import BaseCharacter, Mode
+from colors import Color, InterfaceColor
 from interface import BaseInterfaceElement
 from log import log
 from settings import BLOCK_SIZE, DEBUG
@@ -37,8 +38,14 @@ class Camera:
         self.highlight = pygame.surface.Surface(
             (BLOCK_SIZE, BLOCK_SIZE)
         ).convert_alpha()
-        self.highlight.fill((0, 0, 0, 0))
-        pygame.draw.rect(self.highlight, "red", (0, 0, BLOCK_SIZE, BLOCK_SIZE), 2, 4)
+        self.highlight.fill(Color.TRANSPARENT)
+        pygame.draw.rect(
+            self.highlight,
+            InterfaceColor.BLOCK_CURSOR,
+            (0, 0, BLOCK_SIZE, BLOCK_SIZE),
+            2,
+            4,
+        )
         self.display_surface = pygame.display.get_surface()
 
     def update(self):
@@ -131,7 +138,7 @@ class Camera:
         elif self.player.mode == Mode.COMBAT:
             pygame.draw.line(
                 self.display_surface,
-                "red",
+                InterfaceColor.AIM_ASSIST_LINE,
                 self.player.rect.move(self.delta).center,
                 cursor_position.move(self.delta).center,
             )
@@ -147,8 +154,13 @@ class Camera:
             hp_bar.size = width, height
             hp_bar_border = hp_bar.copy()
             hp_bar.width = int(hp_bar.width * character.hp_percentage)
-            pygame.draw.rect(self.display_surface, "red", hp_bar)
-            pygame.draw.rect(self.display_surface, "white", hp_bar_border, 1)
+            pygame.draw.rect(self.display_surface, InterfaceColor.HEALTH_POINTS, hp_bar)
+            pygame.draw.rect(
+                self.display_surface,
+                InterfaceColor.HEALTH_POINTS_BAR_BORDER,
+                hp_bar_border,
+                1,
+            )
 
     def _draw_bullets(self):
         self.display_surface.blits(

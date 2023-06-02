@@ -6,7 +6,8 @@ from abc import ABC, ABCMeta, abstractmethod
 import pygame
 
 from background import load_background_images
-from draw import FillBorderColors, draw_bordered_rect
+from colors import Color
+from draw import BorderOptions, FillBorderColors, draw_bordered_rect
 from materials import BaseMaterial
 from materials import Rock as RockMaterial
 from materials import Wood as WoodMaterial
@@ -154,7 +155,7 @@ class Spike(BaseHazard):
 
     @property
     def collectibles(self) -> dict[type[BaseCollectible], int]:
-        return {Rock: 4}
+        return {Spike: 4}
 
     @property
     def block(self) -> BaseBlock:
@@ -265,15 +266,15 @@ collectible_images: dict[type[BaseCollectible], pygame.surface.Surface] = {
 
 
 def get_tree_image(state: int, surf: pygame.surface.Surface):
-    leaf_fill_color = pygame.color.Color("#2a9d8f")
-    leaf_border_color = pygame.color.Color("#344e41")
-    trunk_fill_color = pygame.color.Color("#d4a373")
-    trunk_border_color = pygame.color.Color("#bc6c25")
+    leaf_fill_color = Color.LEAF_FILL
+    leaf_border_color = Color.LEAF_BORDER
+    trunk_fill_color = Color.TRUNK_FILL
+    trunk_border_color = Color.MOUNTAIN_1
     leaf_colors = FillBorderColors(leaf_fill_color, leaf_border_color)
     trunk_colors = FillBorderColors(trunk_fill_color, trunk_border_color)
     if state == 0:
         rect = pygame.rect.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
-        draw_bordered_rect(surf, rect, leaf_colors, 1)
+        draw_bordered_rect(surf, rect, leaf_colors)
     elif state == 1:
         rect = pygame.rect.Rect(
             BLOCK_SIZE // 4, BLOCK_SIZE, BLOCK_SIZE // 2, BLOCK_SIZE
@@ -282,11 +283,10 @@ def get_tree_image(state: int, surf: pygame.surface.Surface):
             surf,
             rect,
             trunk_colors,
-            1,
-            (False, True, False, True),
+            BorderOptions(1, 0, (False, True, False, True)),
         )
         rect = pygame.rect.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
-        draw_bordered_rect(surf, rect, leaf_colors, 1)
+        draw_bordered_rect(surf, rect, leaf_colors)
     elif state == 2:
         rect = pygame.rect.Rect(
             BLOCK_SIZE // 4, BLOCK_SIZE, BLOCK_SIZE // 2, 2 * BLOCK_SIZE
@@ -295,44 +295,40 @@ def get_tree_image(state: int, surf: pygame.surface.Surface):
             surf,
             rect,
             trunk_colors,
-            1,
-            (False, True, False, True),
+            BorderOptions(1, 0, (False, True, False, True)),
         )
         rect = pygame.rect.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
-        draw_bordered_rect(surf, rect, leaf_colors, 1)
+        draw_bordered_rect(surf, rect, leaf_colors)
     elif state == 3:
         rect = pygame.rect.Rect(BLOCK_SIZE, 3 * BLOCK_SIZE, BLOCK_SIZE, 2 * BLOCK_SIZE)
         draw_bordered_rect(
             surf,
             rect,
             trunk_colors,
-            1,
-            (False, True, False, True),
+            BorderOptions(1, 0, (False, True, False, True)),
         )
         rect = pygame.rect.Rect(0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE)
-        draw_bordered_rect(surf, rect, leaf_colors, 1)
+        draw_bordered_rect(surf, rect, leaf_colors)
     elif state == 4:
         rect = pygame.rect.Rect(BLOCK_SIZE, 3 * BLOCK_SIZE, BLOCK_SIZE, 3 * BLOCK_SIZE)
         draw_bordered_rect(
             surf,
             rect,
             trunk_colors,
-            1,
-            (False, True, False, True),
+            BorderOptions(1, 0, (False, True, False, True)),
         )
         rect = pygame.rect.Rect(0, 0, 3 * BLOCK_SIZE, 3 * BLOCK_SIZE)
-        draw_bordered_rect(surf, rect, leaf_colors, 1)
+        draw_bordered_rect(surf, rect, leaf_colors)
     elif state == 5:
         rect = pygame.rect.Rect(BLOCK_SIZE, 4 * BLOCK_SIZE, BLOCK_SIZE, 3 * BLOCK_SIZE)
         draw_bordered_rect(
             surf,
             rect,
             trunk_colors,
-            1,
-            (False, True, False, True),
+            BorderOptions(1, 0, (False, True, False, True)),
         )
         rect = pygame.rect.Rect(0, 0, 3 * BLOCK_SIZE, 4 * BLOCK_SIZE)
-        draw_bordered_rect(surf, rect, leaf_colors, 1)
+        draw_bordered_rect(surf, rect, leaf_colors)
     elif state == 6:
         rect = pygame.rect.Rect(
             2 * BLOCK_SIZE, 5 * BLOCK_SIZE, BLOCK_SIZE, 4 * BLOCK_SIZE
@@ -341,43 +337,72 @@ def get_tree_image(state: int, surf: pygame.surface.Surface):
             surf,
             rect,
             trunk_colors,
-            1,
-            (False, True, False, True),
+            BorderOptions(1, 0, (False, True, False, True)),
         )
         rect = pygame.rect.Rect(0, 0, 5 * BLOCK_SIZE, 5 * BLOCK_SIZE)
-        draw_bordered_rect(surf, rect, leaf_colors, 1)
+        draw_bordered_rect(surf, rect, leaf_colors)
     return surf
 
 
 def load_collectible_images():
     img = collectible_images[Rock]
-    pygame.draw.rect(img, "blue", img.get_rect(), 1, 2)
+    draw_bordered_rect(
+        img,
+        img.get_rect(),
+        FillBorderColors(Color.ROCK_FILL, Color.ROCK_BORDER),
+        BorderOptions(width=2),
+    )
 
     img = collectible_images[Spike]
-    pygame.draw.rect(img, "blue", img.get_rect(), 1, 2)
+    img = img.convert_alpha()
+    img.fill(Color.TRANSPARENT)
+    rect = img.get_rect()
+    pygame.draw.polygon(
+        img,
+        Color.ROCK_FILL,
+        (rect.bottomleft, (rect.centerx, rect.top), rect.bottomright),
+    )
+    collectible_images[Spike] = img
 
     img = collectible_images[Wood]
-    pygame.draw.rect(img, "yellow", img.get_rect(), 1, 2)
+    draw_bordered_rect(
+        img,
+        img.get_rect(),
+        FillBorderColors(Color.TRUNK_FILL, Color.TRUNK_BORDER),
+        BorderOptions(width=2),
+    )
 
 
 def load_tree_images():
     for index, surf in tree_images.items():
         surf = surf.convert_alpha()
-        surf.fill((0, 0, 0, 0))
+        surf.fill(Color.TRANSPARENT)
         tree_images[index] = get_tree_image(index, surf)
 
 
 def draw_cached_images():
     img = cached_images[Rock]
-    pygame.draw.rect(img, "blue", img.get_rect(), 1)
+    draw_bordered_rect(
+        img, img.get_rect(), FillBorderColors(Color.ROCK_FILL, Color.ROCK_BORDER)
+    )
     cached_masks[Rock] = pygame.mask.from_surface(img)
 
     img = cached_images[Spike]
-    pygame.draw.rect(img, "white", img.get_rect(), 1)
+    img = img.convert_alpha()
+    img.fill(Color.TRANSPARENT)
+    rect = img.get_rect()
+    pygame.draw.polygon(
+        img,
+        Color.ROCK_FILL,
+        (rect.bottomleft, (rect.centerx, rect.top), rect.bottomright),
+    )
+    cached_images[Spike] = img
     cached_masks[Spike] = pygame.mask.from_surface(img)
 
     img = cached_images[Wood]
-    pygame.draw.rect(img, "white", img.get_rect(), 1)
+    draw_bordered_rect(
+        img, img.get_rect(), FillBorderColors(Color.TRUNK_FILL, Color.TRUNK_BORDER)
+    )
     cached_masks[Wood] = pygame.mask.from_surface(img)
 
     load_tree_images()

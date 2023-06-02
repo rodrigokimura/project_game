@@ -4,7 +4,9 @@ from itertools import product
 import pygame
 
 from blocks import BaseCollectible, collectible_images
+from colors import Color, InterfaceColor
 from commons import Loadable
+from draw import FillBorderColors, draw_bordered_rect
 from input.constants import Controller
 from input.controllers import (
     BaseController,
@@ -137,7 +139,7 @@ class Inventory(BaseInventory, Loadable):
         self._static_image = pygame.surface.Surface(
             (SCREEN_WIDTH, SCREEN_HEIGHT)
         ).convert_alpha()
-        self._static_image.fill((0, 0, 0, 0))
+        self._static_image.fill(Color.TRANSPARENT)
 
     def _draw_boundary(self):
         if self._static_image is None:
@@ -149,8 +151,13 @@ class Inventory(BaseInventory, Loadable):
             SCREEN_WIDTH - 2 * self.padding,
             SCREEN_HEIGHT - 2 * self.padding,
         )
-        pygame.draw.rect(self._static_image, "black", bounding_box)
-        pygame.draw.rect(self._static_image, "blue", bounding_box, 1)
+        draw_bordered_rect(
+            self._static_image,
+            bounding_box,
+            FillBorderColors(
+                InterfaceColor.INVENTORY_BACKROUND, InterfaceColor.INVENTORY_ITEM_BORDER
+            ),
+        )
 
     def _draw_slots(self):
         if self._static_image is None:
@@ -158,7 +165,12 @@ class Inventory(BaseInventory, Loadable):
 
         for x, y in product(range(self.grid[0]), range(self.grid[1])):
             self.slot_rect.topleft = self._get_slot_rel_coords((x, y))
-            pygame.draw.rect(self._static_image, "blue", self.slot_rect, 1)
+            pygame.draw.rect(
+                self._static_image,
+                InterfaceColor.INVENTORY_ITEM_BORDER,
+                self.slot_rect,
+                1,
+            )
 
     def unload(self):
         self._static_image = None
@@ -197,7 +209,7 @@ class Inventory(BaseInventory, Loadable):
                 cls, count = collectibles[i]
                 img = collectible_images[cls]
                 self.image.blit(img, self._get_slot_rel_coords((x, y), (0, 0)))
-                txt = self.font.render(f"x {count}", False, "white")
+                txt = self.font.render(f"x {count}", False, InterfaceColor.PRIMARY_FONT)
                 self.image.blit(txt, self._get_slot_rel_coords((x, y), (-10, -10)))
 
     def _get_slot_rel_coords(
@@ -219,5 +231,5 @@ class Inventory(BaseInventory, Loadable):
         i = y * self.grid[0] + x
         if i < len(collectibles):
             cls, _ = collectibles[i]
-            txt = self.font.render(cls.__name__, False, "white")
+            txt = self.font.render(cls.__name__, False, InterfaceColor.PRIMARY_FONT)
             self.image.blit(txt, self._get_slot_rel_coords((x, y), (10, 10)))

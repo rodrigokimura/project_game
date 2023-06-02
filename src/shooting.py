@@ -2,6 +2,7 @@ from typing import Any
 
 import pygame
 
+from colors import Color
 from commons import Damageable
 from protocols import HasRect
 from settings import BLOCK_SIZE
@@ -82,4 +83,4 @@ bullet_images: dict[type[BaseBullet], pygame.surface.Surface] = {
 
 def load_bullet_images():
     img = bullet_images[Bullet]
-    pygame.draw.rect(img, "red", img.get_rect(), 2)
+    pygame.draw.rect(img, Color.BULLET, img.get_rect(), 2)
