@@ -2,6 +2,7 @@ from itertools import product
 from typing import Iterable
 
 import pygame
+from numpy import divide
 
 from background import BackgroundResolver
 from biome import Biome
@@ -24,13 +25,13 @@ class Camera:
     ) -> None:
         self.width, self.height = size
         self.rect = pygame.rect.Rect(0, 0, self.width, self.height)
+        self.position = pygame.math.Vector2()
         self.player = player
         self.world = world
         self.interface_elements = interface_elements or []
         self.characters = pygame.sprite.Group()
         if characters:
             self.characters.add(*characters)
-        self.delta = (0, 0)
         self.background_resolver = BackgroundResolver()
         self._setup()
 
@@ -50,11 +51,7 @@ class Camera:
 
     def update(self):
         self._update_rect()
-
-        rect = self.display_surface.get_rect()
-
-        self.delta = rect.x - self.rect.x, rect.y - self.rect.y
-
+        self._update_position()
         self._draw_background(self.player.position)
         self._draw_visible_area()
         self._draw_collectibles()
@@ -80,6 +77,9 @@ class Camera:
         if right >= self.world.rect.width:
             self.rect.right = self.world.rect.width
 
+    def _update_position(self):
+        self.position.update(self.rect.topleft)
+
     def _draw_background(self, position: pygame.math.Vector2):
         background = self.background_resolver.resolve(Biome(), position)
         self.display_surface.blit(background, (0, 0))
@@ -99,12 +99,12 @@ class Camera:
         ):
             block = self.world.get_block(coords)
             if block is not None:
-                self.display_surface.blit(block.image, block.rect.move(self.delta))
+                self.display_surface.blit(block.image, block.rect.move(-self.position))
 
     def _draw_collectibles(self):
         self.display_surface.blits(
             tuple(
-                (spr.collectible_image, spr.rect.move(self.delta))
+                (spr.collectible_image, spr.rect.move(-self.position))
                 for spr in self.world.collectibles.sprites()
             )
         )
@@ -112,77 +112,75 @@ class Camera:
     def _draw_player(self):
         if self.player.image is None or self.player.cursor_image is None:
             raise self.player.UnloadedObject
-        self.display_surface.blit(self.player.image, self.player.rect.move(self.delta))
-        cursor_rect = self.player.rect.move(
-            self.player.cursor_position.x, self.player.cursor_position.y
+
+        self.display_surface.blit(
+            self.player.image, self.player.rect.move(-self.position)
         )
+
         if DEBUG:
             self.display_surface.blit(
                 self.player.cursor_image,
-                cursor_rect.move(
-                    self.player.cursor_image.get_size()[0] / 2,
-                    self.player.cursor_image.get_size()[1] / 2,
-                ).move(self.delta),
-            )
-        if self.player.mode == Mode.CONSTRUCTION:
-            coords = self.player.get_cursor_coords()
-            self.display_surface.blit(
-                self.highlight,
                 (
-                    coords[0] * BLOCK_SIZE + self.delta[0],
-                    coords[1] * BLOCK_SIZE + self.delta[1],
+                    self.player.position
+                    + self.player.cursor_position
+                    - self.position
+                    - divide(self.player.cursor_image.get_size(), 2)
                 ),
             )
-            if DEBUG:
-                log(self.world.get_block(coords))
+        if self.player.mode == Mode.CONSTRUCTION:
+            self._draw_block_cursor()
         elif self.player.mode == Mode.COMBAT:
+            self._draw_aim_assist()
+
+    def _draw_block_cursor(self):
+        if not self.player.cursor_position:
+            return
+        self.display_surface.blit(
+            self.highlight,
+            (self.player.position + self.player.cursor_position)
+            // BLOCK_SIZE
+            * BLOCK_SIZE
+            - self.position,
+        )
+        if DEBUG:
+            log(self.world.get_block(self.player.get_cursor_coords()))
+
+    def _draw_aim_assist(self):
+        angle_deviation = (1 - self.player.shooting_accuracy) * 90
+        _, cursor_angle = self.player.cursor_position.as_polar()
+        aim_max = pygame.math.Vector2.from_polar(
+            (self.player.shooting_range, cursor_angle + angle_deviation)
+        )
+        aim_min = pygame.math.Vector2.from_polar(
+            (self.player.shooting_range, cursor_angle - angle_deviation)
+        )
+        if aim_min and aim_max and self.player.cursor_position:
             pygame.draw.line(
                 self.display_surface,
                 InterfaceColor.AIM_ASSIST_LINE,
-                self.player.rect.move(self.delta).center,
-                cursor_rect.move(self.delta).center,
+                self.player.rect.move(-self.position).center,
+                self.rect.move(aim_max).move(-self.position).center,
             )
-            angle_deviation = (1 - self.player.shooting_accuracy) * 90
-            _, cursor_angle = self.player.cursor_position.as_polar()
-            aim_max = pygame.math.Vector2.from_polar(
-                (self.player.shooting_range, cursor_angle + angle_deviation)
+            pygame.draw.line(
+                self.display_surface,
+                InterfaceColor.AIM_ASSIST_LINE,
+                self.player.rect.move(-self.position).center,
+                self.rect.move(aim_min).move(-self.position).center,
             )
-            aim_min = pygame.math.Vector2.from_polar(
-                (self.player.shooting_range, cursor_angle - angle_deviation)
+            pygame.draw.circle(
+                self.display_surface,
+                InterfaceColor.AIM_ASSIST_LINE,
+                self.player.rect.move(-self.position).center,
+                self.player.shooting_range,
+                1,
             )
-            if aim_min and aim_max and self.player.cursor_position:
-                pygame.draw.line(
-                    self.display_surface,
-                    InterfaceColor.AIM_ASSIST_LINE,
-                    self.player.rect.move(self.delta).center,
-                    (
-                        aim_max.x + (self.delta[0] + self.rect.centerx),
-                        aim_max.y + (self.delta[1] + self.rect.centery),
-                    ),
-                )
-                pygame.draw.line(
-                    self.display_surface,
-                    InterfaceColor.AIM_ASSIST_LINE,
-                    self.player.rect.move(self.delta).center,
-                    (
-                        aim_min.x + (self.delta[0] + self.rect.centerx),
-                        aim_min.y + (self.delta[1] + self.rect.centery),
-                    ),
-                )
-                pygame.draw.circle(
-                    self.display_surface,
-                    InterfaceColor.AIM_ASSIST_LINE,
-                    self.player.rect.move(self.delta).center,
-                    self.player.shooting_range,
-                    1,
-                )
 
     def _draw_characters(self):
         width, height = 50, 5
         for character in self.characters.sprites():
             if character.image is None:
                 continue
-            character_rect = character.rect.move(self.delta)
+            character_rect = character.rect.move(-self.position)
             self.display_surface.blit(character.image, character_rect)
             hp_bar = character_rect.move(-(width - character.size.x) / 2, -10)
             hp_bar.size = width, height
@@ -199,7 +197,7 @@ class Camera:
     def _draw_bullets(self):
         self.display_surface.blits(
             tuple(
-                (spr.image, spr.rect.move(self.delta))
+                (spr.image, spr.rect.move(-self.position))
                 for spr in self.world.bullets.sprites()
             )
         )

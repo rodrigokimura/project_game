@@ -194,11 +194,8 @@ class BaseCharacter(
         self.controller.control(dt)
 
     def get_cursor_coords(self):
-        cursor_position = self.rect.move(self.cursor_position.x, self.cursor_position.y)
-        return (
-            cursor_position.x // BLOCK_SIZE + 1,
-            cursor_position.y // BLOCK_SIZE + 1,
-        )
+        cursor_coords = (self.position + self.cursor_position) // BLOCK_SIZE
+        return (int(cursor_coords.x), int(cursor_coords.y))
 
     def pull_collectibles(self, collectibles_group: pygame.sprite.Group):
         # TODO: avoid passing all collectibles
