@@ -2,15 +2,16 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import pygame
+import pygame._sdl2.controller
 import pygame.freetype
 
 from characters import BaseCharacter
 from colors import Color, InterfaceColor
 from draw import FillBorderColors, draw_bordered_rect
-from input.constants import Controller
+from input.constants import Button, Controller
 from input.controllers import (
     BaseController,
-    JoystickMenuController,
+    GamepadMenuController,
     KeyboardMenuController,
     MenuControllable,
 )
@@ -24,7 +25,7 @@ class ControllerDetection:
     EVENTS = [CONTROLLER_DETECTED]
 
     def __init__(self) -> None:
-        self.joystick_count = 0
+        self.gamepad_count = 0
         self.display = pygame.display.get_surface()
         self.timer = Timer(0.2, self._toggle_animation_state)
         self.timer.start()
@@ -58,23 +59,25 @@ class ControllerDetection:
             self.display.fill(InterfaceColor.MENU_BACKGROUND)
 
     def detect_controller(self):
-        joysticks = pygame.joystick.get_count()
-        if self.joystick_count != joysticks:
-            self.joystick_count = joysticks
+        # pylint: disable=protected-access
+        gamepads = pygame._sdl2.controller.get_count()
+        if self.gamepad_count != gamepads:
+            self.gamepad_count = gamepads
 
-        if self.joystick_count > 0:
-            if self.detect_joystick():
+        if self.gamepad_count > 0:
+            if self.detect_gamepad():
                 return
 
         self.detect_keyboard_and_mouse()
 
-    def detect_joystick(self):
-        for joystick_id in range(self.joystick_count):
-            joystick = pygame.joystick.Joystick(joystick_id)
-            for button_id in range(joystick.get_numbuttons()):
-                if joystick.get_button(button_id):
+    def detect_gamepad(self):
+        for id_ in range(self.gamepad_count):
+            # pylint: disable=protected-access
+            gamepad = pygame._sdl2.controller.Controller(id_)
+            for button in Button:
+                if gamepad.get_button(button):
                     event = pygame.event.Event(self.CONTROLLER_DETECTED)
-                    event.controller = Controller.JOYSTICK
+                    event.controller = Controller.GAMEPAD
                     pygame.event.post(event)
                     return True
         return False
@@ -120,7 +123,6 @@ class Menu(MenuControllable):
                 1,
             )
             self.rect = self.image.get_rect()
-            self.enabled = True
             self.highlighted = False
 
         def update(self, *args: Any, **kwargs: Any) -> None:
@@ -196,8 +198,8 @@ class Menu(MenuControllable):
             self.highlight_prev()
 
     def set_controller(self, controller_id: Controller):
-        if controller_id == Controller.JOYSTICK:
-            self.controller = JoystickMenuController(self)
+        if controller_id == Controller.GAMEPAD:
+            self.controller = GamepadMenuController(self)
         elif controller_id == Controller.KEYBOARD:
             self.controller = KeyboardMenuController(self)
 

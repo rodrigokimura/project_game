@@ -1,24 +1,43 @@
 import enum
 
 import pygame
+import pygame._sdl2.controller
 
 
 class Controller(enum.IntEnum):
     AI = enum.auto()
     KEYBOARD = enum.auto()
-    JOYSTICK = enum.auto()
+    GAMEPAD = enum.auto()
 
 
+# pylint: disable=no-member
 class Button(enum.IntEnum):
-    A = 2
-    B = 1
-    X = 3
-    Y = 0
-    LB = 4
-    RB = 5
-    LT = 6
-    RT = 7
-    START = 9
+    DPAD_UP = pygame.CONTROLLER_BUTTON_DPAD_UP
+    DPAD_DOWN = pygame.CONTROLLER_BUTTON_DPAD_DOWN
+    DPAD_RIGHT = pygame.CONTROLLER_BUTTON_DPAD_RIGHT
+    DPAD_LEFT = pygame.CONTROLLER_BUTTON_DPAD_LEFT
+    A = pygame.CONTROLLER_BUTTON_A
+    B = pygame.CONTROLLER_BUTTON_B
+    X = pygame.CONTROLLER_BUTTON_X
+    Y = pygame.CONTROLLER_BUTTON_Y
+    LB = pygame.CONTROLLER_BUTTON_LEFTSHOULDER
+    RB = pygame.CONTROLLER_BUTTON_RIGHTSHOULDER
+    START = pygame.CONTROLLER_BUTTON_START
+    BACK = pygame.CONTROLLER_BUTTON_BACK
+
+
+# pylint: disable=no-member
+class Axis(enum.IntEnum):
+    LEFT_X = pygame.CONTROLLER_AXIS_LEFTX
+    LEFT_Y = pygame.CONTROLLER_AXIS_LEFTY
+    RIGHT_X = pygame.CONTROLLER_AXIS_RIGHTX
+    RIGHT_Y = pygame.CONTROLLER_AXIS_RIGHTY
+    TRIGGER_L = pygame.CONTROLLER_AXIS_TRIGGERLEFT
+    TRIGGER_R = pygame.CONTROLLER_AXIS_TRIGGERRIGHT
+
+
+DPAD = (Button.DPAD_UP, Button.DPAD_DOWN, Button.DPAD_LEFT, Button.DPAD_RIGHT)
+MAX_AXIS_VALUE = 32767
 
 
 # pylint: disable=no-member

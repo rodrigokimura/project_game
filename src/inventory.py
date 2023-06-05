@@ -11,8 +11,8 @@ from draw import FillBorderColors, draw_bordered_rect
 from input.constants import Controller
 from input.controllers import (
     BaseController,
+    GamepadInventoryController,
     InventoryControllable,
-    JoystickInventoryController,
     KeyboardInventoryController,
 )
 from settings import CONSOLE_FONT, SCREEN_HEIGHT, SCREEN_WIDTH
@@ -59,8 +59,8 @@ class BaseInventory(Loadable, InventoryControllable):
         pygame.event.post(pygame.event.Event(self.CLOSE))
 
     def set_controller(self, controller_id: Controller):
-        if controller_id == Controller.JOYSTICK:
-            self.controller = JoystickInventoryController(self)
+        if controller_id == Controller.GAMEPAD:
+            self.controller = GamepadInventoryController(self)
         elif controller_id == Controller.KEYBOARD:
             self.controller = KeyboardInventoryController(self)
 

@@ -11,6 +11,7 @@ extension-pkg-allow-list = [
   "pygame.rect",
   "pygame.surface",
   "pygame.color",
+  "pygame._sdl2.controller",
 ]
 extension-pkg-whitelist = []
 fail-on = []

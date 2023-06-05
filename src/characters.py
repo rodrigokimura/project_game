@@ -14,9 +14,9 @@ from colors import Color
 from commons import Damageable, Loadable, Storable
 from input.constants import Controller
 from input.controllers import (
-    AiPlayerController,
+    AIPlayerController,
     BaseController,
-    JoystickPlayerController,
+    GamepadPlayerController,
     KeyboardPlayerController,
     PlayerControllable,
     PlayerController,
@@ -306,8 +306,8 @@ class Player(BaseCharacter):
 
     def set_controller(self, controller_id: Controller):
         self.inventory.set_controller(controller_id)
-        if controller_id == Controller.JOYSTICK:
-            self.controller = JoystickPlayerController(
+        if controller_id == Controller.GAMEPAD:
+            self.controller = GamepadPlayerController(
                 self, self.max_jump_count, self.max_jump_time
             )
         elif controller_id == Controller.KEYBOARD:
@@ -500,7 +500,7 @@ class Enemy(Player):
 
     def set_controller(self, controller_id: Controller):
         self.inventory.set_controller(controller_id)
-        self.controller = AiPlayerController(self)
+        self.controller = AIPlayerController(self)
 
     def _draw(self):
         size = self.size.x

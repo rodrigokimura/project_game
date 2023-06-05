@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import pygame
+import pygame._sdl2.controller
 
 from input.actions import (
     BaseAction,
@@ -9,7 +10,15 @@ from input.actions import (
     CounterTimer,
     OncePerPress,
 )
-from input.constants import Button, Controller, Key, MouseButton
+from input.constants import (
+    DPAD,
+    MAX_AXIS_VALUE,
+    Axis,
+    Button,
+    Controller,
+    Key,
+    MouseButton,
+)
 from settings import BLOCK_SIZE
 
 
@@ -107,26 +116,48 @@ class InventoryControllable(BaseControllable):
         ...
 
 
-class JoystickInventoryController(BaseController):
+class GamepadInventoryController(BaseController):
     def __init__(
         self,
         controllable: InventoryControllable,
     ) -> None:
-        self.joystick = pygame.joystick.Joystick(0)
-        self.hat_actions: list[tuple[int, BaseAction]] = [
-            (0, OncePerPress(controllable.move))
-        ]
+        self.gamepad = pygame._sdl2.controller.Controller(0)
+
+        self.dpad_actions: list[
+            tuple[tuple[Button, Button, Button, Button], BaseAction]
+        ] = [(DPAD, OncePerPress(controllable.move))]
         self.button_actions: list[tuple[Button, BaseAction]] = [
             (Button.B, OncePerPress(controllable.close)),
         ]
 
     def control(self, dt: float):
-        for hat, action in self.hat_actions:
-            x_axis, y_axis = self.joystick.get_hat(hat)
+        for d_keys, action in self.dpad_actions:
+            up, down, left, right = d_keys
+            keys = {}
+            keys = {k: self.gamepad.get_button(k) for k in d_keys}
+
+            if keys[up] and keys[down]:
+                y_axis = 0
+            elif keys[up]:
+                y_axis = 1
+            elif keys[down]:
+                y_axis = -1
+            else:
+                y_axis = 0
+
+            if keys[left] and keys[right]:
+                x_axis = 0
+            elif keys[left]:
+                x_axis = -1
+            elif keys[right]:
+                x_axis = 1
+            else:
+                x_axis = 0
+
             action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for button, action in self.button_actions:
-            value = self.joystick.get_button(button)
+            value = self.gamepad.get_button(button)
             action.execute(value, dt)
 
 
@@ -134,7 +165,7 @@ class KeyboardInventoryController(BaseController):
     def __init__(self, controllable: InventoryControllable) -> None:
         udlr = (Key.E, Key.D, Key.S, Key.F)
 
-        self.direction_actions: list[tuple[tuple[Key, Key, Key, Key], BaseAction]] = [
+        self.dpad_actions: list[tuple[tuple[Key, Key, Key, Key], BaseAction]] = [
             (udlr, OncePerPress(controllable.move))
         ]
         self.key_actions: list[tuple[Key, BaseAction]] = [
@@ -142,7 +173,7 @@ class KeyboardInventoryController(BaseController):
         ]
 
     def control(self, dt: float):
-        for d_keys, action in self.direction_actions:
+        for d_keys, action in self.dpad_actions:
             up, down, left, right = d_keys
             keys = pygame.key.get_pressed()
 
@@ -171,7 +202,7 @@ class KeyboardInventoryController(BaseController):
             action.execute(value, dt)
 
 
-class AiPlayerController(PlayerController):
+class AIPlayerController(PlayerController):
     def __init__(
         self,
         controllable: PlayerControllable,
@@ -192,43 +223,51 @@ class AiPlayerController(PlayerController):
         ...
 
 
-class JoystickPlayerController(PlayerController):
+class GamepadPlayerController(PlayerController):
     def __init__(
         self,
         controllable: PlayerControllable,
         max_jump_count: int,
         max_jump_time: float,
     ) -> None:
-        self.joystick = pygame.joystick.Joystick(0)
+        self.gamepad = pygame._sdl2.controller.Controller(0)
 
         self._jump = CounterTimer(controllable.jump, max_jump_count, max_jump_time)
 
-        self.axis_actions: list[tuple[tuple[int, ...], BaseAction]] = [
-            ((0,), ContinuousAction(controllable.move)),
-            ((2, 3), ContinuousAction(controllable.move_cursor)),
+        self.stick_actions: list[tuple[tuple[Axis, ...], BaseAction]] = [
+            ((Axis.LEFT_X,), ContinuousAction(controllable.move)),
+            ((Axis.RIGHT_X, Axis.RIGHT_Y), ContinuousAction(controllable.move_cursor)),
         ]
+        self.trigger_actions: list[tuple[Axis, BaseAction]] = [
+            (Axis.TRIGGER_L, OncePerPress(controllable.next_mode)),
+            (Axis.TRIGGER_R, ContinuousAction(controllable.destroy_block)),
+            (Axis.TRIGGER_R, OncePerPress(controllable.shoot)),
+        ]
+        self.trigger_threshold = 0.7 * MAX_AXIS_VALUE
 
         self.button_actions: list[tuple[Button, BaseAction]] = [
-            (Button.LT, OncePerPress(controllable.next_mode)),
             (Button.START, OncePerPress(controllable.pause)),
             (Button.LB, CooldownCounterTimer(controllable.dash_left, 2, 0.2, 1)),
             (Button.RB, CooldownCounterTimer(controllable.dash_right, 2, 0.2, 1)),
             (Button.RB, OncePerPress(controllable.place_block)),
             (Button.Y, ContinuousAction(controllable.boost)),
-            (Button.RT, ContinuousAction(controllable.destroy_block)),
-            (Button.RT, OncePerPress(controllable.shoot)),
             (Button.B, self._jump),
             (Button.B, ContinuousAction(controllable.glide)),
             (Button.X, OncePerPress(controllable.open_inventory)),
         ]
 
     def control(self, dt: float):
-        for axes, action in self.axis_actions:
-            axes_values = [round(self.joystick.get_axis(a), 2) for a in axes]
+        for trigger, action in self.stick_actions:
+            axes_values = [
+                round(self.gamepad.get_axis(a) / MAX_AXIS_VALUE, 2) for a in trigger
+            ]
             action.execute(True, dt, axes_values)
+        for trigger, action in self.trigger_actions:
+            value = self.gamepad.get_axis(trigger) > self.trigger_threshold
+            action.execute(value, dt)
 
         for button, action in self.button_actions:
-            value = self.joystick.get_button(button)
+            value = self.gamepad.get_button(button)
             action.execute(value, dt)
 
     def reset_jump(self):
@@ -247,7 +286,7 @@ class KeyboardPlayerController(PlayerController):
         self.cursor_range = controllable.cursor_range
         self.move_cursor = ContinuousAction(controllable.move_cursor)
 
-        self.direction_key_actions: list[tuple[tuple[Key, Key], BaseAction]] = [
+        self.dpad_actions: list[tuple[tuple[Key, Key], BaseAction]] = [
             ((Key.S, Key.F), ContinuousAction(controllable.move)),
         ]
 
@@ -271,17 +310,14 @@ class KeyboardPlayerController(PlayerController):
     def control(self, dt: float):
         self._perform_cursor_movement(dt)
 
-        for d_keys, action in self.direction_key_actions:
+        for d_keys, action in self.dpad_actions:
             left, right = d_keys
             keys = pygame.key.get_pressed()
-            if keys[left] and keys[right]:
-                x_axis = 0
-            elif keys[left]:
-                x_axis = -1
-            elif keys[right]:
-                x_axis = 1
-            else:
-                x_axis = 0
+            x_axis = 0
+            if keys[left]:
+                x_axis -= 1
+            if keys[right]:
+                x_axis += 1
             action.execute(True, dt, [x_axis])
 
         for key, action in self.key_actions:
@@ -307,23 +343,65 @@ class KeyboardPlayerController(PlayerController):
         self._jump.reset()
 
 
-class JoystickMenuController(BaseController):
+class GamepadMenuController(BaseController):
     def __init__(self, controllable: MenuControllable) -> None:
-        self.joystick = pygame.joystick.Joystick(0)
-        self.hat_actions: list[tuple[int, BaseAction]] = [
-            (0, OncePerPress(controllable.move))
+        self.gamepad = pygame._sdl2.controller.Controller(0)
+        self.dpad_actions: list[
+            tuple[tuple[Button, Button, Button, Button], BaseAction]
+        ] = [(DPAD, OncePerPress(controllable.move))]
+        self.stick_actions: list[tuple[tuple[Axis, Axis], BaseAction]] = [
+            ((Axis.LEFT_X, Axis.LEFT_Y), OncePerPress(controllable.move))
         ]
         self.button_actions: list[tuple[Button, BaseAction]] = [
             (Button.A, OncePerPress(controllable.select)),
         ]
+        self.stick_threshold = 0.7 * MAX_AXIS_VALUE
 
     def control(self, dt: float):
-        for hat, action in self.hat_actions:
-            x_axis, y_axis = self.joystick.get_hat(hat)
+        self._process_dpad_actions(dt)
+        self._process_stick_actions(dt)
+        self._process_button_actions(dt)
+
+    def _process_dpad_actions(self, dt: float):
+        for d_keys, action in self.dpad_actions:
+            up, down, left, right = (self.gamepad.get_button(k) for k in d_keys)
+
+            y_axis = 0
+            if up:
+                y_axis += 1
+            if down:
+                y_axis -= 1
+
+            x_axis = 0
+            if left:
+                x_axis -= 1
+            if right:
+                x_axis += 1
+
             action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
+    def _process_stick_actions(self, dt: float):
+        for axes, action in self.stick_actions:
+            x, y = axes
+            x_axis = self.gamepad.get_axis(x.value)
+            if x_axis <= -self.stick_threshold:
+                x_axis = -1
+            elif x_axis >= self.stick_threshold:
+                x_axis = 1
+            else:
+                x_axis = 0
+            y_axis = self.gamepad.get_axis(y.value)
+            if y_axis <= -self.stick_threshold:
+                y_axis = 1
+            elif y_axis >= self.stick_threshold:
+                y_axis = -1
+            else:
+                y_axis = 0
+            action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
+
+    def _process_button_actions(self, dt: float):
         for button, action in self.button_actions:
-            value = self.joystick.get_button(button)
+            value = self.gamepad.get_button(button)
             action.execute(value, dt)
 
 
@@ -331,7 +409,7 @@ class KeyboardMenuController(BaseController):
     def __init__(self, controllable: MenuControllable) -> None:
         udlr = (Key.E, Key.D, Key.S, Key.F)
 
-        self.direction_actions: list[tuple[tuple[Key, Key, Key, Key], BaseAction]] = [
+        self.dpad_actions: list[tuple[tuple[Key, Key, Key, Key], BaseAction]] = [
             (udlr, OncePerPress(controllable.move))
         ]
         self.key_actions: list[tuple[Key, BaseAction]] = [
@@ -339,27 +417,21 @@ class KeyboardMenuController(BaseController):
         ]
 
     def control(self, dt: float):
-        for d_keys, action in self.direction_actions:
+        for d_keys, action in self.dpad_actions:
             up, down, left, right = d_keys
             keys = pygame.key.get_pressed()
 
-            if keys[up] and keys[down]:
-                y_axis = 0
-            elif keys[up]:
-                y_axis = 1
-            elif keys[down]:
-                y_axis = -1
-            else:
-                y_axis = 0
+            y_axis = 0
+            if keys[up]:
+                y_axis += 1
+            if keys[down]:
+                y_axis -= 1
 
-            if keys[left] and keys[right]:
-                x_axis = 0
-            elif keys[left]:
-                x_axis = -1
-            elif keys[right]:
-                x_axis = 1
-            else:
-                x_axis = 0
+            x_axis = 0
+            if keys[left]:
+                x_axis -= 1
+            if keys[right]:
+                x_axis += 1
             action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
         for key, action in self.key_actions:

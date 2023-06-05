@@ -1,6 +1,7 @@
 from typing import Callable
 
 import pygame
+import pygame._sdl2.controller
 
 import settings
 from characters import Player
@@ -62,7 +63,7 @@ class Game:
 
     def setup(self):
         pygame.init()
-        pygame.joystick.init()
+        pygame._sdl2.controller.init()
 
         pygame.display.set_caption(settings.TITLE)
         size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
