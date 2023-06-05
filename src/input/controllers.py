@@ -123,41 +123,67 @@ class GamepadInventoryController(BaseController):
         self,
         controllable: InventoryControllable,
     ) -> None:
+        self._repeat_movement = 0.3
         self.gamepad = pygame._sdl2.controller.Controller(0)
 
         self.dpad_actions: list[
             tuple[tuple[Button, Button, Button, Button], BaseAction]
-        ] = [(DPAD, OncePerPress(controllable.move))]
+        ] = [(DPAD, OncePerTimeout(controllable.move, self._repeat_movement))]
+        self.stick_actions: list[tuple[tuple[Axis, Axis], BaseAction]] = [
+            (
+                (Axis.LEFT_X, Axis.LEFT_Y),
+                OncePerTimeout(controllable.move, self._repeat_movement),
+            ),
+        ]
+        self.stick_threshold = 0.7 * MAX_AXIS_VALUE
         self.button_actions: list[tuple[Button, BaseAction]] = [
             (Button.B, OncePerPress(controllable.close)),
         ]
 
     def control(self, dt: float):
+        self._process_dpad_actions(dt)
+        self._process_stick_actions(dt)
+        self._process_button_actions(dt)
+
+    def _process_dpad_actions(self, dt: float):
         for d_keys, action in self.dpad_actions:
             up, down, left, right = d_keys
-            keys = {}
             keys = {k: self.gamepad.get_button(k) for k in d_keys}
 
-            if keys[up] and keys[down]:
-                y_axis = 0
-            elif keys[up]:
-                y_axis = 1
-            elif keys[down]:
-                y_axis = -1
-            else:
-                y_axis = 0
+            y_axis = 0
+            if keys[up]:
+                y_axis += 1
+            if keys[down]:
+                y_axis -= 1
 
-            if keys[left] and keys[right]:
-                x_axis = 0
-            elif keys[left]:
-                x_axis = -1
-            elif keys[right]:
-                x_axis = 1
-            else:
-                x_axis = 0
+            x_axis = 0
+            if keys[left]:
+                x_axis -= 1
+            if keys[right]:
+                x_axis += 1
 
             action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
 
+    def _process_stick_actions(self, dt: float):
+        for axes, action in self.stick_actions:
+            x, y = axes
+            x_axis = self.gamepad.get_axis(x.value)
+            if x_axis <= -self.stick_threshold:
+                x_axis = -1
+            elif x_axis >= self.stick_threshold:
+                x_axis = 1
+            else:
+                x_axis = 0
+            y_axis = self.gamepad.get_axis(y.value)
+            if y_axis <= -self.stick_threshold:
+                y_axis = 1
+            elif y_axis >= self.stick_threshold:
+                y_axis = -1
+            else:
+                y_axis = 0
+            action.execute(bool(x_axis or y_axis), dt, [x_axis, y_axis])
+
+    def _process_button_actions(self, dt: float):
         for button, action in self.button_actions:
             value = self.gamepad.get_button(button)
             action.execute(value, dt)
@@ -165,10 +191,11 @@ class GamepadInventoryController(BaseController):
 
 class KeyboardInventoryController(BaseController):
     def __init__(self, controllable: InventoryControllable) -> None:
+        self._repeat_movement = 0.3
         udlr = (Key.E, Key.D, Key.S, Key.F)
 
         self.dpad_actions: list[tuple[tuple[Key, Key, Key, Key], BaseAction]] = [
-            (udlr, OncePerPress(controllable.move))
+            (udlr, OncePerTimeout(controllable.move, self._repeat_movement))
         ]
         self.key_actions: list[tuple[Key, BaseAction]] = [
             (Key.T, OncePerPress(controllable.close)),
@@ -267,6 +294,7 @@ class GamepadPlayerController(PlayerController):
                 round(self.gamepad.get_axis(a) / MAX_AXIS_VALUE, 2) for a in trigger
             ]
             action.execute(True, dt, axes_values)
+
         for trigger, action in self.trigger_actions:
             value = self.gamepad.get_axis(trigger) > self.trigger_threshold
             action.execute(value, dt)
@@ -353,12 +381,16 @@ class KeyboardPlayerController(PlayerController):
 
 class GamepadMenuController(BaseController):
     def __init__(self, controllable: MenuControllable) -> None:
+        self._repeat_movement = 0.3
         self.gamepad = pygame._sdl2.controller.Controller(0)
         self.dpad_actions: list[
             tuple[tuple[Button, Button, Button, Button], BaseAction]
-        ] = [(DPAD, OncePerPress(controllable.move))]
+        ] = [(DPAD, OncePerTimeout(controllable.move, self._repeat_movement))]
         self.stick_actions: list[tuple[tuple[Axis, Axis], BaseAction]] = [
-            ((Axis.LEFT_X, Axis.LEFT_Y), OncePerPress(controllable.move))
+            (
+                (Axis.LEFT_X, Axis.LEFT_Y),
+                OncePerTimeout(controllable.move, self._repeat_movement),
+            )
         ]
         self.button_actions: list[tuple[Button, BaseAction]] = [
             (Button.A, OncePerPress(controllable.select)),
@@ -415,10 +447,11 @@ class GamepadMenuController(BaseController):
 
 class KeyboardMenuController(BaseController):
     def __init__(self, controllable: MenuControllable) -> None:
+        self._repeat_movement = 0.3
         udlr = (Key.E, Key.D, Key.S, Key.F)
 
         self.dpad_actions: list[tuple[tuple[Key, Key, Key, Key], BaseAction]] = [
-            (udlr, OncePerPress(controllable.move))
+            (udlr, OncePerTimeout(controllable.move, self._repeat_movement))
         ]
         self.key_actions: list[tuple[Key, BaseAction]] = [
             (Key.SPACE, OncePerPress(controllable.select)),
