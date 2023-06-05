@@ -111,6 +111,8 @@ class BaseCharacter(
         self.position = pygame.math.Vector2(*position)
         self.collision_buffer = pygame.sprite.Group()
         self.enemies_buffer = pygame.sprite.Group()
+        self.is_immune = False
+        self._immunity_timer = Timer(0.5, self.reset_immunity)
 
     @property
     def hp_percentage(self):
@@ -256,6 +258,7 @@ class BaseCharacter(
         self.update_collision_buffer()
         self.process_control_requests(dt)
         self.handle_collision()
+        self._immunity_timer.inc(dt)
 
     @abstractmethod
     def set_controller(self, controller_id: Controller):
@@ -264,6 +267,10 @@ class BaseCharacter(
     @abstractmethod
     def handle_collision(self):
         ...
+
+    def reset_immunity(self):
+        self.is_immune = False
+        self._immunity_timer.reset()
 
 
 class Player(BaseCharacter):
@@ -290,9 +297,6 @@ class Player(BaseCharacter):
         self.max_jump_count = 2
 
         self.setup()
-
-        self._is_immune = False
-        self.immunity_timer = Timer(0.5, self.reset_immunity)
 
     def setup(self):
         # load unpickleble attributes
@@ -371,7 +375,6 @@ class Player(BaseCharacter):
         self.update_position(dt)
         self.update_angle(dt)
         self.update_image()
-        self.immunity_timer.inc(dt)
 
     def reset_jump(self):
         if self.controller is None:
@@ -446,6 +449,8 @@ class Player(BaseCharacter):
 
         rect = self.image.blit(img, self.original_image.get_rect())
         self.image = img.subsurface(rect)
+        if self.is_immune:
+            self.image.set_alpha(100)
 
     def should_fall(self):
         if self.bottom_sprite is None:
@@ -470,19 +475,15 @@ class Player(BaseCharacter):
 
     def take_damage(self, hazard: HasDamage):
         # TODO: knockback
-        self.immunity_timer.start()
-        if not self._is_immune:
-            self._is_immune = True
+        self._immunity_timer.start()
+        if not self.is_immune:
+            self.is_immune = True
             self.health_points -= hazard.damage
             self.health_points = max(self.health_points, 0)
             if self.health_points == 0:
                 event = pygame.event.Event(self.DEAD)
                 event.character = self
                 pygame.event.post(event)
-
-    def reset_immunity(self):
-        self._is_immune = False
-        self.immunity_timer.reset()
 
     def rotate(self):
         if self.original_image is None:
