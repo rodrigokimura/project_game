@@ -2,6 +2,7 @@ from abc import abstractmethod
 from itertools import product
 
 import pygame
+import pygame.freetype
 
 from blocks import BaseCollectible, collectible_images
 from colors import Color, InterfaceColor
@@ -74,7 +75,7 @@ class BaseInventory(Loadable, InventoryControllable):
 class Inventory(BaseInventory, Loadable):
     """Simple limitless inventory"""
 
-    font: pygame.font.Font | None
+    font: pygame.freetype.Font | None
     image: pygame.surface.Surface | None
 
     def __init__(self) -> None:
@@ -127,7 +128,7 @@ class Inventory(BaseInventory, Loadable):
 
     def setup(self):
         self._draw_static()
-        self.font = pygame.font.Font(CONSOLE_FONT, 32)
+        self.font = pygame.freetype.Font(CONSOLE_FONT, 32)
         self.image = self._static_image.copy()  # type: ignore
 
     def _draw_static(self):
@@ -208,9 +209,13 @@ class Inventory(BaseInventory, Loadable):
             if i < len(collectibles):
                 cls, count = collectibles[i]
                 img = collectible_images[cls]
-                self.image.blit(img, self._get_slot_rel_coords((x, y), (0, 0)))
-                txt = self.font.render(f"x {count}", False, InterfaceColor.PRIMARY_FONT)
-                self.image.blit(txt, self._get_slot_rel_coords((x, y), (-10, -10)))
+                self.image.blit(img, self._get_slot_rel_coords((x, y), (10, 10)))
+                self.font.render_to(
+                    self.image,
+                    self._get_slot_rel_coords((x, y), (20, 20)),
+                    str(count),
+                    InterfaceColor.PRIMARY_FONT,
+                )
 
     def _get_slot_rel_coords(
         self, coords: tuple[int, int], offset: tuple[int, int] = (0, 0)
@@ -227,9 +232,15 @@ class Inventory(BaseInventory, Loadable):
         collectibles = list(self.collectibles.items())
         x, y = self.selected
         self.slot_rect.topleft = self._get_slot_rel_coords((x, y))
-        pygame.draw.rect(self.image, "grey", self.slot_rect, 2)
+        pygame.draw.rect(
+            self.image, InterfaceColor.INVENTORY_HIGHLIGHT, self.slot_rect, 2
+        )
         i = y * self.grid[0] + x
         if i < len(collectibles):
             cls, _ = collectibles[i]
-            txt = self.font.render(cls.__name__, False, InterfaceColor.PRIMARY_FONT)
-            self.image.blit(txt, self._get_slot_rel_coords((x, y), (10, 10)))
+            self.font.render_to(
+                self.image,
+                self._get_slot_rel_coords((x, y), (10, 10)),
+                cls.__name__,
+                InterfaceColor.PRIMARY_FONT,
+            )

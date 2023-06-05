@@ -156,8 +156,7 @@ class World(Storable, Loadable):
             raise self.UnloadedObject
         if not isinstance(event.block, BaseBlock):
             return
-        coords = self.player.get_cursor_coords()
-        self.blocks.set_element(coords, event.block)
+        self.blocks.set_element(self.player.get_cursor_coords(), event.block)
 
     def _handle_shooting(self, event: pygame.event.Event, _: float):
         bullet = event.bullet

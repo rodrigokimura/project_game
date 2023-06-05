@@ -66,8 +66,8 @@ class BaseCharacter(
     health_points: int
 
     shooting_damage: int = 10
-    shooting_speed: int = 100
-    shooting_accuracy: float = 0.9
+    shooting_speed: int = 500
+    shooting_accuracy: float = 0.95
     shooting_range: int = 500
 
     # unpickleble attrs
@@ -81,7 +81,7 @@ class BaseCharacter(
 
     cursor_position: pygame.math.Vector2
     mode: Mode = Mode.EXPLORATION
-    destruction_power: int = 5
+    destruction_power: int = 10
 
     collectible_pull_radius: int = 5  # in block size units
     collectible_grab_radius: int = 2  # in block size units

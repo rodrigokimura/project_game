@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import pygame
+import pygame.freetype
 
 from characters import BaseCharacter
 from colors import Color, InterfaceColor
@@ -14,6 +15,7 @@ from input.controllers import (
     MenuControllable,
 )
 from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
+from utils.timer import Timer
 from world import World
 
 
@@ -23,31 +25,42 @@ class ControllerDetection:
 
     def __init__(self) -> None:
         self.joystick_count = 0
-        self.animation_time = 500
         self.display = pygame.display.get_surface()
-        self.surface = pygame.surface.Surface(self.display.get_size())
-        self.font = pygame.font.Font(MENU_FONT, 100)
-        self.draw_static()
+        self.timer = Timer(0.2, self._toggle_animation_state)
+        self.timer.start()
+        self._draw_static()
+        self._on = True
+
+    def _toggle_animation_state(self):
+        self._on = not self._on
+        self.timer.reset()
+        self.timer.start()
 
     def run(self, dt: float):
+        self.timer.inc(dt)
         self.draw(dt)
         self.detect_controller()
 
-    def draw_static(self):
-        self.surface.fill(InterfaceColor.MENU_BACKGROUND)
+    def _draw_static(self):
+        self.display.fill(InterfaceColor.MENU_BACKGROUND)
+        font = pygame.freetype.Font(MENU_FONT, 100)
+        font.antialiased = False
+        font.pad = True
+        self.text_surf, self.text_rect = font.render(
+            "Press any key/button", InterfaceColor.PRIMARY_FONT
+        )
+        self.text_rect.center = self.display.get_rect().center
 
     def draw(self, _: float):
-        text = self.font.render(
-            "Press any key/button", False, InterfaceColor.PRIMARY_FONT
-        )
-        self.surface.blit(text, (0, 0))
-        self.display.blit(self.surface, self.display.get_rect())
+        if self._on:
+            self.display.blit(self.text_surf, self.text_rect)
+        else:
+            self.display.fill(InterfaceColor.MENU_BACKGROUND)
 
     def detect_controller(self):
         joysticks = pygame.joystick.get_count()
         if self.joystick_count != joysticks:
             self.joystick_count = joysticks
-            print(f"Joysticks detected: {joysticks}")
 
         if self.joystick_count > 0:
             if self.detect_joystick():
@@ -87,17 +100,17 @@ class Menu(MenuControllable):
             self.text = text
             self.event = pygame.event.Event(event_id)
 
-            font = pygame.font.Font(MENU_FONT, 100)
-            font_padding = 20
-            text_surf = font.render(text, False, InterfaceColor.PRIMARY_FONT)
-            x, y = text_surf.get_size()
-            padded_text_surf = pygame.surface.Surface(
-                (x + 2 * font_padding, y + 2 * font_padding)
+            font = pygame.freetype.Font(MENU_FONT, 100)
+            font.antialiased = False
+            font.pad = True
+            _padding = 15
+            text_surf, text_rect = font.render(text, InterfaceColor.PRIMARY_FONT)
+            _image = pygame.surface.Surface(
+                (text_rect.width + 2 * _padding, text_rect.height + 2 * _padding)
             ).convert_alpha()
-            padded_text_surf.fill(Color.TRANSPARENT)
-            padded_text_surf.blit(text_surf, (font_padding, font_padding))
-
-            self.original_image = padded_text_surf
+            _image.fill(Color.TRANSPARENT)
+            _image.blit(text_surf, (_padding, _padding))
+            self.original_image = _image
             self.image = self.original_image.copy()
             self.highlighted_image = self.original_image.copy()
             pygame.draw.rect(
@@ -117,7 +130,6 @@ class Menu(MenuControllable):
             return super().update(*args, **kwargs)
 
     def __init__(self, items: dict[str, int]) -> None:
-        self.font = pygame.font.Font(DEFAULT_FONT, 100)
         self._items = [self.Item(txt, id) for txt, id in items.items()]
         self.all_items = pygame.sprite.Group()
         self.all_items.add(self._items)
@@ -193,6 +205,7 @@ class Menu(MenuControllable):
 class BaseInterfaceElement(ABC):
     line_positions: tuple[int, int]
     font_color: InterfaceColor = InterfaceColor.PRIMARY_FONT
+    background_color: InterfaceColor = InterfaceColor.MENU_BACKGROUND
 
     @abstractmethod
     def draw(self):
@@ -221,25 +234,41 @@ class PlayerMode(BaseInterfaceElement):
     def __init__(self, player: BaseCharacter) -> None:
         super().__init__()
         self.player = player
-        self.font = pygame.font.Font(CONSOLE_FONT, 30)
+        self.font = pygame.freetype.Font(CONSOLE_FONT, 30)
+        self.font.antialiased = False
+        self.font.pad = True
 
     def draw(self):
         display_surface = pygame.display.get_surface()
-        font_surf = self.font.render(self.player.mode.name, False, self.font_color)
-        display_surface.blit(font_surf, (10, 70))
+        self.font.render_to(
+            display_surface,
+            (10, 60),
+            self.player.mode.name,
+            self.font_color,
+            self.background_color,
+        )
 
 
 class TimeDisplay(BaseInterfaceElement):
     def __init__(self, world: World) -> None:
-        super().__init__()
         self.world = world
-        self.font = pygame.font.Font(DEFAULT_FONT, 20)
+        self.font = pygame.freetype.Font(DEFAULT_FONT, 20)
+        self.font.antialiased = False
+        self.font.pad = True
 
     def draw(self):
         display_surface = pygame.display.get_surface()
-        surf = self.font.render(
-            self.world.time.strftime("%H:%M"), False, self.font_color
+        self.font.render_to(
+            display_surface,
+            (10, 25),
+            self.world.time.strftime("%H:%M"),
+            self.font_color,
+            self.background_color,
         )
-        display_surface.blit(surf, (10, 25))
-        surf = self.font.render(self.world.day_part.value, False, self.font_color)
-        display_surface.blit(surf, (10, 45))
+        self.font.render_to(
+            display_surface,
+            (10, 42),
+            self.world.day_part.value,
+            self.font_color,
+            self.background_color,
+        )
