@@ -9,6 +9,7 @@ from input.actions import (
     CooldownCounterTimer,
     CounterTimer,
     OncePerPress,
+    OncePerTimeout,
 )
 from input.constants import (
     DPAD,
@@ -42,6 +43,7 @@ class BaseControllable(ABC):
 
 class PlayerControllable(BaseControllable):
     cursor_range: int
+    shooting_frequency: float
 
     @abstractmethod
     def move(self, dt: float, amount: float):
@@ -241,7 +243,10 @@ class GamepadPlayerController(PlayerController):
         self.trigger_actions: list[tuple[Axis, BaseAction]] = [
             (Axis.TRIGGER_L, OncePerPress(controllable.next_mode)),
             (Axis.TRIGGER_R, ContinuousAction(controllable.destroy_block)),
-            (Axis.TRIGGER_R, OncePerPress(controllable.shoot)),
+            (
+                Axis.TRIGGER_R,
+                OncePerTimeout(controllable.shoot, 1 / controllable.shooting_frequency),
+            ),
         ]
         self.trigger_threshold = 0.7 * MAX_AXIS_VALUE
 
@@ -304,7 +309,10 @@ class KeyboardPlayerController(PlayerController):
         self.mouse_button_actions: list[tuple[MouseButton, BaseAction]] = [
             (MouseButton.MAIN, OncePerPress(controllable.place_block)),
             (MouseButton.SECONDARY, ContinuousAction(controllable.destroy_block)),
-            (MouseButton.SECONDARY, OncePerPress(controllable.shoot)),
+            (
+                MouseButton.SECONDARY,
+                OncePerTimeout(controllable.shoot, 1 / controllable.shooting_frequency),
+            ),
         ]
 
     def control(self, dt: float):

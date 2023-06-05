@@ -63,7 +63,7 @@ class Game:
 
     def setup(self):
         pygame.init()
-        pygame._sdl2.controller.init()
+        pygame._sdl2.controller.init()  # pylint: disable=protected-access
 
         pygame.display.set_caption(settings.TITLE)
         size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)

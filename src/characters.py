@@ -69,6 +69,7 @@ class BaseCharacter(
     shooting_speed: int = 500
     shooting_accuracy: float = 0.95
     shooting_range: int = 500
+    shooting_frequency: float = 3  # in hertz
 
     # unpickleble attrs
     # must be set to None before pickling

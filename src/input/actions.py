@@ -43,6 +43,34 @@ class OncePerPress(BaseAction):
         return False
 
 
+class OncePerTimeout(BaseAction):
+    def __init__(self, command: ActionCommandType, max_time: float) -> None:
+        super().__init__(command)
+        self._past_value = False
+        self.state = False
+        self.timer = 0
+        self.max_time = max_time
+
+    def check(self, value: bool, dt: float):
+        if value != self._past_value:
+            self._past_value = value
+            if value:
+                self.state = True
+                return True
+            self.state = False
+            self.timer = 0
+            return False
+        if value:
+            if self.timer < self.max_time:
+                if self.state:
+                    self.timer += dt
+                    return False
+            self.state = True
+            self.timer = 0
+            return True
+        return False
+
+
 class CounterTimer(ResettableAction):
     def __init__(
         self, command: ActionCommandType, max_count: int, max_time: float
