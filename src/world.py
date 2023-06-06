@@ -67,7 +67,6 @@ class World(Storable, Loadable):
         self.players = pygame.sprite.Group()
         self._background = Mountains()
         populate_world(self)
-        draw_cached_images()
 
     def unload(self):
         self.blocks.empty()
