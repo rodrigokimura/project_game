@@ -67,12 +67,10 @@ class Game:
 
         pygame.display.set_caption(settings.TITLE)
         size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
-        if settings.DEBUG:
-            flags = pygame.SCALED | pygame.DOUBLEBUF
-            pygame.display.set_mode(size, vsync=1)  # no fullscreen
-        else:
-            flags = pygame.SCALED | pygame.FULLSCREEN | pygame.DOUBLEBUF
-            pygame.display.set_mode(size, flags, vsync=1)
+        flags = pygame.SCALED | pygame.DOUBLEBUF
+        if not settings.DEBUG:
+            flags |= pygame.FULLSCREEN
+        pygame.display.set_mode(size, flags, vsync=1)
 
         self.clock = pygame.time.Clock()
         self.internal_events = []

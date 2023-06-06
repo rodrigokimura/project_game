@@ -58,6 +58,7 @@ class Camera:
         self._draw_player()
         self._draw_characters()
         self._draw_bullets()
+        self._draw_particles()
         self._draw_interface_elements()
 
     def _update_rect(self):
@@ -201,6 +202,9 @@ class Camera:
                 for spr in self.world.bullets.sprites()
             )
         )
+
+    def _draw_particles(self):
+        self.world.particle_manager.draw(self.display_surface, -self.position)
 
     def _draw_interface_elements(self):
         for element in self.interface_elements:

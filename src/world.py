@@ -16,6 +16,7 @@ from characters import BaseCharacter, Player
 from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
 from log import log
+from particle.emitters import Manager
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
 from shooting import BaseBullet
 from utils.container import Container2d
@@ -44,11 +45,13 @@ class World(Storable, Loadable):
             Player.SHOOT: self._handle_shooting,
         }
         self._background: Background | None = None
+        self.particle_manager = Manager()
         self.setup()
 
     def set_player(self, player: Player):
         self.player = player
         self.players.add(player)
+        # Emitter(self.player.position, None, 5, self.particle_manager)
 
     def setup(self):
         self.blocks: Container2d[BaseBlock] = Container2d(WORLD_SIZE)
@@ -80,6 +83,7 @@ class World(Storable, Loadable):
         self._update_time(dt)
         self._update_sprites(dt)
         self._handle_events(dt)
+        self.particle_manager.update(dt)
 
     def _update_time(self, dt: float):
         self.age += dt
@@ -159,8 +163,10 @@ class World(Storable, Loadable):
         self.blocks.set_element(self.player.get_cursor_coords(), event.block)
 
     def _handle_shooting(self, event: pygame.event.Event, _: float):
-        bullet = event.bullet
-        bullet.add_world_context(self.blocks, self.characters_buffer)
+        bullet: BaseBullet = event.bullet
+        bullet.add_world_context(
+            self.blocks, self.characters_buffer, self.particle_manager  # type: ignore
+        )
         self.bullets.add(bullet)
 
 

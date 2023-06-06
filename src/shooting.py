@@ -4,6 +4,7 @@ import pygame
 
 from colors import Color
 from commons import Damageable
+from particle.emitters import Emitter, Manager
 from protocols import HasRect
 from settings import BLOCK_SIZE
 from utils.collision import custom_collision_detection
@@ -21,7 +22,7 @@ class BaseBullet(pygame.sprite.Sprite):
     ) -> None:
         self.size = (3, 3)
         self.source = source
-        self.initial_position = position
+        self.initial_position = position.copy()
         self.position = self.initial_position.copy()
         self.rect = pygame.rect.Rect(0, 0, *self.size)
         self.velocity = velocity
@@ -30,6 +31,7 @@ class BaseBullet(pygame.sprite.Sprite):
         self.shatter_on_collision = True
         self.blocks: Container2d[HasRect] | None = None
         self.characters = pygame.sprite.Group()
+        self.particle_manager: Manager | None = None
         self.setup()
         super().__init__()
 
@@ -59,7 +61,7 @@ class BaseBullet(pygame.sprite.Sprite):
         ):
             if block is not None:
                 if block.rect.colliderect(self.rect):
-                    self.kill()
+                    self.kill(True)
 
         collided_sprites = pygame.sprite.spritecollide(
             self,
@@ -71,12 +73,21 @@ class BaseBullet(pygame.sprite.Sprite):
             character: Damageable
             character.take_damage(self)
             if self.shatter_on_collision:
-                self.kill()
+                self.kill(True)
+
+    def kill(self, shatter=False) -> None:
+        super().kill()
+        if shatter:
+            Emitter(self.position, 0.3, 50, self.particle_manager)
 
     def add_world_context(
-        self, blocks: Container2d[HasRect], characters: pygame.sprite.Group
+        self,
+        blocks: Container2d[HasRect],
+        characters: pygame.sprite.Group,
+        particle_manager: Manager,
     ):
         self.blocks = blocks
+        self.particle_manager = particle_manager
         self.characters = characters
 
 
