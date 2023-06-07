@@ -9,6 +9,7 @@ from biome import Biome
 from characters import BaseCharacter, Mode
 from colors import Color, InterfaceColor
 from interface import BaseInterfaceElement
+from lighting import ClusterDetector
 from log import log
 from settings import BLOCK_SIZE, DEBUG
 from utils.blit import blit_multiple
@@ -61,6 +62,7 @@ class Camera:
         self._draw_bullets()
         self._draw_particles()
         self._draw_interface_elements()
+        ClusterDetector().detect_clusters(self.world.blocks, self.rect, -self.position)
 
     def _update_rect(self):
         self.rect.center = self.player.rect.center

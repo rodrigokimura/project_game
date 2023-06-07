@@ -38,6 +38,7 @@ class World(Storable, Loadable):
         }
         self._background: Background | None = None
         self.particle_manager = Manager()
+        self._global_light = ...
         self.setup()
 
     def set_player(self, player: Player):
