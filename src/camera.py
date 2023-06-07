@@ -11,6 +11,7 @@ from colors import Color, InterfaceColor
 from interface import BaseInterfaceElement
 from log import log
 from settings import BLOCK_SIZE, DEBUG
+from utils.blit import blit_multiple
 from world import World
 
 
@@ -103,11 +104,11 @@ class Camera:
                 self.display_surface.blit(block.image, block.rect.move(-self.position))
 
     def _draw_collectibles(self):
-        self.display_surface.blits(
-            tuple(
-                (spr.collectible_image, spr.rect.move(-self.position))
-                for spr in self.world.collectibles.sprites()
-            )
+        blit_multiple(
+            self.display_surface,
+            self.world.collectibles,
+            -self.position,
+            "collectible_image",
         )
 
     def _draw_player(self):
@@ -196,12 +197,7 @@ class Camera:
             )
 
     def _draw_bullets(self):
-        self.display_surface.blits(
-            tuple(
-                (spr.image, spr.rect.move(-self.position))
-                for spr in self.world.bullets.sprites()
-            )
-        )
+        blit_multiple(self.display_surface, self.world.bullets, -self.position)
 
     def _draw_particles(self):
         self.world.particle_manager.draw(self.display_surface, -self.position)

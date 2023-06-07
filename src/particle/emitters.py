@@ -4,6 +4,7 @@ import pygame
 
 from colors import Color
 from particle.particles import Particle
+from utils.blit import blit_multiple
 from utils.timer import Timer
 
 
@@ -74,11 +75,7 @@ class Emitter:
         self._particles.add(Particle(self.origin, Color.BULLET, (2, 2), 100, 100))
 
     def draw(self, surf: pygame.surface.Surface, offset: pygame.math.Vector2):
-        surf.blits(
-            tuple(
-                (spr.image, spr.rect.move(offset)) for spr in self._particles.sprites()
-            )
-        )
+        blit_multiple(surf, self._particles, offset)
 
 
 class BulletShatter(Emitter):

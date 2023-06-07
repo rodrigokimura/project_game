@@ -3,15 +3,7 @@ from collections.abc import Callable
 import pygame
 
 from background import Background, Mountains
-from blocks import (
-    BaseBlock,
-    BaseCollectible,
-    Rock,
-    Spike,
-    Tree,
-    draw_cached_images,
-    make_block,
-)
+from blocks import BaseBlock, BaseCollectible, Rock, Spike, Tree, make_block
 from characters import BaseCharacter, Player
 from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
