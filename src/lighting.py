@@ -56,39 +56,39 @@ class ClusterDetector:
             return
 
         clusters = []
-        index = 6
+        index = 7
         while True:
             index = self.convert_to_opposing_index(index)
-            index = self.get_next_index(index)
             self.paint_block(block, offset)
             self.checked_blocks.add(block)
-            block, index = self.get_next_block_index(blocks, block, index)
-            if block is None:
+            new_block, index = self.get_next_block_index(blocks, block, index)
+            if new_block is None:
                 break
-            if block.coords[0] >= end_point[0]:
-                block, index = self.get_next_block_index(
+            if new_block.coords[0] >= end_point[0]:
+                new_block, index = self.get_next_block_index(
                     blocks, block, 5, skip_right=True
                 )
-                if block is None:
+                if new_block is None:
                     break
-            if block.coords[1] >= end_point[1]:
-                block, index = self.get_next_block_index(
+            if new_block.coords[1] >= end_point[1]:
+                new_block, index = self.get_next_block_index(
                     blocks, block, 7, skip_bottom=True
                 )
-                if block is None:
+                if new_block is None:
                     break
-            if block.coords[0] <= start_point[0]:
-                block, index = self.get_next_block_index(
+            if new_block.coords[0] <= start_point[0]:
+                new_block, index = self.get_next_block_index(
                     blocks, block, 1, skip_left=True
                 )
-                if block is None:
+                if new_block is None:
                     break
-            if block.coords[1] <= start_point[1]:
-                block, index = self.get_next_block_index(
+            if new_block.coords[1] <= start_point[1]:
+                new_block, index = self.get_next_block_index(
                     blocks, block, 3, skip_top=True
                 )
-                if block is None:
+                if new_block is None:
                     break
+            block = new_block
 
     def paint_block(self, block: BaseBlock, offset: pygame.math.Vector2):
         display = pygame.display.get_surface()
