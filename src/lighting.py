@@ -20,7 +20,7 @@ class ClusterDetector:
         (1, 1),
         (0, 1),
         (-1, 1),
-        (-1, 1),
+        (-1, 0),
     )
 
     def __init__(self) -> None:
@@ -66,19 +66,27 @@ class ClusterDetector:
             if block is None:
                 break
             if block.coords[0] >= end_point[0]:
-                block, index = self.get_next_block_index(blocks, block, 5)
+                block, index = self.get_next_block_index(
+                    blocks, block, 5, skip_right=True
+                )
                 if block is None:
                     break
             if block.coords[1] >= end_point[1]:
-                block, index = self.get_next_block_index(blocks, block, 7)
+                block, index = self.get_next_block_index(
+                    blocks, block, 7, skip_bottom=True
+                )
                 if block is None:
                     break
             if block.coords[0] <= start_point[0]:
-                block, index = self.get_next_block_index(blocks, block, 3)
+                block, index = self.get_next_block_index(
+                    blocks, block, 1, skip_left=True
+                )
                 if block is None:
                     break
             if block.coords[1] <= start_point[1]:
-                block, index = self.get_next_block_index(blocks, block, 1)
+                block, index = self.get_next_block_index(
+                    blocks, block, 3, skip_top=True
+                )
                 if block is None:
                     break
 
@@ -98,10 +106,29 @@ class ClusterDetector:
         return (x_1 + x_2, y_1 + y_2)
 
     def get_next_block_index(
-        self, blocks: Container2d[BaseBlock], block: BaseBlock, index: int
+        self,
+        blocks: Container2d[BaseBlock],
+        block: BaseBlock,
+        index: int,
+        skip_left=False,
+        skip_right=False,
+        skip_top=False,
+        skip_bottom=False,
     ):
+        sides_to_skip = set()
+        if skip_top:
+            sides_to_skip.update((0, 1, 2))
+        if skip_right:
+            sides_to_skip.update((2, 3, 4))
+        if skip_bottom:
+            sides_to_skip.update((4, 5, 6))
+        if skip_left:
+            sides_to_skip.update((0, 6, 7))
+
         for i in range(8):
             _index = index + i
+            if _index in sides_to_skip:
+                continue
             coords = self.get_neighbor_coords(block.coords, _index)
             if coords is None:
                 continue
