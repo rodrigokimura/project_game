@@ -62,7 +62,17 @@ class Camera:
         self._draw_bullets()
         self._draw_particles()
         self._draw_interface_elements()
-        ClusterDetector().detect_clusters(self.world.blocks, self.rect, -self.position)
+        cluster_detector = ClusterDetector(self.world.blocks, self.rect)
+        cluster_detector.detect()
+        print(len(cluster_detector.clusters))
+
+        try:
+            cluster_detector.paint_cluster(0, -self.position, "red")
+            cluster_detector.paint_cluster(1, -self.position, "blue")
+            cluster_detector.paint_cluster(2, -self.position, "green")
+            cluster_detector.paint_cluster(3, -self.position, "pink")
+        except IndexError:
+            ...
 
     def _update_rect(self):
         self.rect.center = self.player.rect.center
