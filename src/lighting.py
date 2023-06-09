@@ -61,21 +61,23 @@ class ClusterDetector:
             if block is not None:
                 if block in self.checked_blocks:
                     continue
-                cluster = self._walk_around_cluster(block)
+                cluster = self._get_cluster(block)
                 self.checked_blocks.update(cluster)
                 self.clusters.append(cluster)
+
+                # TODO: avoid detecting clusters inside clusters
                 if len(self.clusters) > 3:
                     break
             else:
                 self.checked_coords.add(coords)
 
-    def _walk_around_cluster(self, block: BaseBlock):
+    def _get_cluster(self, block: BaseBlock):
         self._starting_block = block
 
         cluster = {block}
         index = 3
         for _ in range(MAX_SURROUNDING_LENGTH):
-            block, index = self.get_next_block_index(self.blocks, block, index)  # type: ignore
+            block, index = self._get_next_neighbor(self.blocks, block, index)  # type: ignore
             if block is None:
                 break
 
@@ -86,22 +88,7 @@ class ClusterDetector:
             index += 5
         return cluster
 
-    def paint_cluster(self, index: int, offset: pygame.math.Vector2, color):
-        for block in self.clusters[index]:
-            display = pygame.display.get_surface()
-            pygame.draw.rect(display, color, block.rect.move(offset))
-
-    def get_neighbor_coords(self, coords: tuple[int, int], index: int):
-        """
-        0 1 2
-        7 x 3
-        6 5 4
-        """
-        x_1, y_1 = coords
-        x_2, y_2 = self.NEIGHBORS[index % 8]
-        return (x_1 + x_2, y_1 + y_2)
-
-    def get_next_block_index(
+    def _get_next_neighbor(
         self,
         blocks: Container2d[BaseBlock],
         block: BaseBlock,
@@ -109,7 +96,9 @@ class ClusterDetector:
     ):
         for i in range(8):
             _index = index + i
-            coords = self.get_neighbor_coords(block.coords, _index)
+            coords = self._get_neighbor_coords(block.coords, _index)
+
+            # handle edge cases
             if coords[0] > self.end_point[0]:
                 continue
             if coords[1] > self.end_point[1]:
@@ -127,3 +116,18 @@ class ClusterDetector:
                 return _block, _index
             self.checked_coords.add(coords)
         return None, 0
+
+    def _get_neighbor_coords(self, coords: tuple[int, int], index: int):
+        """
+        0 1 2
+        7 x 3
+        6 5 4
+        """
+        x_1, y_1 = coords
+        x_2, y_2 = self.NEIGHBORS[index % 8]
+        return (x_1 + x_2, y_1 + y_2)
+
+    def paint_cluster(self, index: int, offset: pygame.math.Vector2, color):
+        for block in self.clusters[index]:
+            display = pygame.display.get_surface()
+            pygame.draw.rect(display, color, block.rect.move(offset))
