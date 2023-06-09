@@ -67,10 +67,12 @@ class Camera:
             cluster_detector.detect()
 
             try:
-                cluster_detector.paint_cluster(0, -self.position, "red")
-                cluster_detector.paint_cluster(1, -self.position, "blue")
-                cluster_detector.paint_cluster(2, -self.position, "green")
-                cluster_detector.paint_cluster(3, -self.position, "pink")
+                colors = ("red", "blue", "green", "yellow", "magenta", "cyan")
+                for i in range(len(cluster_detector.clusters)):
+                    cluster_detector.paint_cluster(
+                        i, -self.position, colors[i % len(colors)]
+                    )
+                print(f"{len(cluster_detector.clusters)} clusters detected")
             except IndexError:
                 ...
 

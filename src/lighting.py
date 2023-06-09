@@ -28,60 +28,54 @@ class ClusterDetector:
         blocks: Container2d[BaseBlock],
         bounding_rect: pygame.rect.Rect,
     ) -> None:
-        self.checked_coords: set[tuple[int, int]] = set()
-        self.checked_blocks: set[BaseBlock] = set()
+        self._checked_coords: set[tuple[int, int]] = set()
+        self._checked_blocks: set[BaseBlock] = set()
 
         self.clusters: list[set[BaseBlock]] = []
         self._starting_block: BaseBlock | None = None
 
-        self.blocks = blocks
+        self._blocks = blocks
 
-        self.start_point = bounding_rect.topleft
-        self.end_point = bounding_rect.bottomright
-        self.start_point = (
-            self.start_point[0] // BLOCK_SIZE,
-            self.start_point[1] // BLOCK_SIZE,
-        )
-        self.end_point = (
-            self.end_point[0] // BLOCK_SIZE,
-            self.end_point[1] // BLOCK_SIZE,
-        )
+        start_x, start_y = bounding_rect.topleft
+        end_x, end_y = bounding_rect.bottomright
+        self.start_x, self.start_y = (start_x // BLOCK_SIZE, start_y // BLOCK_SIZE)
+        self.end_x, self.end_y = (end_x // BLOCK_SIZE, end_y // BLOCK_SIZE)
 
     def detect(self):
         # iterate over lines first
         block = None
         for y, x in product(
-            range(self.start_point[1] + 1, self.end_point[1]),
-            range(self.start_point[0] + 1, self.end_point[0]),
+            range(self.start_y, self.end_y), range(self.start_x, self.end_x)
         ):
             coords = (x, y)
-            if coords in self.checked_coords:
+            if coords in self._checked_coords:
                 continue
-            block = self.blocks.get_element(coords)
-            if block is not None:
-                if block in self.checked_blocks:
-                    continue
-                cluster = self._get_cluster(block)
-                self.checked_blocks.update(cluster)
-                self.clusters.append(cluster)
 
-                # TODO: avoid detecting clusters inside clusters
-                if len(self.clusters) > 3:
-                    break
-            else:
-                self.checked_coords.add(coords)
+            block = self._blocks.get_element(coords)
+            if block is None or block in self._checked_blocks:
+                continue
+
+            cluster = self._get_cluster(block)
+
+            self._checked_blocks.update(cluster)
+            self._checked_coords.update(b.coords for b in cluster)
+            self.clusters.append(cluster)
+
+            # TODO: avoid detecting clusters inside clusters
+            # if len(self.clusters) > 3:
+            #     break
 
     def _get_cluster(self, block: BaseBlock):
         self._starting_block = block
 
-        cluster = {block}
         index = 3
+        cluster: set[BaseBlock] = set()
         for _ in range(MAX_SURROUNDING_LENGTH):
-            block, index = self._get_next_neighbor(self.blocks, block, index)  # type: ignore
+            cluster.add(block)
+            block, index = self._get_next_neighbor(self._blocks, block, index)  # type: ignore
             if block is None:
                 break
 
-            cluster.add(block)
             if self._starting_block == block:
                 break
             # convert to opposite (+4) and next (+1)
@@ -96,25 +90,25 @@ class ClusterDetector:
     ):
         for i in range(8):
             _index = index + i
-            coords = self._get_neighbor_coords(block.coords, _index)
+            (x, y) = self._get_neighbor_coords(block.coords, _index)
 
             # handle edge cases
-            if coords[0] > self.end_point[0]:
+            if x > self.end_x:
                 continue
-            if coords[1] > self.end_point[1]:
+            if y > self.end_y:
                 continue
-            if coords[0] < self.start_point[0]:
+            if x < self.start_x:
                 continue
-            if coords[1] < self.start_point[1]:
-                continue
-
-            if coords in self.checked_coords:
+            if y < self.start_y:
                 continue
 
-            _block = blocks.get_element(coords)
+            if (x, y) in self._checked_coords:
+                continue
+
+            _block = blocks.get_element((x, y))
             if _block is not None:
                 return _block, _index
-            self.checked_coords.add(coords)
+            self._checked_coords.add((x, y))
         return None, 0
 
     def _get_neighbor_coords(self, coords: tuple[int, int], index: int):
