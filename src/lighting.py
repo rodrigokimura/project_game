@@ -93,13 +93,7 @@ class ClusterDetector:
             (x, y) = self._get_neighbor_coords(block.coords, _index)
 
             # handle edge cases
-            if x > self.end_x:
-                continue
-            if y > self.end_y:
-                continue
-            if x < self.start_x:
-                continue
-            if y < self.start_y:
+            if x > self.end_x or x < self.start_x or y > self.end_y or y < self.start_y:
                 continue
 
             if (x, y) in self._checked_coords:
@@ -109,7 +103,7 @@ class ClusterDetector:
             if _block is not None:
                 return _block, _index
             self._checked_coords.add((x, y))
-        return None, 0
+        return (None, 0)
 
     def _get_neighbor_coords(self, coords: tuple[int, int], index: int):
         """
