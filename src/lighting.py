@@ -61,25 +61,31 @@ class ClusterDetector:
             self._checked_coords.update(b.coords for b in cluster)
             self.clusters.append(cluster)
 
-            # TODO: avoid detecting clusters inside clusters
-            # if len(self.clusters) > 3:
-            #     break
-
     def _get_cluster(self, block: BaseBlock):
         self._starting_block = block
 
-        index = 3
+        rotating_index = 3
+        direction_index = 3
         cluster: set[BaseBlock] = set()
+        edges: set[tuple[tuple[int, int], tuple[int, int]]] = set()
+        vertex_1: tuple[int, int] = block.coords
+        vertex_2: tuple[int, int] | None = None
         for _ in range(MAX_SURROUNDING_LENGTH):
             cluster.add(block)
-            block, index = self._get_next_neighbor(self._blocks, block, index)  # type: ignore
+
+            block, rotating_index = self._get_next_neighbor(self._blocks, block, rotating_index)  # type: ignore
             if block is None:
                 break
 
+            if direction_index != rotating_index:
+                vertex_2 = block.coords
+                edges.add((vertex_1, vertex_2))
+
             if self._starting_block == block:
                 break
-            # convert to opposite (+4) and next (+1)
-            index += 5
+
+            # rotate: convert to opposite (+4) and next (+1)
+            rotating_index += 5
         return cluster
 
     def _get_next_neighbor(
