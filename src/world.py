@@ -1,17 +1,89 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 
 import pygame
+import pygame.freetype
 
 from background import Background, Mountains
 from blocks import BaseBlock, BaseCollectible, Rock, Spike, Tree, make_block
 from characters import BaseCharacter, Player
+from colors import InterfaceColor
 from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
+from draw import BorderOptions, FillBorderColors, draw_bordered_rect
 from log import log
 from particle.emitters import Manager
-from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, WORLD_SIZE
+from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, MENU_FONT, WORLD_SIZE
 from shooting import BaseBullet
 from utils.container import Container2d
+
+
+class Loader:
+    LOADED = pygame.event.custom_type()
+
+    def __init__(self, world: World) -> None:
+        self.world = world
+        self._font = pygame.freetype.Font(MENU_FONT, 50)
+        self._font.antialiased = False
+        self._font.pad = True
+        self.display = pygame.display.get_surface()
+
+    def load(self):
+        self._draw_static()
+        self._load_world()
+        self._finish()
+
+    def _draw_static(self):
+        self.display.fill(InterfaceColor.MENU_BACKGROUND)
+        pygame.display.update()
+
+    def _load_world(self):
+        # fake for now
+        messages = [
+            "Placing blocks...",
+            "Generating terrains...",
+            "Scanning block clusters...",
+            "Scanning edges for shadow casting...",
+        ]
+        for i, message in enumerate(messages):
+            print(message)
+            self._update_progress_and_message((i + 1) / len(messages), message)
+            pygame.time.delay(1000)
+
+    def _update_progress_and_message(self, progress: float, message: str):
+        self.display.fill(InterfaceColor.MENU_BACKGROUND)
+        rect = self._font.render_to(
+            self.display, (0, 0), message, InterfaceColor.PRIMARY_FONT
+        )
+        pygame.display.update(rect)
+
+        text = f"Progress: {progress:.1%}"
+        rect = self._font.render_to(
+            self.display, (0, 50), text, InterfaceColor.PRIMARY_FONT
+        )
+        pygame.display.update(rect)
+        progress_bar_rect = pygame.rect.Rect((0, 120), (1000, 20))
+        progress_bar_fill_rect = pygame.rect.Rect(
+            (0, 120), (progress_bar_rect.width * progress, 20)
+        )
+        draw_bordered_rect(
+            self.display,
+            progress_bar_rect,
+            FillBorderColors(InterfaceColor.MENU_BACKGROUND, InterfaceColor.BORDER),
+            BorderOptions(1, 0),
+        )
+        draw_bordered_rect(
+            self.display,
+            progress_bar_fill_rect,
+            FillBorderColors(InterfaceColor.HEALTH_POINTS, InterfaceColor.BORDER),
+            BorderOptions(1, 0),
+        )
+        pygame.display.update(progress_bar_rect)
+
+    def _finish(self):
+        event = pygame.event.Event(self.LOADED)
+        pygame.event.post(event)
 
 
 class World(Storable, Loadable):

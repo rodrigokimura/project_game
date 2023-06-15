@@ -17,11 +17,12 @@ from settings import (
     WORLD_SIZE,
 )
 from storage import PlayerStorage, WorldStorage
-from world import World
+from world import Loader, World
 
 
 class Level:
     class Status(enum.IntEnum):
+        LOADING = enum.auto()
         RUNNING = enum.auto()
         PAUSED = enum.auto()
         INVENTORY_OPEN = enum.auto()
@@ -45,7 +46,7 @@ class Level:
         player: Player | None = None,
     ) -> None:
         draw_cached_images()
-        self.status = Level.Status.RUNNING
+        self.status = Level.Status.LOADING
         self.display_surface = pygame.display.get_surface()
         self.pause_menu = Menu(
             {
@@ -78,6 +79,8 @@ class Level:
         self.player.enemies_buffer = self.world.characters_buffer
         self.world.set_player(self.player)
 
+        self.loader = Loader(self.world)
+
         enemy = Enemy(
             GRAVITY,
             TERMINAL_VELOCITY,
@@ -101,7 +104,9 @@ class Level:
         )
 
     def run(self, dt: float):
-        if self.status == Level.Status.RUNNING:
+        if self.status == Level.Status.LOADING:
+            self.loader.load()
+        elif self.status == Level.Status.RUNNING:
             self.world.update(dt)
             self.camera.update()
             self.check_player_dead()
@@ -132,17 +137,20 @@ class Level:
                 event.character.kill()
 
     def check_status(self):
-        if self.status == Level.Status.PAUSED:
+        if self.status == self.Status.LOADING:
+            if pygame.event.get(self.loader.LOADED):
+                self.status = self.Status.RUNNING
+        elif self.status == self.Status.PAUSED:
             if pygame.event.get(self.RESUME):
-                self.status = Level.Status.RUNNING
-        elif self.status == Level.Status.RUNNING:
+                self.status = self.Status.RUNNING
+        elif self.status == self.Status.RUNNING:
             events = pygame.event.get((Player.PAUSE, Player.OPEN_INVENTORY))
             if events:
                 event = events[0]
                 if event.type == Player.PAUSE:
-                    self.status = Level.Status.PAUSED
+                    self.status = self.Status.PAUSED
                 elif event.type == Player.OPEN_INVENTORY:
-                    self.status = Level.Status.INVENTORY_OPEN
-        elif self.status == Level.Status.INVENTORY_OPEN:
+                    self.status = self.Status.INVENTORY_OPEN
+        elif self.status == self.Status.INVENTORY_OPEN:
             if pygame.event.get(Inventory.CLOSE):
-                self.status = Level.Status.RUNNING
+                self.status = self.Status.RUNNING
