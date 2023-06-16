@@ -84,11 +84,18 @@ class ShadowCaster:
         self.shadows.clear()
 
     def _update_coords(self):
+        _pad = 1
         start_x, start_y = self._boundary.topleft
         end_x, end_y = self._boundary.bottomright
         self._boundary_bottom_y = end_y
-        self._start_x, self._start_y = (start_x // BLOCK_SIZE, start_y // BLOCK_SIZE)
-        self._end_x, self._end_y = (end_x // BLOCK_SIZE, end_y // BLOCK_SIZE)
+        self._start_x, self._start_y = (
+            start_x // BLOCK_SIZE - _pad,
+            start_y // BLOCK_SIZE - _pad,
+        )
+        self._end_x, self._end_y = (
+            end_x // BLOCK_SIZE + _pad,
+            end_y // BLOCK_SIZE + _pad,
+        )
 
     def _update_angle(self, relative_time: float):
         print(relative_time)

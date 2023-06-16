@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from itertools import product
 
 import pygame
 import pygame.freetype
@@ -29,6 +30,12 @@ class Loader:
         self._font.pad = True
         self.display = pygame.display.get_surface()
 
+        self._step_progress = 0
+        self._steps = [
+            ("Iterating over blocks", self._fake_step_1),
+            ("Iterating over blocks again", self._fake_step_2),
+        ]
+
     def load(self):
         self._draw_static()
         self._load_world()
@@ -40,27 +47,56 @@ class Loader:
 
     def _load_world(self):
         # fake for now
-        messages = [
-            "Placing blocks...",
-            "Generating terrains...",
-            "Scanning block clusters...",
-            "Scanning edges for shadow casting...",
-        ]
-        for i, message in enumerate(messages):
-            print(message)
-            self._update_progress_and_message((i + 1) / len(messages), message)
-            pygame.time.delay(1000)
+        for _, step in enumerate(self._steps):
+            _, step = step
+            self._step_progress = 0
+            step()
 
-    def _update_progress_and_message(self, progress: float, message: str):
-        self.display.fill(InterfaceColor.MENU_BACKGROUND)
+    def _fake_step_1(self):
+        width, height = WORLD_SIZE
+        total_blocks = width * height
+        i = 0
+        for coords in product(range(width), range(height)):
+            block = self.world.blocks.get_element(coords)
+            i += 1
+            step_progress = i / total_blocks
+            print(i, total_blocks)
+            if i % (total_blocks // 100) == 0:
+                self._update_progress_and_message(step_progress, 0, self._steps[0][0])
+
+    def _fake_step_2(self):
+        width, height = WORLD_SIZE
+        total_blocks = width * height
+        i = 0
+        for coords in product(range(width), range(height)):
+            block = self.world.blocks.get_element(coords)
+            i += 1
+            step_progress = i / total_blocks
+            print(i, total_blocks)
+            if i % (total_blocks // 100) == 0:
+                self._update_progress_and_message(step_progress, 1, self._steps[1][0])
+
+    def _update_progress_and_message(
+        self, step_progress: float, step_index: int, message: str
+    ):
+        progress_per_step = 1 / len(self._steps)
+        progress = step_progress * progress_per_step + (step_index * progress_per_step)
         rect = self._font.render_to(
-            self.display, (0, 0), message, InterfaceColor.PRIMARY_FONT
+            self.display,
+            (0, 0),
+            message,
+            InterfaceColor.PRIMARY_FONT,
+            InterfaceColor.MENU_BACKGROUND,
         )
         pygame.display.update(rect)
 
-        text = f"Progress: {progress:.1%}"
+        text = f"Progress: {progress:.0%}"
         rect = self._font.render_to(
-            self.display, (0, 50), text, InterfaceColor.PRIMARY_FONT
+            self.display,
+            (0, 50),
+            text,
+            InterfaceColor.PRIMARY_FONT,
+            InterfaceColor.MENU_BACKGROUND,
         )
         pygame.display.update(rect)
         progress_bar_rect = pygame.rect.Rect((0, 120), (1000, 20))
