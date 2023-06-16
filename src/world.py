@@ -47,6 +47,7 @@ class Loader:
 
     def _load_world(self):
         # fake for now
+        return
         for _, step in enumerate(self._steps):
             _, step = step
             self._step_progress = 0

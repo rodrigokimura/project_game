@@ -48,6 +48,7 @@ class ShadowCaster:
         self._start_y: int
         self._end_x: int
         self._end_y: int
+        self._pad = -1
 
     def detect(self, offset: pygame.math.Vector2, relative_time: float):
         self._reset()
@@ -84,17 +85,16 @@ class ShadowCaster:
         self.shadows.clear()
 
     def _update_coords(self):
-        _pad = 1
         start_x, start_y = self._boundary.topleft
         end_x, end_y = self._boundary.bottomright
         self._boundary_bottom_y = end_y
         self._start_x, self._start_y = (
-            start_x // BLOCK_SIZE - _pad,
-            start_y // BLOCK_SIZE - _pad,
+            start_x // BLOCK_SIZE - self._pad,
+            start_y // BLOCK_SIZE - self._pad,
         )
         self._end_x, self._end_y = (
-            end_x // BLOCK_SIZE + _pad,
-            end_y // BLOCK_SIZE + _pad,
+            end_x // BLOCK_SIZE + self._pad,
+            end_y // BLOCK_SIZE + self._pad,
         )
 
     def _update_angle(self, relative_time: float):
@@ -107,6 +107,7 @@ class ShadowCaster:
         _start = block
         _current = block
         _next = block
+        _other_neighbors: list[tuple[BaseBlock, int]] = []
 
         rotating_index = 3
         direction_index = 3
@@ -117,7 +118,7 @@ class ShadowCaster:
         for _ in range(MAX_SURROUNDING_LENGTH):
             cluster.add(_current)
 
-            _next, rotating_index = self._get_next_neighbor(self._blocks, _current, rotating_index)  # type: ignore
+            _next, rotating_index = self._get_next_neighbor(self._blocks, _current, rotating_index, _other_neighbors)  # type: ignore
             if _next is None:
                 break
 
@@ -127,16 +128,21 @@ class ShadowCaster:
                 vertex_4 = self._get_boundary_vertex(vertex_1)
                 shadow = (vertex_1, vertex_2, vertex_3, vertex_4)
                 shadows.append(shadow)
-                self.paint_shadow(shadow, offset, "black")
+                # self.paint_shadow(shadow, offset, "black")
                 vertex_1 = vertex_2
                 direction_index = rotating_index
 
-            if _start == _next:
-                vertex_2 = _next.rect.center
-                vertex_3 = self._get_boundary_vertex(vertex_2)
-                vertex_4 = self._get_boundary_vertex(vertex_1)
-                shadows.append((vertex_1, vertex_2, vertex_3, vertex_4))
-                break
+            if _next == _start:
+                if _other_neighbors:
+                    _start, rotating_index = _other_neighbors.pop(0)
+                    self._checked_coords.update(b.coords for b in cluster)
+                    _current = _start
+                else:
+                    vertex_2 = _next.rect.center
+                    vertex_3 = self._get_boundary_vertex(vertex_2)
+                    vertex_4 = self._get_boundary_vertex(vertex_1)
+                    shadows.append((vertex_1, vertex_2, vertex_3, vertex_4))
+                    break
 
             _current = _next
 
@@ -149,7 +155,10 @@ class ShadowCaster:
         blocks: Container2d[BaseBlock],
         block: BaseBlock,
         index: int,
+        others: list[tuple[BaseBlock, int]]
     ):
+        _first: tuple[BaseBlock, int] | None = None
+        # _others: set[tuple[BaseBlock, int]] = set()
         for i in range(8):
             _index = index + i
             _index %= 8
@@ -169,8 +178,17 @@ class ShadowCaster:
 
             _block = blocks.get_element((x, y))
             if _block is not None and not isinstance(_block, self.BLOCKS_TO_IGNORE):
-                return _block, _index
-            self._checked_coords.add((x, y))
+                if _first is None:
+                    if _first in others:
+                        others.remove(_first)
+                    _first = (_block, _index)
+                else:
+                    others.append((_block, _index))
+            else:
+                self._checked_coords.add((x, y))
+
+        if _first:
+            return _first
         return (None, 0)
 
     def _get_neighbor_coords(self, coords: tuple[int, int], index: int):
