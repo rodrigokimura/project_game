@@ -118,7 +118,10 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
         return cached_masks[self.__class__]
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} {self.coords}"
+        return f"{self.__class__.__name__}{self.coords}"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{self.coords}"
 
     def __hash__(self) -> int:
         return hash(self.coords)

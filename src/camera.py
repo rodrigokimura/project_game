@@ -217,9 +217,9 @@ class Camera:
                 colors = ("red", "blue", "green", "yellow", "magenta", "cyan")
                 for i in range(len(self.shadow_caster.clusters)):
                     color = colors[i % len(colors)]
-                    self.shadow_caster.paint_cluster(i, -self.position, color)
-                    # for shadow in self.shadow_caster.shadows[i]:
-                    #     self.shadow_caster.paint_shadow(shadow, -self.position, color)
+                    # self.shadow_caster.paint_cluster(i, -self.position, color)
+                    for shadow in self.shadow_caster.shadows[i]:
+                        self.shadow_caster.paint_shadow(shadow, -self.position, color)
                 print(f"{len(self.shadow_caster.clusters)} clusters detected")
             except IndexError:
                 ...

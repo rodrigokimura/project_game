@@ -4,6 +4,7 @@ from math import radians, sin, sqrt
 import pygame
 
 from blocks import BaseBlock, Spike, Tree
+from log import log
 from settings import BLOCK_SIZE, MAX_SURROUNDING_LENGTH
 from utils.container import Container2d
 
@@ -49,6 +50,7 @@ class ShadowCaster:
         self._end_x: int
         self._end_y: int
         self._pad = -1
+        # self._pad = 1
 
     def detect(self, offset: pygame.math.Vector2, relative_time: float):
         self._reset()
@@ -98,16 +100,16 @@ class ShadowCaster:
         )
 
     def _update_angle(self, relative_time: float):
-        print(relative_time)
+        # print(relative_time)
         max_angle = 45
         self.angle = (relative_time * 2 - 1) * max_angle
-        print(self.angle)
+        # print(self.angle)
 
     def _get_cluster(self, block: BaseBlock, offset: pygame.math.Vector2):
         _start = block
         _current = block
         _next = block
-        _other_neighbors: list[tuple[BaseBlock, int]] = []
+        _other_neighbors: set[tuple[BaseBlock, int]] = set()
 
         rotating_index = 3
         direction_index = 3
@@ -115,33 +117,55 @@ class ShadowCaster:
         shadows: list[Tetragon] = []
         vertex_1: tuple[int, int] = _current.rect.center
         vertex_2: tuple[int, int] = _current.rect.center
-        for _ in range(MAX_SURROUNDING_LENGTH):
+        _layer: int = 0
+        for iteration in range(MAX_SURROUNDING_LENGTH):
             cluster.add(_current)
 
             _next, rotating_index = self._get_next_neighbor(self._blocks, _current, rotating_index, _other_neighbors)  # type: ignore
             if _next is None:
-                break
+                if iteration == 0:
+                    break
+                elif _other_neighbors:
+                    if _layer == 0:
+                        vertex_2 = _current.rect.center
+                        vertex_3 = self._get_boundary_vertex(vertex_2)
+                        vertex_4 = self._get_boundary_vertex(vertex_1)
+                        shadow = (vertex_1, vertex_2, vertex_3, vertex_4)
+                        shadows.append(shadow)
+
+                    # _start, rotating_index = self._get_most_topleft(_other_neighbors)
+                    _start, rotating_index = _other_neighbors.pop()
+                    _current = _start
+                    _layer += 1
+                    continue
+                else:
+                    if _layer == 0:
+                        vertex_2 = _current.rect.center
+                        vertex_3 = self._get_boundary_vertex(vertex_2)
+                        vertex_4 = self._get_boundary_vertex(vertex_1)
+                        shadow = (vertex_1, vertex_2, vertex_3, vertex_4)
+                        shadows.append(shadow)
+
+                    break
 
             if direction_index != rotating_index:
-                vertex_2 = _current.rect.center
-                vertex_3 = self._get_boundary_vertex(vertex_2)
-                vertex_4 = self._get_boundary_vertex(vertex_1)
-                shadow = (vertex_1, vertex_2, vertex_3, vertex_4)
-                shadows.append(shadow)
-                # self.paint_shadow(shadow, offset, "black")
+                if _layer == 0:
+                    vertex_2 = _current.rect.center
+                    vertex_3 = self._get_boundary_vertex(vertex_2)
+                    vertex_4 = self._get_boundary_vertex(vertex_1)
+                    shadow = (vertex_1, vertex_2, vertex_3, vertex_4)
+                    shadows.append(shadow)
                 vertex_1 = vertex_2
+
                 direction_index = rotating_index
 
             if _next == _start:
                 if _other_neighbors:
-                    _start, rotating_index = _other_neighbors.pop(0)
-                    self._checked_coords.update(b.coords for b in cluster)
+                    # _start, rotating_index = self._get_most_topleft(_other_neighbors)
+                    _start, rotating_index = _other_neighbors.pop()
                     _current = _start
+                    _layer += 1
                 else:
-                    vertex_2 = _next.rect.center
-                    vertex_3 = self._get_boundary_vertex(vertex_2)
-                    vertex_4 = self._get_boundary_vertex(vertex_1)
-                    shadows.append((vertex_1, vertex_2, vertex_3, vertex_4))
                     break
 
             _current = _next
@@ -155,10 +179,10 @@ class ShadowCaster:
         blocks: Container2d[BaseBlock],
         block: BaseBlock,
         index: int,
-        others: list[tuple[BaseBlock, int]]
+        others: set[tuple[BaseBlock, int]],
     ):
         _first: tuple[BaseBlock, int] | None = None
-        # _others: set[tuple[BaseBlock, int]] = set()
+        index %= 8
         for i in range(8):
             _index = index + i
             _index %= 8
@@ -179,13 +203,13 @@ class ShadowCaster:
             _block = blocks.get_element((x, y))
             if _block is not None and not isinstance(_block, self.BLOCKS_TO_IGNORE):
                 if _first is None:
-                    if _first in others:
-                        others.remove(_first)
                     _first = (_block, _index)
-                else:
-                    others.append((_block, _index))
-            else:
-                self._checked_coords.add((x, y))
+                    others.discard(_first)
+                    self._checked_coords.add((x, y))
+                    continue
+                others.add((_block, _index))
+                continue
+            self._checked_coords.add((x, y))
 
         if _first:
             return _first
@@ -207,6 +231,18 @@ class ShadowCaster:
         x = int(((y - y_0) / sqrt(1 / pow(sin(radians(self.angle)) - 1, 2))) + x_0)
         return (x, y)
 
+    def _get_most_topleft(self, others: set[tuple[BaseBlock, int]]):
+        coords = [b.coords for b, _ in others]
+        coords.sort(key=lambda c: c[1])
+        top_most_row = coords[0][1]
+        coords = [c for c in coords if c[1] == top_most_row]
+        coords.sort(key=lambda c: c[0])
+        left_most_col = coords[0][0]
+        result = next(i for i in others if i[0].coords == (left_most_col, top_most_row))
+
+        others.discard(result)
+        return result
+
     def paint_cluster(self, index: int, offset: pygame.math.Vector2, color):
         for block in self.clusters[index]:
             display = pygame.display.get_surface()
@@ -218,4 +254,5 @@ class ShadowCaster:
             display,
             color,
             tuple((pygame.math.Vector2(v) * 1) + offset for v in vertices),
+            1
         )
