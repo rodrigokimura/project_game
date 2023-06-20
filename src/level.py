@@ -79,8 +79,6 @@ class Level:
         self.player.enemies_buffer = self.world.characters_buffer
         self.world.set_player(self.player)
 
-        self.loader = Loader(self.world)
-
         enemy = Enemy(
             GRAVITY,
             TERMINAL_VELOCITY,
@@ -102,6 +100,7 @@ class Level:
             ],
             self.world.characters_buffer.sprites(),
         )
+        self.loader = Loader(self.world, self.camera.shadow_caster)
 
     def run(self, dt: float):
         if self.status == Level.Status.LOADING:

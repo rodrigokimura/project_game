@@ -13,6 +13,7 @@ from colors import InterfaceColor
 from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
 from draw import BorderOptions, FillBorderColors, draw_bordered_rect
+from lighting import ShadowCaster
 from log import log
 from particle.emitters import Manager
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, MENU_FONT, WORLD_SIZE
@@ -23,7 +24,7 @@ from utils.container import Container2d
 class Loader:
     LOADED = pygame.event.custom_type()
 
-    def __init__(self, world: World) -> None:
+    def __init__(self, world: World, shadow_caster: ShadowCaster) -> None:
         self.world = world
         self._font = pygame.freetype.Font(MENU_FONT, 50)
         self._font.antialiased = False
@@ -32,11 +33,13 @@ class Loader:
 
         self._step_progress = 0
         self._steps = [
-            ("Iterating over blocks", self._fake_step_1),
-            ("Iterating over blocks again", self._fake_step_2),
+            ("Indexing surface outer layer", self._step_1),
+            ("Generating opacity info", self._step_2),
         ]
+        self.shadow_caster = shadow_caster
 
     def load(self):
+        self.shadow_caster.setup()
         self._draw_static()
         self._load_world()
         self._finish()
@@ -52,29 +55,15 @@ class Loader:
             self._step_progress = 0
             step()
 
-    def _fake_step_1(self):
-        width, height = WORLD_SIZE
-        total_blocks = width * height
-        i = 0
-        for coords in product(range(width), range(height)):
-            block = self.world.blocks.get_element(coords)
-            i += 1
-            step_progress = i / total_blocks
-            print(i, total_blocks)
-            if i % (total_blocks // 100) == 0:
-                self._update_progress_and_message(step_progress, 0, self._steps[0][0])
+    def _step_1(self):
+        self.shadow_caster._detect_outer_layer(
+            lambda x: self._update_progress_and_message(x, 0, self._steps[0][0])
+        )
 
-    def _fake_step_2(self):
-        width, height = WORLD_SIZE
-        total_blocks = width * height
-        i = 0
-        for coords in product(range(width), range(height)):
-            block = self.world.blocks.get_element(coords)
-            i += 1
-            step_progress = i / total_blocks
-            print(i, total_blocks)
-            if i % (total_blocks // 100) == 0:
-                self._update_progress_and_message(step_progress, 1, self._steps[1][0])
+    def _step_2(self):
+        self.shadow_caster._generate_opacity_info(
+            lambda x: self._update_progress_and_message(x, 1, self._steps[1][0])
+        )
 
     def _update_progress_and_message(
         self, step_progress: float, step_index: int, message: str

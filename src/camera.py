@@ -56,7 +56,6 @@ class Camera:
         self._update_rect()
         self._update_position()
         self._draw_background(self.player.position)
-        self._draw_shadows(self.world.relative_time)
         self._draw_visible_area()
         self._draw_collectibles()
         self._draw_player()
@@ -105,6 +104,8 @@ class Camera:
             block = self.world.get_block(coords)
             if block is not None:
                 self.display_surface.blit(block.image, block.rect.move(-self.position))
+
+            self.shadow_caster.cast(coords, -self.position, self.display_surface)
 
     def _draw_collectibles(self):
         blit_multiple(
@@ -208,17 +209,3 @@ class Camera:
     def _draw_interface_elements(self):
         for element in self.interface_elements:
             element.draw()
-
-    def _draw_shadows(self, relative_time: float):
-        self.shadow_caster.detect(-self.position, relative_time)
-        # if DEBUG:
-        #     try:
-        #         colors = ("red", "blue", "green", "yellow", "magenta", "cyan")
-        #         for i in range(len(self.shadow_caster.clusters)):
-        #             color = colors[i % len(colors)]
-        #             # cluster_detector.paint_cluster(i, -self.position, color)
-        #             for shadow in self.shadow_caster.shadows[i]:
-        #                 self.shadow_caster.paint_shadow(shadow, -self.position, color)
-        #         print(f"{len(self.shadow_caster.clusters)} clusters detected")
-        #     except IndexError:
-        #         ...
