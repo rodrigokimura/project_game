@@ -8,7 +8,7 @@ class Container2d(Generic[T]):
     """Class to store 2D arrays of size [x, y]"""
 
     def __init__(self, size: tuple[int, int]) -> None:
-        self._size = size
+        self.size = size
         self._container = [[]]
         self.empty()
 
@@ -23,7 +23,7 @@ class Container2d(Generic[T]):
 
     def empty(self):
         self._container = [
-            [None for _ in range(self._size[1])] for _ in range(self._size[0])
+            [None for _ in range(self.size[1])] for _ in range(self.size[0])
         ]
 
     def get_surrounding(self, coords: tuple[int, int], padding: int):

@@ -13,10 +13,8 @@ class ShadowCaster:
         blocks: Container2d[BaseBlock],
         boundary: pygame.rect.Rect,
     ) -> None:
-        self.opacity: Container2d[float] = Container2d(blocks._size)
-        self.outer_layer: list[tuple[int, int]] = [
-            (0, 0) for _ in range(blocks._size[0])
-        ]
+        self.opacity: Container2d[float] = Container2d(blocks.size)
+        self.outer_layer: list[int] = [0 for _ in range(blocks.size[0])]
 
         self._blocks = blocks
         self._boundary = boundary
@@ -27,6 +25,7 @@ class ShadowCaster:
         self._end_x: int
         self._end_y: int
         self._pad = -1
+        self._shadow_img: pygame.surface.Surface
 
     def setup(self):
         self._shadow_img = pygame.surface.Surface(
@@ -34,27 +33,18 @@ class ShadowCaster:
         ).convert_alpha()
 
     def _detect_outer_layer(self, progress_callback: Callable[[float], None]):
-        width, height = self.opacity._size
+        width, height = self.opacity.size
         total_blocks = width * height
         i = 0
         # scan from left to right
         for x in range(width):
-            first_non_empty_in_column = 0
-            second_non_empty_in_column = 0
-
             for y in range(height):
                 coords = (x, y)
-
                 block = self._blocks.get_element(coords)
                 if block is not None:
-                    if not first_non_empty_in_column:
-                        first_non_empty_in_column = y
-                    elif first_non_empty_in_column and not second_non_empty_in_column:
-                        second_non_empty_in_column = y
-                        self.outer_layer[x] = (
-                            first_non_empty_in_column,
-                            second_non_empty_in_column,
-                        )
+                    self.outer_layer[x] = y
+                    break
+
                 # report progress
                 # since it's expensive, do it every 1%
                 i += 1
@@ -63,11 +53,11 @@ class ShadowCaster:
                     progress_callback(step_progress)
 
     def _generate_opacity_info(self, progress_callback: Callable[[float], None]):
-        width, _ = self.opacity._size
+        width, _ = self.opacity.size
         for x in range(width):
-            n = self.outer_layer[x][0]
-            for y in range(n + 1):
-                self._light_n((x, y))
+            first_non_empty = self.outer_layer[x]
+            for y in range(first_non_empty + 1):
+                self._light_point((x, y))
 
             # report progress
             # since it's expensive, do it every 1%
@@ -75,20 +65,20 @@ class ShadowCaster:
             if x % (width // 100) == 0:
                 progress_callback(step_progress)
 
-    def _light_n(self, coords: tuple[int, int]):
-        l1 = 0.1
-        l2 = 0.05
+    def _light_point(self, coords: tuple[int, int]):
+        layer_1 = 0.1
+        layer_2 = 0.05
         (x, y) = coords
         self.set_opacity(coords, 1)
         for i in range(3):
-            self.add_opacity((x - 1 + i, y - 2), l2)
-            self.add_opacity((x - 1 + i, y + 2), l2)
+            self.add_opacity((x - 1 + i, y - 2), layer_2)
+            self.add_opacity((x - 1 + i, y + 2), layer_2)
 
-            self.add_opacity((x - 2, y - 1 + i), l2)
-            self.add_opacity((x + 2, y - 1 + i), l2)
+            self.add_opacity((x - 2, y - 1 + i), layer_2)
+            self.add_opacity((x + 2, y - 1 + i), layer_2)
 
             for j in range(3):
-                self.add_opacity((x - 1 + i, y - 1 + j), l1)
+                self.add_opacity((x - 1 + i, y - 1 + j), layer_1)
 
     def get_opacity(self, coords: tuple[int, int]) -> int:
         _opacity = self.opacity.get_element(coords)

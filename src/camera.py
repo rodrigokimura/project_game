@@ -56,12 +56,12 @@ class Camera:
         self._update_rect()
         self._update_position()
         self._draw_background(self.player.position)
-        self._draw_visible_area()
-        self._draw_collectibles()
         self._draw_player()
         self._draw_characters()
+        self._draw_collectibles()
         self._draw_bullets()
         self._draw_particles()
+        self._draw_visible_area()
         self._draw_interface_elements()
 
     def _update_rect(self):
