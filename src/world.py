@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from itertools import product
 
 import pygame
 import pygame.freetype
@@ -49,7 +48,6 @@ class Loader:
         pygame.display.update()
 
     def _load_world(self):
-        # fake for now
         for _, step in enumerate(self._steps):
             _, step = step
             self._step_progress = 0
@@ -267,6 +265,40 @@ def populate_world(world: World):
                 world.blocks.set_element((x, y), block)
     x, y = WORLD_SIZE
     x, y = x // 2, y // 2
+
+    # cave
+    _y = y + 1
+    for i in range(5):
+        _x = x - i - 20
+        world.blocks.set_element((_x, _y), None)
+    _y = y + 2
+    for i in range(4):
+        _x = x - i - 21
+        world.blocks.set_element((_x, _y), None)
+    _y = y + 3
+    for i in range(3):
+        _x = x - i - 22
+        world.blocks.set_element((_x, _y), None)
+    _y = y + 4
+    for i in range(5):
+        _x = x - i - 22
+        world.blocks.set_element((_x, _y), None)
+    _y = y + 5
+    for i in range(6):
+        _x = x - i - 22
+        world.blocks.set_element((_x, _y), None)
+    _y = y + 6
+    for i in range(10):
+        _x = x - i - 23
+        world.blocks.set_element((_x, _y), None)
+    _y = y + 7
+    for i in range(10):
+        _x = x - i - 23
+        world.blocks.set_element((_x, _y), None)
+    _y = y + 8
+    for i in range(10):
+        _x = x - i - 25
+        world.blocks.set_element((_x, _y), None)
 
     # trees
     _y = y
