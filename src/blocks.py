@@ -120,9 +120,6 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
     def __str__(self) -> str:
         return f"{self.__class__.__name__} {self.coords}"
 
-    def __hash__(self) -> int:
-        return hash(self.coords)
-
 
 class BaseHazard(BaseBlock, metaclass=ABCMeta):
     @property
