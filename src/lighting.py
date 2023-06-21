@@ -32,7 +32,6 @@ class ShadowCaster:
         self._shadow_img = pygame.surface.Surface(
             (BLOCK_SIZE, BLOCK_SIZE)
         ).convert_alpha()
-        self._shadow_rect = pygame.rect.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
 
     def _detect_outer_layer(self, progress_callback: Callable[[float], None]):
         width, height = self.opacity._size
@@ -114,11 +113,11 @@ class ShadowCaster:
         offset: pygame.math.Vector2,
         display: pygame.surface.Surface,
     ):
-        x, y = coords
-        x *= BLOCK_SIZE
-        y *= BLOCK_SIZE
-        self._shadow_rect.topleft = (x, y)
-        self._shadow_rect.move_ip(offset)
         opacity = self.get_opacity(coords)
-        self._shadow_img.set_alpha(255 - opacity)
-        display.blit(self._shadow_img, self._shadow_rect)
+        if opacity < 255:
+            opacity = 255 - opacity
+            self._shadow_img.set_alpha(opacity)
+            display.blit(
+                self._shadow_img,
+                (coords[0] * BLOCK_SIZE + offset.x, coords[1] * BLOCK_SIZE + offset.y),
+            )
