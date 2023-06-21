@@ -63,6 +63,7 @@ class Camera:
         self._draw_particles()
         self._draw_visible_area()
         self._draw_interface_elements()
+        self._draw_player_cursor()
 
     def _update_rect(self):
         self.rect.center = self.player.rect.center
@@ -133,6 +134,8 @@ class Camera:
                     - divide(self.player.cursor_image.get_size(), 2)
                 ),
             )
+
+    def _draw_player_cursor(self):
         if self.player.mode == Mode.CONSTRUCTION:
             self._draw_block_cursor()
         elif self.player.mode == Mode.COMBAT:
