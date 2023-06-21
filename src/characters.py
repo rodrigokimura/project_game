@@ -202,7 +202,7 @@ class BaseCharacter(
 
     def pull_collectibles(self, collectibles_group: pygame.sprite.Group):
         # TODO: avoid passing all collectibles
-        for collectible in collectibles_group.sprites():
+        for collectible in collectibles_group:
             collectible: BaseCollectible
             collectible_position = pygame.math.Vector2(collectible.rect.center)
             player_position = pygame.math.Vector2(self.rect.center)
@@ -216,16 +216,13 @@ class BaseCharacter(
             else:
                 collectible.pulling_velocity.update(0)
             if distance < self.collectible_grab_radius:
-                self.grab_collectible(collectible, collectibles_group)
+                self.grab_collectible(collectible)
 
-    def grab_collectible(
-        self, collectible: BaseCollectible, group: pygame.sprite.Group
-    ):
+    def grab_collectible(self, collectible: BaseCollectible):
         if DEBUG:
             log(f"Grabbing collectible: {collectible}")
-        collectible.remove(group)
+        collectible.kill()
         self.inventory.add(collectible.__class__)
-        del collectible
 
     def update_position(self, dt: float):
         self.position += self.velocity * dt * BLOCK_SIZE
