@@ -1,6 +1,8 @@
 from itertools import product
 from typing import Generic, TypeVar
 
+from utils.coords import Coords
+
 T = TypeVar("T")
 
 
@@ -12,13 +14,13 @@ class Container2d(Generic[T]):
         self._container = [[]]
         self.empty()
 
-    def get_element(self, coords: tuple[int, int]) -> T | None:
+    def get_element(self, coords: Coords) -> T | None:
         try:
             return self._container[coords[0]][coords[1]]
         except IndexError:
             return None
 
-    def set_element(self, coords: tuple[int, int], element: T | None):
+    def set_element(self, coords: Coords, element: T | None):
         self._container[coords[0]][coords[1]] = element  # type: ignore
 
     def empty(self):
@@ -26,7 +28,7 @@ class Container2d(Generic[T]):
             [None for _ in range(self.size[1])] for _ in range(self.size[0])
         ]
 
-    def get_surrounding(self, coords: tuple[int, int], padding: int):
+    def get_surrounding(self, coords: Coords, padding: int):
         x, y = coords
         for _coords in product(
             range(x - padding, x + padding), range(y - padding, y + padding)

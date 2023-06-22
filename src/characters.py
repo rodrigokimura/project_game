@@ -29,6 +29,7 @@ from shooting import Bullet
 from sprites import GravitySprite
 from utils.collision import custom_collision_detection
 from utils.container import Container2d
+from utils.coords import Coords
 from utils.enum import CyclingIntEnum
 from utils.timer import Timer
 
@@ -102,7 +103,7 @@ class BaseCharacter(
         self,
         gravity: int,
         terminal_velocity: int,
-        position: tuple[int, int] | None,
+        position: Coords | None,
         blocks: Container2d[BaseBlock],
     ) -> None:
         super().__init__(gravity, terminal_velocity)
@@ -277,7 +278,7 @@ class Player(BaseCharacter):
         self,
         gravity: int,
         terminal_velocity: int,
-        position: Optional[tuple[int, int]],
+        position: Optional[Coords],
         blocks: Container2d[BaseBlock],
     ) -> None:
         super().__init__(gravity, terminal_velocity, position, blocks)

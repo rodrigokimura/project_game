@@ -6,9 +6,8 @@ import pygame
 from blocks import BaseBlock
 from settings import BLOCK_SIZE
 from utils.container import Container2d
-from utils.coords import neighbors
+from utils.coords import Coords, neighbors
 
-Coords = tuple[int, int]
 Entrance = tuple[Coords, Coords]
 
 
@@ -107,7 +106,7 @@ class ShadowCaster:
             if int(step_progress * 100) % 5 == 0:
                 progress_callback(step_progress)
 
-    def _light_point(self, coords: tuple[int, int]):
+    def _light_point(self, coords: Coords):
         layer_1 = 0.1
         layer_2 = 0.05
         (x, y) = coords
@@ -122,26 +121,26 @@ class ShadowCaster:
             for j in range(3):
                 self.add_opacity((x - 1 + i, y - 1 + j), layer_1)
 
-    def get_opacity(self, coords: tuple[int, int]) -> int:
+    def get_opacity(self, coords: Coords) -> int:
         _opacity = self.opacity.get_element(coords)
         if _opacity is None:
             return 0
         return int(_opacity * 255)
 
-    def set_opacity(self, coords: tuple[int, int], opacity: float):
+    def set_opacity(self, coords: Coords, opacity: float):
         try:
             self.opacity.set_element(coords, min(1, opacity))
         except IndexError:
             ...
 
-    def add_opacity(self, coords: tuple[int, int], opacity: float):
+    def add_opacity(self, coords: Coords, opacity: float):
         _opacity = self.opacity.get_element(coords) or 0
         _opacity += opacity
         self.set_opacity(coords, _opacity)
 
     def cast(
         self,
-        coords: tuple[int, int],
+        coords: Coords,
         offset: pygame.math.Vector2,
         display: pygame.surface.Surface,
     ):

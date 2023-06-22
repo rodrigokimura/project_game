@@ -18,6 +18,7 @@ from particle.emitters import Manager
 from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, MENU_FONT, WORLD_SIZE
 from shooting import BaseBullet
 from utils.container import Container2d
+from utils.coords import Coords
 
 
 class Loader:
@@ -223,7 +224,7 @@ class World(Storable, Loadable):
             raise self.UnloadedObject
         return self._background
 
-    def get_block(self, coords: tuple[int, int]):
+    def get_block(self, coords: Coords):
         return self.blocks.get_element(coords)
 
     def _handle_block_destruction(self, event: pygame.event.Event, dt: float):

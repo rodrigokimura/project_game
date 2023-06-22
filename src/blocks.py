@@ -16,6 +16,7 @@ from settings import BLOCK_SIZE
 from shooting import load_bullet_images
 from sprites import GravitySprite
 from utils.container import Container2d
+from utils.coords import Coords
 
 COLLECTIBLE_SIZE = BLOCK_SIZE // 2
 
@@ -34,7 +35,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
 
     def __init__(
         self,
-        coords: tuple[int, int],
+        coords: Coords,
         gravity: int | None = None,
         terminal_velocity: int | None = None,
         blocks: Container2d[BaseBlock] | None = None,
@@ -98,7 +99,7 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
 
     def __init__(
         self,
-        coords: tuple[int, int],
+        coords: Coords,
         gravity: int | None = None,
         terminal_velocity: int | None = None,
         blocks: Container2d[BaseBlock] | None = None,
@@ -416,7 +417,7 @@ def draw_cached_images():
 
 def make_block(
     cls: type[BaseBlock],
-    coords: tuple[int, int],
+    coords: Coords,
     gravity: int | None = None,
     terminal_velocity: int | None = None,
 ):

@@ -16,6 +16,7 @@ from input.controllers import (
     KeyboardInventoryController,
 )
 from settings import CONSOLE_FONT, SCREEN_HEIGHT, SCREEN_WIDTH
+from utils.coords import Coords
 
 
 class BaseInventory(Loadable, InventoryControllable):
@@ -217,9 +218,7 @@ class Inventory(BaseInventory, Loadable):
                     InterfaceColor.PRIMARY_FONT,
                 )
 
-    def _get_slot_rel_coords(
-        self, coords: tuple[int, int], offset: tuple[int, int] = (0, 0)
-    ):
+    def _get_slot_rel_coords(self, coords: Coords, offset: Coords = (0, 0)):
         return tuple(
             self.padding + self.margin + coord * (self.slot_size + self.slot_p) + offset
             for coord, offset in zip(coords, offset)
