@@ -86,6 +86,7 @@ class ShadowCaster:
                 progress_callback(step_progress)
 
     def _generate_opacity_info(self, progress_callback: Callable[[float], None]):
+        min_opacity = 0.8
         width, _ = self.opacity.size
         for x in range(width):
             first_non_empty = self.outer_layer[x]
@@ -100,16 +101,10 @@ class ShadowCaster:
 
         for entrance, points in self.entrances.items():
             for coords in points:
-                opacity = 0.8 - self._get_distance_to_entrance(
+                opacity = min_opacity - self._get_distance_to_entrance(
                     coords, entrance
                 ) / self._get_max_distance(entrance)
-                if self._blocks.get_element(coords):
-                    self._penetrate_light(coords, opacity + 1)
-                else:
-                    self._light_point(coords, opacity)
-
-    def _light_point(self, coords: Coords, multiplier: float = 1):
-        self.set_opacity(coords, 1 * multiplier, True)
+                self._penetrate_light(coords, opacity)
 
     def _penetrate_light(self, coords: Coords, multiplier: float = 1):
         (x, y) = coords

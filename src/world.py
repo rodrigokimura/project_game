@@ -185,8 +185,6 @@ class World(Storable, Loadable):
         if self.time_of_day >= self.DAY_DURATION:
             self.time_of_day = 0
             self.changing_blocks.update(dt)
-            if DEBUG:
-                log("Updating ChangingBlock instances")
 
     def _update_sprites(self, dt: float):
         if self.player is None:
