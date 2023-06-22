@@ -1,3 +1,4 @@
+from math import dist
 from typing import Callable, Literal
 
 import pygame
@@ -5,6 +6,7 @@ import pygame
 from blocks import BaseBlock
 from settings import BLOCK_SIZE
 from utils.container import Container2d
+from utils.coords import neighbors
 
 Coords = tuple[int, int]
 Entrance = tuple[Coords, Coords]
@@ -182,9 +184,47 @@ class ShadowCaster:
         self, entrance: Entrance, direction: Literal["left"] | Literal["right"]
     ):
         top, bottom = entrance
+        x = top[0]
+        coords_to_check: set[Coords] = {(x, y) for y in range(top[1], bottom[1] + 1)}
+        already_checked: set[Coords] = set()
         if direction == "left":
-            ...
+            while coords_to_check:
+                coords = coords_to_check.pop()
+                already_checked.add(coords)
+
+                # TODO: add opcity info logic
+                self._next_coords(coords, coords_to_check, already_checked, entrance)
+
         elif direction == "right":
             ...
         else:
             raise NotImplementedError
+
+    @staticmethod
+    def _get_max_distance(entrance: Entrance):
+        top, bottom = entrance
+        _, top_y = top
+        _, bottom_y = bottom
+        return abs(bottom_y - top_y)
+
+    @classmethod
+    def _is_close_to_entrance(cls, coords: Coords, entrance: Entrance):
+        top, bottom = entrance
+        mid_point = (top[0], (top[1] + bottom[1]) // 2)
+        distance = dist(mid_point, coords)
+        return distance <= cls._get_max_distance(entrance)
+
+    def _next_coords(
+        self,
+        coords: Coords,
+        coords_to_check: set[Coords],
+        already_checked: set[Coords],
+        entrance: Entrance,
+    ):
+        for neighbor in neighbors(coords):
+            if (
+                neighbor not in already_checked
+                and self._is_close_to_entrance(neighbor, entrance)
+                and self._blocks.get_element(neighbor) is None
+            ):
+                coords_to_check.add(neighbor)
