@@ -1,10 +1,13 @@
-from typing import Callable
+from typing import Callable, Literal
 
 import pygame
 
 from blocks import BaseBlock
 from settings import BLOCK_SIZE
 from utils.container import Container2d
+
+Coords = tuple[int, int]
+Entrance = tuple[Coords, Coords]
 
 
 class ShadowCaster:
@@ -14,7 +17,7 @@ class ShadowCaster:
         boundary: pygame.rect.Rect,
     ) -> None:
         self.opacity: Container2d[float] = Container2d(blocks.size)
-        self.outer_layer: list[int] = [0 for _ in range(blocks.size[0])]
+        self.outer_layer: list[int] = [0 for _ in range(blocks.size[0] + 1)]
 
         self._blocks = blocks
         self._boundary = boundary
@@ -27,6 +30,9 @@ class ShadowCaster:
         self._pad = -1
         self._shadow_img: pygame.surface.Surface
 
+        self.entrances_to_left: set[Entrance] = set()
+        self.entrances_to_right: set[Entrance] = set()
+
     def setup(self):
         self._shadow_img = pygame.surface.Surface(
             (BLOCK_SIZE, BLOCK_SIZE)
@@ -34,8 +40,7 @@ class ShadowCaster:
 
     def _detect_outer_layer(self, progress_callback: Callable[[float], None]):
         width, height = self.opacity.size
-        total_blocks = width * height
-        i = 0
+
         # scan from left to right
         for x in range(width):
             for y in range(height):
@@ -45,12 +50,47 @@ class ShadowCaster:
                     self.outer_layer[x] = y
                     break
 
-                # report progress
-                # since it's expensive, do it every 1%
-                i += 1
-                step_progress = i / total_blocks
-                if i % (total_blocks // 100) == 0:
-                    progress_callback(step_progress)
+            # report progress
+            # since it's expensive, do it every 5%
+            step_progress = x / width
+            if int(step_progress * 100) % 5 == 0:
+                progress_callback(step_progress)
+
+    def _generate_light_entrances_info(
+        self, progress_callback: Callable[[float], None]
+    ):
+        width, height = self.opacity.size
+        entrances = set()
+
+        # scan from left to right
+        for x in range(width):
+            _curr = self.outer_layer[x]
+            _next = self.outer_layer[x + 1]
+
+            if _curr < _next:
+                # scan for entrances in current col that go left
+                entrances = self.find_entrances(x, _curr, height)
+                for entrance in entrances:
+                    self.scan_entrance(entrance, "left")
+
+                self.entrances_to_left.update(entrances)
+
+            if _curr > _next:
+                # scan for entrances in next col that go right
+                entrances = self.find_entrances(x + 1, _next, _curr)
+                for entrance in entrances:
+                    self.scan_entrance(entrance, "right")
+
+                self.entrances_to_right.update(entrances)
+
+            # report progress
+            # since it's expensive, do it every 5%
+            step_progress = x / width
+            if int(step_progress * 100) % 5 == 0:
+                progress_callback(step_progress)
+
+        print(f"Left: {self.entrances_to_left}")
+        print(f"Right: {self.entrances_to_right}")
 
     def _generate_opacity_info(self, progress_callback: Callable[[float], None]):
         width, _ = self.opacity.size
@@ -60,9 +100,9 @@ class ShadowCaster:
                 self._light_point((x, y))
 
             # report progress
-            # since it's expensive, do it every 1%
+            # since it's expensive, do it every 5%
             step_progress = x / width
-            if x % (width // 100) == 0:
+            if int(step_progress * 100) % 5 == 0:
                 progress_callback(step_progress)
 
     def _light_point(self, coords: tuple[int, int]):
@@ -111,3 +151,40 @@ class ShadowCaster:
                 self._shadow_img,
                 (coords[0] * BLOCK_SIZE + offset.x, coords[1] * BLOCK_SIZE + offset.y),
             )
+
+    def find_entrances(self, x: int, from_y: int, to_y: int):
+        entrances: set[Entrance] = set()
+        top: Coords | None = None
+        bottom: Coords | None = None
+        empty_count = 0
+
+        for y in range(from_y, to_y + 1):
+            block = self._blocks.get_element((x, y))
+            if block is not None:
+                if top is None:
+                    top = block.coords
+                    empty_count = 0
+
+                if bottom is None:
+                    bottom = block.coords
+
+                    # need at least 1 non-empty tile between top and bottom to define an entrance
+                    if empty_count > 1:
+                        entrances.add((top, bottom))
+                        top = block.coords
+                        empty_count = 0
+                    bottom = None
+            else:
+                empty_count += 1
+        return entrances
+
+    def scan_entrance(
+        self, entrance: Entrance, direction: Literal["left"] | Literal["right"]
+    ):
+        top, bottom = entrance
+        if direction == "left":
+            ...
+        elif direction == "right":
+            ...
+        else:
+            raise NotImplementedError

@@ -33,7 +33,8 @@ class Loader:
         self._step_progress = 0
         self._steps = [
             ("Indexing surface outer layer", self._step_1),
-            ("Generating opacity info", self._step_2),
+            ("Scanning for light entrances", self._step_2),
+            ("Generating opacity info", self._step_3),
         ]
         self.shadow_caster = shadow_caster
 
@@ -59,8 +60,13 @@ class Loader:
         )
 
     def _step_2(self):
-        self.shadow_caster._generate_opacity_info(
+        self.shadow_caster._generate_light_entrances_info(
             lambda x: self._update_progress_and_message(x, 1, self._steps[1][0])
+        )
+
+    def _step_3(self):
+        self.shadow_caster._generate_opacity_info(
+            lambda x: self._update_progress_and_message(x, 2, self._steps[2][0])
         )
 
     def _update_progress_and_message(
@@ -335,5 +341,12 @@ def populate_world(world: World):
     for i in range(10):
         _x += 1
         _y -= 1
+        block = make_block(Rock, (_x, _y))
+        world.blocks.set_element((_x, _y), block)
+
+    _y = y - 4
+    _x = x + 35
+    for i in range(5):
+        _x += 1
         block = make_block(Rock, (_x, _y))
         world.blocks.set_element((_x, _y), block)
