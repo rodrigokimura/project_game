@@ -148,6 +148,7 @@ class World(Storable, Loadable):
         self.player = player
         self.players.add(player)
         # Emitter(self.player.position, None, 5, self.particle_manager)
+
     def set_shadow_caster(self, shadow_caster: ShadowCaster):
         self.shadow_caster = shadow_caster
 

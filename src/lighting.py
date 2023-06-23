@@ -250,7 +250,7 @@ class ShadowCaster:
                 else:
                     coords_to_check.add(neighbor)
 
-    def update_region(self, coords: Coords, place = True):
+    def update_region(self, coords: Coords, place=True):
         _, height = self.opacity.size
         x, y = coords
         print("ok")
