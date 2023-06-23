@@ -60,30 +60,32 @@ class ShadowCaster:
         self, progress_callback: Callable[[float], None]
     ):
         width, height = self.opacity.size
-        entrances = set()
 
         # scan from left to right
         for x in range(width):
-            _curr = self.outer_layer[x]
-            _next = self.outer_layer[x + 1]
-
-            if _curr < _next:
-                # scan for entrances in current col that go left
-                entrances = self.find_entrances(x, _curr, height)
-                for entrance in entrances:
-                    self._scan_entrance(entrance)
-
-            if _curr > _next:
-                # scan for entrances in next col that go right
-                entrances = self.find_entrances(x + 1, _next, _curr)
-                for entrance in entrances:
-                    self._scan_entrance(entrance)
+            self._scan_col(x, height)
 
             # report progress
             # since it's expensive, do it every 5%
             step_progress = x / width
             if int(step_progress * 100) % 5 == 0:
                 progress_callback(step_progress)
+
+    def _scan_col(self, x: int, height: int):
+        _curr = self.outer_layer[x]
+        _next = self.outer_layer[x + 1]
+
+        if _curr < _next:
+            # scan for entrances in current col that go left
+            entrances = self.find_entrances(x, _curr, height)
+            for entrance in entrances:
+                self._scan_entrance(entrance)
+
+        if _curr > _next:
+            # scan for entrances in next col that go right
+            entrances = self.find_entrances(x + 1, _next, _curr)
+            for entrance in entrances:
+                self._scan_entrance(entrance)
 
     def _generate_opacity_info(self, progress_callback: Callable[[float], None]):
         min_opacity = 0.8
@@ -246,3 +248,18 @@ class ShadowCaster:
                     already_checked.add(neighbor)
                 else:
                     coords_to_check.add(neighbor)
+
+    def update_region(self, coords: Coords, place = True):
+        _, height = self.opacity.size
+        x, y = coords
+        print("ok")
+        if place:
+            if y < self.outer_layer[x]:
+                self.outer_layer[x] = y
+                ...
+
+            ...
+        else:
+            ...
+        for i in range(3):
+            self._scan_col(x - 1 + i, height)

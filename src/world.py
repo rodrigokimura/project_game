@@ -13,9 +13,8 @@ from commons import Loadable, Storable
 from day_cycle import convert_to_time, get_day_part
 from draw import BorderOptions, FillBorderColors, draw_bordered_rect
 from lighting import ShadowCaster
-from log import log
 from particle.emitters import Manager
-from settings import BLOCK_SIZE, DAY_DURATION, DEBUG, MENU_FONT, WORLD_SIZE
+from settings import BLOCK_SIZE, DAY_DURATION, MENU_FONT, WORLD_SIZE
 from shooting import BaseBullet
 from utils.container import Container2d
 from utils.coords import Coords
@@ -38,6 +37,7 @@ class Loader:
             ("Generating opacity info", self._step_3),
         ]
         self.shadow_caster = shadow_caster
+        self.world.set_shadow_caster(shadow_caster)
 
     def load(self):
         self.shadow_caster.setup()
@@ -141,12 +141,15 @@ class World(Storable, Loadable):
         self._background: Background | None = None
         self.particle_manager = Manager()
         self._global_light = ...
+        self.shadow_caster: ShadowCaster
         self.setup()
 
     def set_player(self, player: Player):
         self.player = player
         self.players.add(player)
         # Emitter(self.player.position, None, 5, self.particle_manager)
+    def set_shadow_caster(self, shadow_caster: ShadowCaster):
+        self.shadow_caster = shadow_caster
 
     def setup(self):
         self.blocks: Container2d[BaseBlock] = Container2d(WORLD_SIZE)
@@ -236,6 +239,8 @@ class World(Storable, Loadable):
         block.integrity -= event.power * dt
         if block.integrity <= 0:
             self.blocks.set_element(coords, None)
+            self.shadow_caster.update_region(coords, False)
+
             for collectible_class, count in block.collectibles.items():
                 collectible_class: type[BaseCollectible]
                 for _ in range(count):
@@ -252,7 +257,9 @@ class World(Storable, Loadable):
             raise self.UnloadedObject
         if not isinstance(event.block, BaseBlock):
             return
-        self.blocks.set_element(self.player.get_cursor_coords(), event.block)
+        coords = self.player.get_cursor_coords()
+        self.blocks.set_element(coords, event.block)
+        self.shadow_caster.update_region(coords, True)
 
     def _handle_shooting(self, event: pygame.event.Event, _: float):
         bullet: BaseBullet = event.bullet
