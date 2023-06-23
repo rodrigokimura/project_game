@@ -77,13 +77,13 @@ class ShadowCaster:
 
         if _curr < _next:
             # scan for entrances in current col that go left
-            entrances = self.find_entrances(x, _curr, height)
+            entrances = self.find_entrances(x, _curr, _next + 1)
             for entrance in entrances:
                 self._scan_entrance(entrance)
 
         if _curr > _next:
             # scan for entrances in next col that go right
-            entrances = self.find_entrances(x + 1, _next, _curr)
+            entrances = self.find_entrances(x + 1, _next, _curr + 1)
             for entrance in entrances:
                 self._scan_entrance(entrance)
 
@@ -186,8 +186,9 @@ class ShadowCaster:
                     # need at least 1 non-empty tile between top and bottom to define an entrance
                     if empty_count > 1:
                         entrances.add((top, bottom))
-                        top = block.coords
-                        empty_count = 0
+
+                    top = block.coords
+                    empty_count = 0
                     bottom = None
             else:
                 empty_count += 1
