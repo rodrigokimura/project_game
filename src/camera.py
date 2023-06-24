@@ -152,7 +152,9 @@ class Camera:
             - self.position,
         )
         if DEBUG:
-            log(self.world.get_block(self.player.get_cursor_coords()))
+            block = self.world.get_block(self.player.get_cursor_coords())
+            if block:
+                log(block)
 
     def _draw_aim_assist(self):
         angle_deviation = (1 - self.player.shooting_accuracy) * 90

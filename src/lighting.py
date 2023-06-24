@@ -59,11 +59,11 @@ class ShadowCaster:
     def _generate_light_entrances_info(
         self, progress_callback: Callable[[float], None]
     ):
-        width, height = self.opacity.size
+        width, _ = self.opacity.size
 
         # scan from left to right
         for x in range(width):
-            self._scan_col(x, height)
+            self._scan_col(x)
 
             # report progress
             # since it's expensive, do it every 5%
@@ -71,7 +71,7 @@ class ShadowCaster:
             if int(step_progress * 100) % 5 == 0:
                 progress_callback(step_progress)
 
-    def _scan_col(self, x: int, height: int):
+    def _scan_col(self, x: int):
         _curr = self.outer_layer[x]
         _next = self.outer_layer[x + 1]
 
@@ -88,11 +88,9 @@ class ShadowCaster:
                 self._scan_entrance(entrance)
 
     def _generate_opacity_info(self, progress_callback: Callable[[float], None]):
-        min_opacity = 0.8
         width, _ = self.opacity.size
         for x in range(width):
-            first_non_empty = self.outer_layer[x]
-            for y in range(first_non_empty + 1):
+            for y in range(self.outer_layer[x] + 1):
                 self._penetrate_light((x, y), 1)
 
             # report progress
@@ -101,6 +99,10 @@ class ShadowCaster:
             if int(step_progress * 100) % 5 == 0:
                 progress_callback(step_progress)
 
+        self._generate_opacity_for_entrances()
+
+    def _generate_opacity_for_entrances(self):
+        min_opacity = 0.8
         for entrance, points in self.entrances.items():
             for coords in points:
                 opacity = min_opacity - self._get_distance_to_entrance(
@@ -241,6 +243,9 @@ class ShadowCaster:
         entrance: Entrance,
     ):
         for neighbor in neighbors(coords):
+            x, y = neighbor
+            if y <= self.outer_layer[x]:
+                continue
             if neighbor not in already_checked and self._get_distance_to_entrance(
                 neighbor, entrance
             ) <= self._get_max_distance(entrance):
@@ -251,16 +256,26 @@ class ShadowCaster:
                     coords_to_check.add(neighbor)
 
     def update_region(self, coords: Coords, place=True):
-        _, height = self.opacity.size
         x, y = coords
-        print("ok")
         if place:
-            if y < self.outer_layer[x]:
-                self.outer_layer[x] = y
-                ...
+            if y + 1 < self.outer_layer[x]:
+                for i in range(y, self.outer_layer[x] + 1):
+                    self.opacity.set_element((x, i), 0)
 
-            ...
+                self.outer_layer[x] = y + 1
         else:
-            ...
+            if y + 1 < self.outer_layer[x]:
+                for i in range(y, self.outer_layer[x] + 1):
+                    self._penetrate_light((x, i), 1)
+            self.outer_layer[x] = y + 1
+
+        for entrance, points in self.entrances.items():
+            for coords in points:
+                self.opacity.set_element(coords, 0)
+
         for i in range(3):
-            self._scan_col(x - 1 + i, height)
+            self._scan_col(x - 1 + i)
+            for y in range(self.outer_layer[x] + 1):
+                self._penetrate_light((x, y), 1)
+
+        self._generate_opacity_for_entrances()
