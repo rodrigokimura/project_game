@@ -215,7 +215,13 @@ class ShadowCaster:
                     empty_count = 0
                     bottom = None
             else:
+                # NOTE: important when there is a gap of 2 tiles (or more) in height
+                # between the entrance col and the next surface col
+                if y == to_y and empty_count > 1 and top is not None:
+                    entrances.add((top, (x, y)))
+
                 empty_count += 1
+
         return entrances
 
     def _scan_entrance(self, entrance: Entrance):
