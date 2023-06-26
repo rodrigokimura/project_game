@@ -31,7 +31,7 @@ class ShadowCaster:
         self._pad = -1
         self._shadow_img: pygame.surface.Surface
 
-        self.entrances: dict[Entrance, set[Coords]] = {}
+        self.shadows: dict[Entrance, set[Coords]] = {}
 
     def setup(self):
         self._shadow_img = pygame.surface.Surface(
@@ -103,7 +103,7 @@ class ShadowCaster:
 
     def _generate_opacity_for_entrances(self):
         min_opacity = 0.8
-        for entrance, points in self.entrances.items():
+        for entrance, points in self.shadows.items():
             for coords in points:
                 opacity = min_opacity - self._get_distance_to_entrance(
                     coords, entrance
@@ -128,9 +128,31 @@ class ShadowCaster:
             ],
         }
         for opacity, points in layers.items():
-            for coords in points:
-                if self._blocks.get_element(coords):
-                    self.set_opacity(coords, opacity * multiplier, True)
+            for point in points:
+                if self._blocks.get_element(point):
+                    self.set_opacity(point, opacity * multiplier, True)
+
+    def _reverse_light_penetration(self, coords: Coords):
+        (x, y) = coords
+        layers = {
+            0.6: [
+                (x, y + 1),
+                (x, y - 1),
+                (x + 1, y),
+                (x - 1, y),
+            ],
+            0.2: [
+                (x + 1, y + 1),
+                (x - 1, y - 1),
+                (x + 1, y - 1),
+                (x - 1, y + 1),
+            ],
+        }
+        self.set_opacity(coords, 0, False)
+        for _, points in layers.items():
+            for point in points:
+                if self._blocks.get_element(point):
+                    self.set_opacity(point, 0, False)
 
     def get_opacity(self, coords: Coords) -> int:
         _opacity = self.opacity.get_element(coords)
@@ -202,12 +224,12 @@ class ShadowCaster:
         coords_to_check: set[Coords] = {(x, y) for y in range(top[1] + 1, bottom[1])}
         already_checked: set[Coords] = set()
 
-        self.entrances[entrance] = set()
+        self.shadows[entrance] = set()
         while coords_to_check:
             coords = coords_to_check.pop()
             already_checked.add(coords)
 
-            self.entrances[entrance].add(coords)
+            self.shadows[entrance].add(coords)
 
             self._next_coords(coords, coords_to_check, already_checked, entrance)
 
@@ -250,32 +272,52 @@ class ShadowCaster:
                 neighbor, entrance
             ) <= self._get_max_distance(entrance):
                 if self._blocks.get_element(neighbor) is not None:
-                    self.entrances[entrance].add(coords)
+                    self.shadows[entrance].add(coords)
                     already_checked.add(neighbor)
                 else:
                     coords_to_check.add(neighbor)
 
     def update_region(self, coords: Coords, place=True):
+        _, height = self.opacity.size
         x, y = coords
         if place:
             if y + 1 < self.outer_layer[x]:
+                # revert shadow of prev outer layer
                 for i in range(y, self.outer_layer[x] + 1):
-                    self.opacity.set_element((x, i), 0)
-
-                self.outer_layer[x] = y + 1
+                    self._reverse_light_penetration((x, i))
+                # update outer layer
+                self.outer_layer[x] = y
+                # reapply shadow for outer layer
+                for i in range(3):
+                    for _y in range(self.outer_layer[x - 1 + i] + 1):
+                        self._penetrate_light((x - 1 + i, _y), 1)
         else:
-            if y + 1 < self.outer_layer[x]:
-                for i in range(y, self.outer_layer[x] + 1):
-                    self._penetrate_light((x, i), 1)
-            self.outer_layer[x] = y + 1
+            if y == self.outer_layer[x]:
+                for _y in range(height + 1):
+                    self._penetrate_light((x, _y), 1)
+                    if self._blocks.get_element((x, _y)):
+                        self.outer_layer[x] = _y
+                        break
 
-        for entrance, points in self.entrances.items():
-            for coords in points:
-                self.opacity.set_element(coords, 0)
+        modified_entrances: list[Entrance] = []
+        for entrance, shadow in self.shadows.items():
+            for _coords in shadow:
+                self.opacity.set_element(_coords, 0)
+
+            # check if an entrance is being modified
+            for point in entrance:
+                if coords == point or coords in neighbors(point):
+                    modified_entrances.append(entrance)
+
+        for entrance in modified_entrances:
+            del self.shadows[entrance]
+            # rescanning surrounding, important when expanding monocol entrance
+            for i in range(3):
+                self._scan_col(entrance[0][0] - 1 + i)
 
         for i in range(3):
             self._scan_col(x - 1 + i)
-            for y in range(self.outer_layer[x] + 1):
-                self._penetrate_light((x, y), 1)
+            for y in range(self.outer_layer[x - 1 + i] + 1):
+                self._penetrate_light((x - 1 + i, y), 1)
 
         self._generate_opacity_for_entrances()
