@@ -3,10 +3,10 @@ from typing import Generic, TypeVar
 
 from utils.coords import Coords
 
-T = TypeVar("T")
+Element = TypeVar("Element")
 
 
-class Container2d(Generic[T]):
+class Container2d(Generic[Element]):
     """Class to store 2D arrays of size [x, y]"""
 
     def __init__(self, size: tuple[int, int]) -> None:
@@ -14,13 +14,13 @@ class Container2d(Generic[T]):
         self._container = [[]]
         self.empty()
 
-    def get_element(self, coords: Coords) -> T | None:
+    def get_element(self, coords: Coords) -> Element | None:
         try:
             return self._container[coords[0]][coords[1]]
         except IndexError:
             return None
 
-    def set_element(self, coords: Coords, element: T | None):
+    def set_element(self, coords: Coords, element: Element | None):
         self._container[coords[0]][coords[1]] = element  # type: ignore
 
     def empty(self):
