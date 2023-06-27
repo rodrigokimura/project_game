@@ -1,3 +1,4 @@
+import math
 from math import dist
 from typing import Callable
 
@@ -344,3 +345,29 @@ class ShadowCaster:
                 self._penetrate_light((x - 1 + i, _y), 1)
 
         self._generate_opacity_for_entrances()
+
+
+class RadialLight:
+    def __init__(self, length: int, blocks: Container2d[BaseBlock]) -> None:
+        self._blocks = blocks
+        self.length = length
+        self.ray_count = self._get_ray_count()
+        self.offsets: tuple[pygame.math.Vector2, ...] = self._get_offsets()
+
+        self.position = pygame.math.Vector2()
+        self.rays = []
+
+    def _get_ray_count(self):
+        circle_length = 2 * math.pi * self.length * BLOCK_SIZE
+        return int(circle_length // BLOCK_SIZE)
+
+    def _get_offsets(self):
+        return tuple(
+            offset
+            for i in range(self.ray_count)
+            if (
+                offset := pygame.math.Vector2.from_polar(
+                    (self.length, math.degrees(i / self.length))
+                )
+            )
+        )

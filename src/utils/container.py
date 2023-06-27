@@ -34,3 +34,16 @@ class Container2d(Generic[Element]):
             range(x - padding, x + padding), range(y - padding, y + padding)
         ):
             yield self.get_element(_coords)
+
+    def get_layer(self, coords: Coords, index: int):
+        x, y = coords
+
+        if index <= 0:
+            return self.get_element(coords)
+
+        points: set[Coords] = set()
+        for i in range(2 + 2 * index):
+            points.add((x + i, y - index))
+            points.add((x + i, y + index))
+            points.add((x - index, y + i))
+            points.add((x + index, y + i))
