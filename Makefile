@@ -10,8 +10,8 @@ sound:
 	@pipenv run python src/main.py --action=sound
 
 lint:
-	@pipenv run black src
-	@pipenv run isort src
+	@pipenv run black .
+	@pipenv run isort .
 	@pipenv run pylint src --output-format=colorized
 
 test:
