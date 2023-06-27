@@ -102,10 +102,17 @@ class ShadowCaster:
         self._generate_opacity_for_entrances()
 
     def _generate_opacity_for_entrances(self):
-        min_opacity = 0.8
-        for entrance, points in self.shadows.items():
-            for coords in points:
-                opacity = min_opacity - self._get_distance_to_entrance(
+        max_opacity = 0.8
+        for entrance, shadow in self.shadows.items():
+            for coords in shadow:
+                self.opacity.set_element(coords, 0)
+                for x, y in neighbors(coords):
+                    if y > self.outer_layer[x] + 1:
+                        self.opacity.set_element((x, y), 0)
+
+        for entrance, shadow in self.shadows.items():
+            for coords in shadow:
+                opacity = max_opacity - self._get_distance_to_entrance(
                     coords, entrance
                 ) / self._get_max_distance(entrance)
                 self._penetrate_light(coords, opacity)
@@ -226,7 +233,9 @@ class ShadowCaster:
     def _scan_entrance(self, entrance: Entrance):
         top, bottom = entrance
         x = top[0]
-        coords_to_check: set[Coords] = {(x, y) for y in range(top[1] + 1, bottom[1])}
+        coords_to_check: set[Coords] = {
+            (x, y) for y in range(top[1] + 1, bottom[1] - 1)
+        }
         already_checked: set[Coords] = set()
 
         self.shadows[entrance] = set()
@@ -308,6 +317,9 @@ class ShadowCaster:
         for entrance, shadow in self.shadows.items():
             for _coords in shadow:
                 self.opacity.set_element(_coords, 0)
+                for _x, _y in neighbors(_coords):
+                    if _y > self.outer_layer[_x] + 1:
+                        self.opacity.set_element((_x, _y), 0)
 
             # check if an entrance is being modified
             _x = entrance[0][0]
@@ -323,10 +335,12 @@ class ShadowCaster:
             # rescanning surrounding, important when expanding monocol entrance
             for i in range(3):
                 self._scan_col(col - 1 + i)
+                for _y in range(self.outer_layer[x - 1 + i] + 1):
+                    self._penetrate_light((x - 1 + i, _y), 1)
 
         for i in range(3):
             self._scan_col(x - 1 + i)
-            for y in range(self.outer_layer[x - 1 + i] + 1):
-                self._penetrate_light((x - 1 + i, y), 1)
+            for _y in range(self.outer_layer[x - 1 + i] + 1):
+                self._penetrate_light((x - 1 + i, _y), 1)
 
         self._generate_opacity_for_entrances()
