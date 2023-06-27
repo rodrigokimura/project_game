@@ -151,8 +151,7 @@ class ShadowCaster:
         self.set_opacity(coords, 0, False)
         for _, points in layers.items():
             for point in points:
-                if self._blocks.get_element(point):
-                    self.set_opacity(point, 0, False)
+                self.set_opacity(point, 0, False)
 
     def get_opacity(self, coords: Coords) -> int:
         _opacity = self.opacity.get_element(coords)
@@ -287,7 +286,7 @@ class ShadowCaster:
         _, height = self.opacity.size
         x, y = coords
         if place:
-            if y + 1 < self.outer_layer[x]:
+            if y < self.outer_layer[x]:
                 # revert shadow of prev outer layer
                 for i in range(y, self.outer_layer[x] + 1):
                     self._reverse_light_penetration((x, i))
@@ -311,15 +310,19 @@ class ShadowCaster:
                 self.opacity.set_element(_coords, 0)
 
             # check if an entrance is being modified
-            for point in entrance:
-                if coords == point or coords in neighbors(point):
-                    modified_entrances.append(entrance)
+            _x = entrance[0][0]
+            if x - 1 <= _x <= x + 1:
+                modified_entrances.append(entrance)
 
+        deleted_entrance_cols: set[int] = set()
         for entrance in modified_entrances:
             del self.shadows[entrance]
+            deleted_entrance_cols.add(entrance[0][0])
+
+        for col in deleted_entrance_cols:
             # rescanning surrounding, important when expanding monocol entrance
             for i in range(3):
-                self._scan_col(entrance[0][0] - 1 + i)
+                self._scan_col(col - 1 + i)
 
         for i in range(3):
             self._scan_col(x - 1 + i)
