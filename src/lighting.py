@@ -389,6 +389,9 @@ class RadialLight:
             opacity = 1 - l / ((self.length + 1) * BLOCK_SIZE)
             self.opacity.set_element((x, y), opacity)
 
+    def in_range(self, coords: Coords):
+        return math.dist((0, 0), coords) <= self.length + 1
+
     def get_opacity(self, coords: Coords) -> int:
         x, y = coords
         coords = (
@@ -398,4 +401,6 @@ class RadialLight:
         _opacity = self.opacity.get_element(coords)
         if _opacity is None:
             return 0
-        return int(_opacity * 255)
+        if self.in_range(coords):
+            return int(_opacity * 255)
+        return 0
