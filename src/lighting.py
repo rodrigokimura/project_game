@@ -1,4 +1,5 @@
 import math
+from itertools import product
 from math import dist
 from typing import Callable
 
@@ -363,58 +364,40 @@ class RadialLight:
         return int(circle_length // BLOCK_SIZE)
 
     def update(self):
+        self.opacity.empty()
         rays: list[bool] = [True for _ in range(self.ray_count + 1)]
-        for layer_index in range(self.length):
-            for ray_index in range(self.ray_count + 1):
-                if rays[ray_index] is True:
-                    angle = (ray_index + 1) / self.length
-                    l = layer_index + 1
-                    x, y = (l * math.sin(angle), l * math.cos(angle))
-                    real_coords = (
-                        self.position.x - x * BLOCK_SIZE,
-                        self.position.y - y * BLOCK_SIZE,
+        for layer_index, ray_index in product(
+            range(self.length), range(self.ray_count + 1)
+        ):
+            if rays[ray_index] is False:
+                continue
+            angle = (ray_index + 1) / self.length
+            l = (layer_index + 1) * BLOCK_SIZE
+            x, y = (l * math.sin(angle), l * math.cos(angle))
+            real_coords = (
+                self.position.x - x * BLOCK_SIZE,
+                self.position.y - y * BLOCK_SIZE,
+            )
+            yield real_coords
+            x, y = int(x // BLOCK_SIZE), int(y // BLOCK_SIZE)
+            rays[ray_index] = (
+                self._blocks.get_element(
+                    (
+                        int(real_coords[0] // BLOCK_SIZE),
+                        int(real_coords[1] // BLOCK_SIZE),
                     )
-                    yield real_coords
-                    x, y = int(x // 1), int(y // 1)
-                    rays[ray_index] = (
-                        self._blocks.get_element(
-                            (
-                                int(real_coords[0] // BLOCK_SIZE),
-                                int(real_coords[1] // BLOCK_SIZE),
-                            )
-                        )
-                        is None
-                    )
-                    opacity = 1 - l / (self.length)
-                    self.set_opacity(
-                        (
-                            int(real_coords[0] // BLOCK_SIZE),
-                            int(real_coords[1] // BLOCK_SIZE),
-                        ),
-                        opacity,
-                        False,
-                    )
-
-    def in_range(self, coords: Coords):
-        distance = math.dist(
-            (self.position.x // BLOCK_SIZE, self.position.y // BLOCK_SIZE), coords
-        )
-        return distance <= self.length + 1
-
-    def set_opacity(self, coords: Coords, opacity: float, trunc_max=False):
-        opacity = min(1, opacity)
-        if trunc_max:
-            existing_opacity = self.opacity.get_element(coords) or 0
-            opacity = max(existing_opacity, opacity)
-
-        try:
-            self.opacity.set_element(coords, opacity)
-        except IndexError:
-            ...
+                )
+                is None
+            )
+            opacity = 1 - l / ((self.length + 1) * BLOCK_SIZE)
+            self.opacity.set_element((x, y), opacity)
 
     def get_opacity(self, coords: Coords) -> int:
         x, y = coords
-        coords = x - self.length, y - self.length
+        coords = (
+            int(x - self.position.x // BLOCK_SIZE + self.length),
+            int(y - self.position.y // BLOCK_SIZE + self.length),
+        )
         _opacity = self.opacity.get_element(coords)
         if _opacity is None:
             return 0
