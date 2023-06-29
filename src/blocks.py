@@ -105,7 +105,7 @@ class BaseBlock(BaseCollectible, ABC, metaclass=ABCMeta):
         blocks: Container2d[BaseBlock] | None = None,
     ) -> None:
         super().__init__(coords, gravity, terminal_velocity, blocks)
-        self.rect: pygame.rect.Rect
+        self.rect = pygame.rect.Rect((0, 0, BLOCK_SIZE, BLOCK_SIZE))
         self.coords = coords
         self.rect.x, self.rect.y = (coords[0] * BLOCK_SIZE, coords[1] * BLOCK_SIZE)
         self.integrity: float = self.material.resistance

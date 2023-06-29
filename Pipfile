@@ -4,9 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pygame = "*"
 numpy = "*"
 scipy = "*"
+pygame-ce = "*"
 
 [dev-packages]
 black = "*"
