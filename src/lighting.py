@@ -353,7 +353,7 @@ class RadialLight:
         self._blocks = blocks
         self.length = length
         self.ray_count = self._get_ray_count()
-        self.opacity: Container2d[float] = Container2d(blocks.size)
+        self.opacity: Container2d[float] = Container2d((2 * length + 1, 2 * length + 1))
 
         self.position = pygame.math.Vector2()
         self.rays = []
@@ -368,14 +368,32 @@ class RadialLight:
             for ray_index in range(self.ray_count + 1):
                 if rays[ray_index] is True:
                     angle = (ray_index + 1) / self.length
-                    l = (layer_index + 1) * BLOCK_SIZE
+                    l = layer_index + 1
                     x, y = (l * math.sin(angle), l * math.cos(angle))
-                    x, y = (self.position.x + x, self.position.y + y)
-                    yield (x, y)
-                    x, y = int(x // BLOCK_SIZE), int(y // BLOCK_SIZE)
-                    rays[ray_index] = self._blocks.get_element((x, y)) is None
-                    opacity = 1 - l / (self.length * BLOCK_SIZE)
-                    self.set_opacity((x, y), opacity, False)
+                    real_coords = (
+                        self.position.x - x * BLOCK_SIZE,
+                        self.position.y - y * BLOCK_SIZE,
+                    )
+                    yield real_coords
+                    x, y = int(x // 1), int(y // 1)
+                    rays[ray_index] = (
+                        self._blocks.get_element(
+                            (
+                                int(real_coords[0] // BLOCK_SIZE),
+                                int(real_coords[1] // BLOCK_SIZE),
+                            )
+                        )
+                        is None
+                    )
+                    opacity = 1 - l / (self.length)
+                    self.set_opacity(
+                        (
+                            int(real_coords[0] // BLOCK_SIZE),
+                            int(real_coords[1] // BLOCK_SIZE),
+                        ),
+                        opacity,
+                        False,
+                    )
 
     def in_range(self, coords: Coords):
         distance = math.dist(
@@ -395,9 +413,9 @@ class RadialLight:
             ...
 
     def get_opacity(self, coords: Coords) -> int:
+        x, y = coords
+        coords = x - self.length, y - self.length
         _opacity = self.opacity.get_element(coords)
         if _opacity is None:
             return 0
-        if self.in_range(coords):
-            return int(_opacity * 255)
-        return 0
+        return int(_opacity * 255)
