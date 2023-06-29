@@ -56,7 +56,6 @@ class Game:
             dt = self.clock.tick() / 1000
 
             self.main_loop(dt)
-            print(self.clock.get_fps())
 
             pygame.display.update()
 

@@ -20,7 +20,11 @@ class ShadowCaster:
         blocks: Container2d[BaseBlock],
         boundary: pygame.rect.Rect,
     ) -> None:
-        self.opacity: Container2d[float] = Container2d(blocks.size)
+        self.opacity: Container2d[int] = Container2d(blocks.size)
+        self.opacity._container = [
+            [0 for _ in range(self.opacity.size[1])]
+            for _ in range(self.opacity.size[0])
+        ]
         self.outer_layer: list[int] = [0 for _ in range(blocks.size[0] + 1)]
 
         self._blocks = blocks
@@ -42,7 +46,7 @@ class ShadowCaster:
         ).convert_alpha()
 
     def _detect_outer_layer(self, progress_callback: Callable[[float], None]):
-        width, height = self.opacity.size
+        width, height = self.opacity.shape
 
         # scan from left to right
         for x in range(width):
@@ -62,7 +66,7 @@ class ShadowCaster:
     def _generate_light_entrances_info(
         self, progress_callback: Callable[[float], None]
     ):
-        width, _ = self.opacity.size
+        width, _ = self.opacity.shape
 
         # scan from left to right
         for x in range(width):
@@ -91,7 +95,7 @@ class ShadowCaster:
                 self._scan_entrance(entrance)
 
     def _generate_opacity_info(self, progress_callback: Callable[[float], None]):
-        width, _ = self.opacity.size
+        width, _ = self.opacity.shape
         for x in range(width):
             for y in range(self.outer_layer[x] + 1):
                 self._penetrate_light((x, y), 1)
@@ -108,10 +112,10 @@ class ShadowCaster:
         max_opacity = 0.8
         for entrance, shadow in self.shadows.items():
             for coords in shadow:
-                self.opacity.set_element(coords, 0)
+                self.opacity[coords] = 0
                 for x, y in neighbors(coords):
                     if y > self.outer_layer[x] + 1:
-                        self.opacity.set_element((x, y), 0)
+                        self.opacity[x, y] = 0
 
         for entrance, shadow in self.shadows.items():
             for coords in shadow:
@@ -164,24 +168,21 @@ class ShadowCaster:
                 self.set_opacity(point, 0, False)
 
     def get_opacity(self, coords: Coords) -> int:
-        _opacity = self.opacity.get_element(coords)
-        if _opacity is None:
-            return 0
-        return int(_opacity * 255)
+        return self.opacity[coords] or 0
 
     def set_opacity(self, coords: Coords, opacity: float, trunc_max=False):
-        opacity = min(1, opacity)
+        opacity *= 255
         if trunc_max:
-            existing_opacity = self.opacity.get_element(coords) or 0
+            existing_opacity = self.opacity[coords] or 0
             opacity = max(existing_opacity, opacity)
 
         try:
-            self.opacity.set_element(coords, opacity)
+            self.opacity[coords] = opacity
         except IndexError:
             ...
 
     def add_opacity(self, coords: Coords, opacity: float):
-        _opacity = self.opacity.get_element(coords) or 0
+        _opacity = self.opacity[coords] or 0
         _opacity += opacity
         self.set_opacity(coords, _opacity)
 
@@ -192,7 +193,7 @@ class ShadowCaster:
         display: pygame.surface.Surface,
         opacity: int,
     ):
-        _opacity = self.get_opacity(coords) + opacity
+        _opacity = (self.opacity[coords] or 0) + opacity
         if _opacity < 255:
             _opacity = 255 - _opacity
             self._shadow_img.set_alpha(_opacity)
@@ -296,7 +297,7 @@ class ShadowCaster:
                     coords_to_check.add(neighbor)
 
     def update_region(self, coords: Coords, place=True):
-        _, height = self.opacity.size
+        _, height = self.opacity.shape
         x, y = coords
         if place:
             if y < self.outer_layer[x]:
@@ -320,10 +321,10 @@ class ShadowCaster:
         modified_entrances: list[Entrance] = []
         for entrance, shadow in self.shadows.items():
             for _coords in shadow:
-                self.opacity.set_element(_coords, 0)
+                self.opacity[_coords] = 0
                 for _x, _y in neighbors(_coords):
                     if _y > self.outer_layer[_x] + 1:
-                        self.opacity.set_element((_x, _y), 0)
+                        self.opacity[_x, _y] = 0
 
             # check if an entrance is being modified
             _x = entrance[0][0]
@@ -355,23 +356,26 @@ class RadialLight:
         self._blocks = blocks
         self.length = length
         self.ray_count = self._get_ray_count()
-        self.opacity: Container2d[float] = Container2d((2 * length + 1, 2 * length + 1))
+        self.opacity: Container2d[int] = Container2d((2 * length + 1, 2 * length + 1))
 
-        self._empty_opacity: Container2d[float] = Container2d(
-            (2 * length + 1, 2 * length + 1)
-        )
-        self._empty_opacity.empty()
         self._initial_rays_state = [True for _ in range(self.ray_count + 1)]
 
         self.position = pygame.math.Vector2()
+        self._current_coords: Coords = (0, 0)
 
     def _get_ray_count(self):
         circle_length = 2 * math.pi * self.length * BLOCK_SIZE
         return int(circle_length // BLOCK_SIZE)
 
     def update(self):
-        # self.opacity = copy.deepcopy(self._empty_opacity)
+        coords = int(self.position.x // BLOCK_SIZE), int(self.position.y // BLOCK_SIZE)
+        if coords != self._current_coords:
+            self._current_coords = coords
+            self._update_opacity()
+
+    def _update_opacity(self):
         self.opacity.empty()
+
         rays = copy.copy(self._initial_rays_state)
         for layer, ray in product(range(self.length), range(self.ray_count + 1)):
             # check for occlusion
@@ -382,7 +386,6 @@ class RadialLight:
 
             x, y = (length * math.sin(angle), length * math.cos(angle))
             real_coords = (self.position.x + x, self.position.y + y)
-            yield real_coords
 
             # occlude next tiles when block is found for this ray
             rays[ray] = (
@@ -396,23 +399,16 @@ class RadialLight:
             )
             x, y = int(x // BLOCK_SIZE), int(y // BLOCK_SIZE)
             opacity = 1 - length / (self.length * BLOCK_SIZE)
-            self.opacity.set_element((x, y), opacity)
+            self.opacity[x, y] = opacity * 255
 
     def in_range(self, coords: Coords):
+        return math.dist((0, 0), coords) <= self.length + 1
+
+    def get_opacity(self, coords: Coords) -> int:
         coords = (
             int(coords[0] - (self.position.x // BLOCK_SIZE)),
             int(coords[1] - (self.position.y // BLOCK_SIZE)),
         )
-        return math.dist((0, 0), coords) <= self.length + 1
-
-    def get_opacity(self, coords: Coords) -> int:
         if self.in_range(coords):
-            coords = (
-                int(coords[0] - (self.position.x // BLOCK_SIZE)),
-                int(coords[1] - (self.position.y // BLOCK_SIZE)),
-            )
-            _opacity = self.opacity.get_element(coords)
-            if _opacity is None:
-                return 0
-            return int(_opacity * 255)
+            return self.opacity[coords] or 0
         return 0

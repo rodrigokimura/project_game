@@ -14,11 +14,21 @@ class Container2d(Generic[Element]):
         self._container = [[]]
         self.empty()
 
+    @property
+    def shape(self):
+        return self.size
+
     def get_element(self, coords: Coords) -> Element | None:
         try:
             return self._container[coords[0]][coords[1]]
         except IndexError:
             return None
+
+    def __getitem__(self, val):
+        return self.get_element(val)
+
+    def __setitem__(self, val, item):
+        return self.set_element(val, item)
 
     def set_element(self, coords: Coords, element: Element | None):
         self._container[coords[0]][coords[1]] = element  # type: ignore

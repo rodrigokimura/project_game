@@ -91,13 +91,7 @@ class Camera:
 
     def _draw_visible_area(self):
         margin = 3
-        for x, y in self.player.light.update():
-            if DEBUG:
-                pygame.draw.rect(
-                    self.display_surface,
-                    InterfaceColor.HEALTH_POINTS,
-                    (int(x - self.position.x), int(y - self.position.y), 1, 1),
-                )
+        self.player.light.update()
 
         for coords in product(
             range(
@@ -109,8 +103,7 @@ class Camera:
                 self.rect.bottom // BLOCK_SIZE + margin,
             ),
         ):
-            block = self.world.get_block(coords)
-            if block is not None:
+            if block := self.world.get_block(coords):
                 self.display_surface.blit(block.image, block.rect.move(-self.position))
 
             self.shadow_caster.cast(
