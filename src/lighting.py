@@ -374,10 +374,7 @@ class RadialLight:
             angle = (ray_index + 1) / self.length
             l = (layer_index + 1) * BLOCK_SIZE
             x, y = (l * math.sin(angle), l * math.cos(angle))
-            real_coords = (
-                self.position.x - x * BLOCK_SIZE,
-                self.position.y - y * BLOCK_SIZE,
-            )
+            real_coords = (self.position.x + x, self.position.y + y)
             yield real_coords
             x, y = int(x // BLOCK_SIZE), int(y // BLOCK_SIZE)
             rays[ray_index] = (
@@ -395,8 +392,8 @@ class RadialLight:
     def get_opacity(self, coords: Coords) -> int:
         x, y = coords
         coords = (
-            int(x - self.position.x // BLOCK_SIZE + self.length),
-            int(y - self.position.y // BLOCK_SIZE + self.length),
+            int(x - (self.position.x // BLOCK_SIZE)),
+            int(y - (self.position.y // BLOCK_SIZE)),
         )
         _opacity = self.opacity.get_element(coords)
         if _opacity is None:
