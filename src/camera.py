@@ -91,9 +91,8 @@ class Camera:
 
     def _draw_visible_area(self):
         margin = 3
-        self.player.light.update()
-        if DEBUG:
-            for x, y in self.player.light.update():
+        for x, y in self.player.light.update():
+            if DEBUG:
                 pygame.draw.rect(
                     self.display_surface,
                     InterfaceColor.HEALTH_POINTS,
