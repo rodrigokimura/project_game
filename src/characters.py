@@ -22,6 +22,7 @@ from input.controllers import (
     PlayerController,
 )
 from inventory import BaseInventory, Inventory
+from lighting import RadialLight
 from log import log
 from protocols import HasDamage
 from settings import BLOCK_SIZE, DEBUG
@@ -114,6 +115,7 @@ class BaseCharacter(
         self.enemies_buffer = pygame.sprite.Group()
         self.is_immune = False
         self._immunity_timer = Timer(0.5, self.reset_immunity)
+        self.light = RadialLight(10, self.blocks)
 
     @property
     def hp_percentage(self):
@@ -227,6 +229,7 @@ class BaseCharacter(
 
     def update_position(self, dt: float):
         self.position += self.velocity * dt * BLOCK_SIZE
+        self.light.position = self.position
         if self.bottom_sprite is None:
             raise Loadable.UnloadedObject
 

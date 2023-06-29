@@ -141,6 +141,16 @@ class Camera:
         elif self.player.mode == Mode.COMBAT:
             self._draw_aim_assist()
 
+        self.player.light.iter_rays(self.shadow_caster)
+
+        if DEBUG:
+            for x, y in self.player.light.iter_rays(self.shadow_caster):
+                pygame.draw.rect(
+                    self.display_surface,
+                    InterfaceColor.HEALTH_POINTS,
+                    (int(x - self.position.x), int(y - self.position.y), 1, 1),
+                )
+
     def _draw_block_cursor(self):
         if not self.player.cursor_position:
             return

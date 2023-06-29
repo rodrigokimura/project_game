@@ -352,7 +352,6 @@ class RadialLight:
         self._blocks = blocks
         self.length = length
         self.ray_count = self._get_ray_count()
-        self.offsets: tuple[pygame.math.Vector2, ...] = self._get_offsets()
 
         self.position = pygame.math.Vector2()
         self.rays = []
@@ -361,13 +360,17 @@ class RadialLight:
         circle_length = 2 * math.pi * self.length * BLOCK_SIZE
         return int(circle_length // BLOCK_SIZE)
 
-    def _get_offsets(self):
-        return tuple(
-            offset
-            for i in range(self.ray_count)
-            if (
-                offset := pygame.math.Vector2.from_polar(
-                    (self.length, math.degrees(i / self.length))
-                )
-            )
-        )
+    def iter_rays(self, shadow_caster: ShadowCaster):
+        rays: list[bool] = [True for _ in range(self.ray_count + 1)]
+        for layer_index in range(self.length):
+            for ray_index in range(self.ray_count + 1):
+                if rays[ray_index] is True:
+                    angle = (ray_index + 1) / self.length
+                    l = (layer_index + 1) * BLOCK_SIZE
+                    x, y = (l * math.sin(angle), l * math.cos(angle))
+                    x, y = (self.position.x + x, self.position.y + y)
+                    yield (x, y)
+                    x, y = int(x // BLOCK_SIZE), int(y // BLOCK_SIZE)
+                    rays[ray_index] = self._blocks.get_element((x, y)) is None
+                    opacity = 1 - l / (self.length * BLOCK_SIZE)
+                    shadow_caster.set_opacity((x, y), opacity, True)

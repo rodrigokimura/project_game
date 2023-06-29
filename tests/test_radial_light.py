@@ -1,17 +1,24 @@
+from itertools import product
+
 import pytest
 
-from blocks import BaseBlock
+from blocks import BaseBlock, Rock
 from lighting import RadialLight
-from log import log
 from utils.container import Container2d
 
 
 @pytest.fixture
 def blocks():
-    return Container2d((10, 10))
+    blocks = Container2d((10, 10))
+    w, h = blocks.size
+    for coords in product(range(w), range(h)):
+        rock = Rock(coords, 0, 0)
+        blocks.set_element(coords, rock)
+    return blocks
 
 
 def test_radial_light(blocks: Container2d[BaseBlock]):
     radial_light = RadialLight(2, blocks)
-    log(radial_light.offsets)
-    print(len(radial_light.offsets))
+    # radial_light.iter_rays()
+    # for c in radial_light.iter_rays():
+    #     print(c)
