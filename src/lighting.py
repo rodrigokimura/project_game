@@ -188,11 +188,12 @@ class ShadowCaster:
         coords: Coords,
         offset: pygame.math.Vector2,
         display: pygame.surface.Surface,
+        opacity: int,
     ):
-        opacity = self.get_opacity(coords)
-        if opacity < 255:
-            opacity = 255 - opacity
-            self._shadow_img.set_alpha(opacity)
+        _opacity = self.get_opacity(coords) + opacity
+        if _opacity < 255:
+            _opacity = 255 - _opacity
+            self._shadow_img.set_alpha(_opacity)
             display.blit(
                 self._shadow_img,
                 (coords[0] * BLOCK_SIZE + offset.x, coords[1] * BLOCK_SIZE + offset.y),
@@ -352,6 +353,7 @@ class RadialLight:
         self._blocks = blocks
         self.length = length
         self.ray_count = self._get_ray_count()
+        self.opacity: Container2d[float] = Container2d(blocks.size)
 
         self.position = pygame.math.Vector2()
         self.rays = []
@@ -360,7 +362,7 @@ class RadialLight:
         circle_length = 2 * math.pi * self.length * BLOCK_SIZE
         return int(circle_length // BLOCK_SIZE)
 
-    def iter_rays(self, shadow_caster: ShadowCaster):
+    def update(self):
         rays: list[bool] = [True for _ in range(self.ray_count + 1)]
         for layer_index in range(self.length):
             for ray_index in range(self.ray_count + 1):
@@ -373,4 +375,29 @@ class RadialLight:
                     x, y = int(x // BLOCK_SIZE), int(y // BLOCK_SIZE)
                     rays[ray_index] = self._blocks.get_element((x, y)) is None
                     opacity = 1 - l / (self.length * BLOCK_SIZE)
-                    shadow_caster.set_opacity((x, y), opacity, True)
+                    self.set_opacity((x, y), opacity, False)
+
+    def in_range(self, coords: Coords):
+        distance = math.dist(
+            (self.position.x // BLOCK_SIZE, self.position.y // BLOCK_SIZE), coords
+        )
+        return distance <= self.length + 1
+
+    def set_opacity(self, coords: Coords, opacity: float, trunc_max=False):
+        opacity = min(1, opacity)
+        if trunc_max:
+            existing_opacity = self.opacity.get_element(coords) or 0
+            opacity = max(existing_opacity, opacity)
+
+        try:
+            self.opacity.set_element(coords, opacity)
+        except IndexError:
+            ...
+
+    def get_opacity(self, coords: Coords) -> int:
+        _opacity = self.opacity.get_element(coords)
+        if _opacity is None:
+            return 0
+        if self.in_range(coords):
+            return int(_opacity * 255)
+        return 0

@@ -91,6 +91,14 @@ class Camera:
 
     def _draw_visible_area(self):
         margin = 3
+        self.player.light.update()
+        if DEBUG:
+            for x, y in self.player.light.update():
+                pygame.draw.rect(
+                    self.display_surface,
+                    InterfaceColor.HEALTH_POINTS,
+                    (int(x - self.position.x), int(y - self.position.y), 1, 1),
+                )
 
         for coords in product(
             range(
@@ -106,7 +114,12 @@ class Camera:
             if block is not None:
                 self.display_surface.blit(block.image, block.rect.move(-self.position))
 
-            self.shadow_caster.cast(coords, -self.position, self.display_surface)
+            self.shadow_caster.cast(
+                coords,
+                -self.position,
+                self.display_surface,
+                self.player.light.get_opacity(coords),
+            )
 
     def _draw_collectibles(self):
         blit_multiple(
@@ -140,16 +153,6 @@ class Camera:
             self._draw_block_cursor()
         elif self.player.mode == Mode.COMBAT:
             self._draw_aim_assist()
-
-        self.player.light.iter_rays(self.shadow_caster)
-
-        if DEBUG:
-            for x, y in self.player.light.iter_rays(self.shadow_caster):
-                pygame.draw.rect(
-                    self.display_surface,
-                    InterfaceColor.HEALTH_POINTS,
-                    (int(x - self.position.x), int(y - self.position.y), 1, 1),
-                )
 
     def _draw_block_cursor(self):
         if not self.player.cursor_position:
