@@ -54,6 +54,7 @@ class Game:
                     self.main_loop = self.run_menu
 
             dt = self.clock.tick() / 1000
+            pygame.display.set_caption(f'{self.clock.get_fps():.0f}')
 
             self.main_loop(dt)
 
