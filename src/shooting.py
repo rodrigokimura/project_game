@@ -43,6 +43,7 @@ class BaseBullet(pygame.sprite.Sprite):
         return bullet_images[self.__class__]
 
     def update(self, dt: float):
+        self.rect: pygame.rect.Rect
         if self.blocks is None:
             return
         self.position += self.velocity * dt

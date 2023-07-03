@@ -25,6 +25,7 @@ class Particle(pygame.sprite.Sprite):
         self.velocity.from_polar((speed, randint(0, 360)))
 
     def update(self, dt: float):
+        self.rect: pygame.rect.Rect
         if self.velocity is None:
             return
         self.rect.move_ip(self.velocity * dt)

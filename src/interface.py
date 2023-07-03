@@ -60,6 +60,7 @@ class ControllerDetection:
 
     def detect_controller(self):
         # pylint: disable=protected-access
+        # pylint: disable=no-member
         gamepads = pygame._sdl2.controller.get_count()
         if self.gamepad_count != gamepads:
             self.gamepad_count = gamepads
@@ -73,6 +74,7 @@ class ControllerDetection:
     def detect_gamepad(self):
         for id_ in range(self.gamepad_count):
             # pylint: disable=protected-access
+            # pylint: disable=no-member
             gamepad = pygame._sdl2.controller.Controller(id_)
             for button in Button:
                 if gamepad.get_button(button):

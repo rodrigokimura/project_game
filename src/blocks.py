@@ -40,6 +40,7 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         terminal_velocity: int | None = None,
         blocks: Container2d[BaseBlock] | None = None,
     ) -> None:
+        super().__init__(gravity or 0, terminal_velocity or 0)
         self.coords = coords
         self.rect = self.collectible_image.get_rect().copy()
         padding = 1
@@ -53,9 +54,9 @@ class BaseCollectible(GravitySprite, ABC, metaclass=ABCMeta):
         )
         self.pulling_velocity = pygame.math.Vector2()
         self.blocks = blocks
-        super().__init__(gravity or 0, terminal_velocity or 0)
 
     def should_fall(self):
+        self.rect: pygame.rect.Rect
         if self.blocks is None:
             return False
         coords = (

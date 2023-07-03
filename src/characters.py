@@ -233,7 +233,7 @@ class BaseCharacter(
             raise Loadable.UnloadedObject
 
         self.rect.center = (int(self.position.x), int(self.position.y))
-        self.bottom_sprite.rect.topleft = (
+        self.bottom_sprite.rect.topleft = (  # type: ignore
             int(self.position.x - 1),
             int(self.position.y + self.size.y / 2),
         )

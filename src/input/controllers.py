@@ -22,6 +22,8 @@ from input.constants import (
 )
 from settings import BLOCK_SIZE
 
+# pylint: disable=no-member
+
 
 class BaseController(ABC):
     @abstractmethod
