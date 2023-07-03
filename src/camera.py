@@ -164,12 +164,10 @@ class Camera:
     def _draw_aim_assist(self):
         angle_deviation = (1 - self.player.shooting_accuracy) * 90
         _, cursor_angle = self.player.cursor_position.as_polar()
-        aim_max = pygame.math.Vector2.from_polar(
-            (self.player.shooting_range, cursor_angle + angle_deviation)
-        )
-        aim_min = pygame.math.Vector2.from_polar(
-            (self.player.shooting_range, cursor_angle - angle_deviation)
-        )
+        aim_max = pygame.math.Vector2()
+        aim_max.from_polar((self.player.shooting_range, cursor_angle + angle_deviation))
+        aim_min = pygame.math.Vector2()
+        aim_min.from_polar((self.player.shooting_range, cursor_angle - angle_deviation))
         if aim_min and aim_max and self.player.cursor_position:
             pygame.draw.line(
                 self.display_surface,

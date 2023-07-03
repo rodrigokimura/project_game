@@ -11,6 +11,7 @@ class GravitySprite(ABC, pygame.sprite.Sprite):
         self.collidable_sprites_buffer = pygame.sprite.Group()
 
         self.pos = pygame.math.Vector2()
+        self.rect = pygame.rect.Rect(0, 0, 0, 0)
         self.velocity = pygame.math.Vector2()
         self.acceleration = pygame.math.Vector2(0, gravity)
         self.terminal_velocity = terminal_velocity

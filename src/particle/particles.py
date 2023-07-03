@@ -21,7 +21,8 @@ class Particle(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(start_position)
         self.image.fill(color)
         self._max_travel = max_travel
-        self.velocity = pygame.math.Vector2.from_polar((speed, randint(0, 360)))
+        self.velocity = pygame.math.Vector2()
+        self.velocity.from_polar((speed, randint(0, 360)))
 
     def update(self, dt: float):
         if self.velocity is None:

@@ -154,9 +154,8 @@ class BaseCharacter(
         _, shooting_angle = self.cursor_position.as_polar()
         angle_deviation = (1 - self.shooting_accuracy) * 90
         shooting_angle += (random.random() * 2 - 1) * angle_deviation
-        shooting_velocity = pygame.math.Vector2.from_polar(
-            (self.shooting_speed, shooting_angle)
-        )
+        shooting_velocity = pygame.math.Vector2()
+        shooting_velocity.from_polar((self.shooting_speed, shooting_angle))
         if shooting_velocity is None:
             return
 

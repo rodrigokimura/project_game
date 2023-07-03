@@ -20,6 +20,7 @@ class BaseBullet(pygame.sprite.Sprite):
         damage: int,
         max_range: int,
     ) -> None:
+        super().__init__()
         self.size = (3, 3)
         self.source = source
         self.initial_position = position.copy()
@@ -33,7 +34,6 @@ class BaseBullet(pygame.sprite.Sprite):
         self.characters = pygame.sprite.Group()
         self.particle_manager: Manager | None = None
         self.setup()
-        super().__init__()
 
     def setup(self):
         ...

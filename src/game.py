@@ -54,7 +54,7 @@ class Game:
                     self.main_loop = self.run_menu
 
             dt = self.clock.tick() / 1000
-            pygame.display.set_caption(f'{self.clock.get_fps():.0f}')
+            pygame.display.set_caption(f"{self.clock.get_fps():.0f}")
 
             self.main_loop(dt)
 
@@ -69,8 +69,8 @@ class Game:
         pygame.display.set_caption(settings.TITLE)
         size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
         flags = pygame.SCALED | pygame.DOUBLEBUF
-        if not settings.DEBUG:
-            flags |= pygame.FULLSCREEN
+        # if not settings.DEBUG:
+        #     flags |= pygame.FULLSCREEN
         pygame.display.set_mode(size, flags, vsync=1)
 
         self.clock = pygame.time.Clock()
