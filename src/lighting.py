@@ -7,7 +7,7 @@ from typing import Callable
 import pygame
 
 from blocks import BaseBlock
-from settings import BLOCK_SIZE
+from settings import BLOCK_SIZE, DEBUG
 from utils.container import Container2d
 from utils.coords import Coords, neighbors
 
@@ -362,6 +362,7 @@ class RadialLight:
 
         self.position = pygame.math.Vector2()
         self._current_coords: Coords = (0, 0)
+        self.photons: list[Coords] = []
 
     def _get_ray_count(self):
         circle_length = 2 * math.pi * self.length * BLOCK_SIZE
@@ -375,6 +376,8 @@ class RadialLight:
 
     def _update_opacity(self):
         self.opacity.empty()
+        if DEBUG:
+            self.photons = []
 
         rays = copy.copy(self._initial_rays_state)
         for layer, ray in product(range(self.length), range(self.ray_count + 1)):
@@ -385,14 +388,16 @@ class RadialLight:
             length = (layer + 1) * BLOCK_SIZE
 
             x, y = (length * math.sin(angle), length * math.cos(angle))
-            real_coords = (self.position.x + x, self.position.y + y)
+            real_coords = (int(self.position.x + x), int(self.position.y + y))
+            if DEBUG:
+                self.photons.append(real_coords)
 
             # occlude next tiles when block is found for this ray
             rays[ray] = (
                 self._blocks.get_element(
                     (
-                        int(real_coords[0] // BLOCK_SIZE),
-                        int(real_coords[1] // BLOCK_SIZE),
+                        real_coords[0] // BLOCK_SIZE,
+                        real_coords[1] // BLOCK_SIZE,
                     )
                 )
                 is None

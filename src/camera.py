@@ -112,6 +112,12 @@ class Camera:
                 self.display_surface,
                 self.player.light.get_opacity(coords),
             )
+        if DEBUG:
+            for photon in self.player.light.photons:
+                photon = photon[0] - self.position.x, photon[1] - self.position.y
+                pygame.draw.line(
+                    self.display_surface, InterfaceColor.HEALTH_POINTS, photon, photon
+                )
 
     def _draw_collectibles(self):
         blit_multiple(
