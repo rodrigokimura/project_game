@@ -1,5 +1,6 @@
 from typing import Callable
 
+import moderngl as mgl
 import pygame
 import pygame._sdl2.controller
 
@@ -8,6 +9,7 @@ from characters import Player
 from input.constants import Controller
 from interface import ControllerDetection, Menu
 from level import Level
+from utils.open_gl import set_gl_attrs
 
 # pylint: disable=no-member
 
@@ -26,6 +28,7 @@ class Game:
     menu: Menu
 
     def run(self):
+        print(f"Pygame version: {pygame.version.ver}")
         self.setup()
 
         running = True
@@ -38,12 +41,12 @@ class Game:
                     self.main_loop = self.run_menu
 
                 elif event.type == self.NEW_GAME:
-                    self.level = Level(self.controller)
+                    self.level = Level(self.ctx, self.controller)
                     self.internal_events = Player.EVENTS
                     self.main_loop = self.run_level
 
                 elif event.type == self.LOAD_GAME:
-                    self.level = Level.from_storage(self.controller)
+                    self.level = Level.from_storage(self.ctx, self.controller)
                     self.internal_events = Player.EVENTS
                     self.main_loop = self.run_level
 
@@ -58,20 +61,26 @@ class Game:
 
             self.main_loop(dt)
 
-            pygame.display.update()
+            pygame.display.flip()
 
         pygame.quit()
 
     def setup(self):
         pygame.init()
         pygame._sdl2.controller.init()  # pylint: disable=protected-access
+        set_gl_attrs()
 
         pygame.display.set_caption(settings.TITLE)
         size = (settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT)
-        flags = pygame.SCALED | pygame.DOUBLEBUF
-        if not settings.DEBUG:
-            flags |= pygame.FULLSCREEN
+        flags = pygame.DOUBLEBUF | pygame.OPENGL
+
+        # if not settings.DEBUG:
+        #     flags |= pygame.FULLSCREEN
+
         pygame.display.set_mode(size, flags, vsync=1)
+
+        self.ctx = mgl.create_context()
+        self.ctx.gc_mode = "auto"
 
         self.clock = pygame.time.Clock()
         self.internal_events = []
@@ -82,9 +91,10 @@ class Game:
                 "load game": self.LOAD_GAME,
                 "settings": self.NEW_GAME,
                 "exit": self.EXIT,
-            }
+            },
+            self.ctx,
         )
-        self.controller_detection = ControllerDetection()
+        self.controller_detection = ControllerDetection(self.ctx)
 
         self.main_loop = self.run_controller_detection
 

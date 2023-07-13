@@ -3,16 +3,17 @@ from pathlib import Path
 
 DEBUG = bool(os.getenv("DEBUG", ""))
 
+BASE_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+
 BLOCK_SIZE = 16
 
 TITLE = "Project Game"
 
 SCREEN_WIDTH = 80 * BLOCK_SIZE  # 1280
 SCREEN_HEIGHT = 45 * BLOCK_SIZE  # 720
-# if DEBUG:
-# else:
-#     SCREEN_WIDTH = 120 * BLOCK_SIZE  # 1920
-#     SCREEN_HEIGHT = int(67.5 * BLOCK_SIZE)  # 1080
+
+# SCREEN_WIDTH = 120 * BLOCK_SIZE  # 1920
+# SCREEN_HEIGHT = int(67.5 * BLOCK_SIZE)  # 1080
 
 WORLD_SIZE = 8 * 80, 8 * 45
 if DEBUG:

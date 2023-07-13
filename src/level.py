@@ -1,6 +1,7 @@
 import enum
 
 import pygame
+from moderngl import Context
 
 from blocks import draw_cached_images
 from camera import Camera
@@ -34,17 +35,19 @@ class Level:
     EVENTS = [FINISHED, RESUME, SAVE]
 
     @classmethod
-    def from_storage(cls, controller: Controller):
+    def from_storage(cls, ctx: Context, controller: Controller):
         world = WorldStorage().get_newest()
         player = PlayerStorage().get_newest()
-        return cls(controller, world, player)
+        return cls(ctx, controller, world, player)
 
     def __init__(
         self,
+        ctx: Context,
         controller: Controller,
         world: World | None = None,
         player: Player | None = None,
     ) -> None:
+        self.ctx = ctx
         draw_cached_images()
         self.status = Level.Status.LOADING
         self.display_surface = pygame.display.get_surface()
@@ -53,7 +56,8 @@ class Level:
                 "resume": self.RESUME,
                 "save game": self.SAVE,
                 "exit": self.FINISHED,
-            }
+            },
+            ctx,
         )
         self.pause_menu.set_controller(controller)
         self.setup(controller, world, player)
@@ -90,6 +94,7 @@ class Level:
         self.world.characters_buffer.add(enemy)
 
         self.camera = Camera(
+            self.ctx,
             (SCREEN_WIDTH, SCREEN_HEIGHT),
             self.player,
             self.world,
@@ -100,7 +105,7 @@ class Level:
             ],
             self.world.characters_buffer.sprites(),
         )
-        self.loader = Loader(self.world, self.camera.shadow_caster)
+        self.loader = Loader(self.ctx, self.world, self.camera.shadow_caster)
 
     def run(self, dt: float):
         if self.status == Level.Status.LOADING:

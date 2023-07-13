@@ -2,6 +2,7 @@ from itertools import product
 from typing import Iterable
 
 import pygame
+from moderngl import Context
 from numpy import divide
 
 from background import BackgroundResolver
@@ -12,6 +13,7 @@ from interface import BaseInterfaceElement
 from lighting import ShadowCaster
 from log import log
 from settings import BLOCK_SIZE, DEBUG
+from shaders.shader import TextureShader
 from utils.blit import blit_multiple
 from world import World
 
@@ -19,12 +21,14 @@ from world import World
 class Camera:
     def __init__(
         self,
+        ctx: Context,
         size: tuple[int, int],
         player: BaseCharacter,
         world: World,
         interface_elements: Iterable[BaseInterfaceElement] | None = None,
         characters: list[BaseCharacter] | None = None,
     ) -> None:
+        self.ctx = ctx
         self.width, self.height = size
         self.rect = pygame.rect.Rect(0, 0, self.width, self.height)
         self.position = pygame.math.Vector2()
@@ -37,6 +41,7 @@ class Camera:
         self.background_resolver = BackgroundResolver()
         self.shadow_caster = ShadowCaster(self.world.blocks, self.rect)
         self._setup()
+        self.shader = TextureShader(self.ctx)
 
     def _setup(self):
         self.highlight = pygame.surface.Surface(
@@ -64,6 +69,7 @@ class Camera:
         self._draw_visible_area()
         self._draw_interface_elements()
         self._draw_player_cursor()
+        self.shader.render(self.display_surface)
 
     def _update_rect(self):
         self.rect.center = self.player.rect.center

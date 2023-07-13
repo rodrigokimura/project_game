@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 import pygame
 import pygame.freetype
+from moderngl import Context
 
 from background import Background, Mountains
 from blocks import BaseBlock, BaseCollectible, Rock, Spike, Tree, make_block
@@ -15,6 +16,7 @@ from draw import BorderOptions, FillBorderColors, draw_bordered_rect
 from lighting import ShadowCaster
 from particle.emitters import Manager
 from settings import BLOCK_SIZE, DAY_DURATION, MENU_FONT, WORLD_SIZE
+from shaders.shader import TextureShader
 from shooting import BaseBullet
 from utils.container import Container2d
 from utils.coords import Coords
@@ -23,12 +25,12 @@ from utils.coords import Coords
 class Loader:
     LOADED = pygame.event.custom_type()
 
-    def __init__(self, world: World, shadow_caster: ShadowCaster) -> None:
+    def __init__(self, ctx: Context, world: World, shadow_caster: ShadowCaster) -> None:
         self.world = world
         self._font = pygame.freetype.Font(MENU_FONT, 50)
         self._font.antialiased = False
         self._font.pad = True
-        self.display = pygame.display.get_surface()
+        self.display = pygame.surface.Surface(pygame.display.get_surface().get_size())
 
         self._step_progress = 0
         self._steps = [
@@ -38,6 +40,7 @@ class Loader:
         ]
         self.shadow_caster = shadow_caster
         self.world.set_shadow_caster(shadow_caster)
+        self.shader = TextureShader(ctx)
 
     def load(self):
         self.shadow_caster.setup()
@@ -47,7 +50,7 @@ class Loader:
 
     def _draw_static(self):
         self.display.fill(InterfaceColor.MENU_BACKGROUND)
-        pygame.display.update()
+        # pygame.display.flip()
 
     def _load_world(self):
         for _, step in enumerate(self._steps):
@@ -75,24 +78,22 @@ class Loader:
     ):
         progress_per_step = 1 / len(self._steps)
         progress = step_progress * progress_per_step + (step_index * progress_per_step)
-        rect = self._font.render_to(
+        self._font.render_to(
             self.display,
             (0, 0),
             message,
             InterfaceColor.PRIMARY_FONT,
             InterfaceColor.MENU_BACKGROUND,
         )
-        pygame.display.update(rect)
 
         text = f"Progress: {progress:.0%}"
-        rect = self._font.render_to(
+        self._font.render_to(
             self.display,
             (0, 50),
             text,
             InterfaceColor.PRIMARY_FONT,
             InterfaceColor.MENU_BACKGROUND,
         )
-        pygame.display.update(rect)
         progress_bar_rect = pygame.rect.Rect((0, 120), (1000, 20))
         progress_bar_fill_rect = pygame.rect.Rect(
             (0, 120), (progress_bar_rect.width * progress, 20)
@@ -109,7 +110,7 @@ class Loader:
             FillBorderColors(InterfaceColor.HEALTH_POINTS, InterfaceColor.BORDER),
             BorderOptions(1, 0),
         )
-        pygame.display.update(progress_bar_rect)
+        self.shader.render(self.display)
 
     def _finish(self):
         event = pygame.event.Event(self.LOADED)

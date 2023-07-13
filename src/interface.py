@@ -4,6 +4,7 @@ from typing import Any
 import pygame
 import pygame._sdl2.controller
 import pygame.freetype
+from moderngl import Context
 
 from characters import BaseCharacter
 from colors import Color, InterfaceColor
@@ -16,6 +17,7 @@ from input.controllers import (
     MenuControllable,
 )
 from settings import CONSOLE_FONT, DEFAULT_FONT, MENU_FONT
+from shaders.shader import TextureShader
 from utils.timer import Timer
 from world import World
 
@@ -24,13 +26,14 @@ class ControllerDetection:
     CONTROLLER_DETECTED = pygame.event.custom_type()
     EVENTS = [CONTROLLER_DETECTED]
 
-    def __init__(self) -> None:
+    def __init__(self, ctx: Context) -> None:
         self.gamepad_count = 0
-        self.display = pygame.display.get_surface()
+        self.display = pygame.surface.Surface(pygame.display.get_surface().get_size())
         self.timer = Timer(0.2, self._toggle_animation_state)
         self.timer.start()
         self._draw_static()
         self._on = True
+        self.shader = TextureShader(ctx)
 
     def _toggle_animation_state(self):
         self._on = not self._on
@@ -57,6 +60,7 @@ class ControllerDetection:
             self.display.blit(self.text_surf, self.text_rect)
         else:
             self.display.fill(InterfaceColor.MENU_BACKGROUND)
+        self.shader.render(self.display)
 
     def detect_controller(self):
         # pylint: disable=protected-access
@@ -133,14 +137,16 @@ class Menu(MenuControllable):
             )
             return super().update(*args, **kwargs)
 
-    def __init__(self, items: dict[str, int]) -> None:
+    def __init__(self, items: dict[str, int], ctx: Context) -> None:
         self._items = [self.Item(txt, id) for txt, id in items.items()]
         self.all_items = pygame.sprite.Group()
         self.all_items.add(self._items)
 
-        self.display = pygame.display.get_surface()
-        self.static_image = pygame.surface.Surface(self.display.get_size())
+        self.display = pygame.surface.Surface(pygame.display.get_surface().get_size())
+        self.static_image = self.display.copy()
         self.highlighted_item = 0
+        self.shader = TextureShader(ctx)
+        self.ctx = ctx
         self.draw_static()
 
     def draw_static(self):
@@ -172,6 +178,7 @@ class Menu(MenuControllable):
         self.all_items.update()
         self.display.blit(self.static_image, (0, 0))
         self.display.blits(tuple((s.image, s.rect) for s in self.all_items))
+        self.shader.render(self.display)
 
     def highlight_prev(self):
         self.highlight_item(self.highlighted_item - 1)
